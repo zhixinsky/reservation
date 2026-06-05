@@ -15,7 +15,7 @@
 
 .tab-capsule {
   width: 398rpx;
-  height: 76rpx;
+  height: 80rpx;
   padding: 8rpx;
   border-radius: 999rpx;
   background: rgba(255, 255, 255, 0.82);
@@ -29,7 +29,7 @@
 
 .tab-item {
   width: 188rpx;
-  height: 60rpx;
+  height: 64rpx;
   border-radius: 999rpx;
   display: flex;
   align-items: center;
@@ -44,16 +44,17 @@
   color: #2D6A4F;
 }
 
-.tab-dot {
-  width: 8rpx;
-  height: 8rpx;
-  border-radius: 50%;
-  background: transparent;
-  margin-right: 10rpx;
+.tab-icon {
+  width: 34rpx;
+  margin-right: 8rpx;
+  font-size: 28rpx;
+  line-height: 1;
+  text-align: center;
+  color: #9CA8A0;
 }
 
-.tab-item.active .tab-dot {
-  background: #2D6A4F;
+.tab-item.active .tab-icon {
+  color: #2D6A4F;
 }
 
 .tab-text {

@@ -1,7 +1,7 @@
 <cover-view class="tab-shell {{visible ? '' : 'hidden'}}">
   <cover-view class="tab-capsule">
     <cover-view wx:for="{{list}}" wx:key="pagePath" class="tab-item {{selected === index ? 'active' : ''}}" data-index="{{index}}" data-path="{{item.pagePath}}" bindtap="switchTab">
-      <cover-view class="tab-dot"></cover-view>
+      <cover-view class="tab-icon">{{item.icon}}</cover-view>
       <cover-view class="tab-text">{{item.text}}</cover-view>
     </cover-view>
   </cover-view>
