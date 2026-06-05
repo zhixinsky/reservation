@@ -19,6 +19,9 @@ COPY . .
 # 创建必要的目录（数据库文件将存储在这里）
 RUN mkdir -p /app/data
 
+# 初始化默认公告（与 H5 本地 data/announcement.json 一致）
+COPY announcement.default.json /app/data/announcement.json
+
 # 设置数据目录权限
 RUN chmod 755 /app/data
 

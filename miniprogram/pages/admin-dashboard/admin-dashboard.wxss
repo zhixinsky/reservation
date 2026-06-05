@@ -6,49 +6,44 @@
   color: #2D4339;
 }
 
-.header {
+.header-actions {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20rpx;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 16rpx;
   margin-bottom: 28rpx;
 }
 
-.brand-title {
-  font-family: "Songti SC", "STSong", serif;
-  font-size: 42rpx;
-  font-weight: 700;
-  color: #2D4339;
-}
-
-.brand-subtitle {
-  color: #7FA998;
+.action-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 20rpx 12rpx;
+  border-radius: 20rpx;
+  background: #E8F3EE;
+  color: #4F7D6B;
   font-size: 24rpx;
-  margin-top: 6rpx;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
 }
 
-.header-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 12rpx;
+.action-btn.home {
+  background: #F3EDE7;
+  color: #8A6B4D;
 }
 
-.pill-btn,
-.logout-btn,
 .refresh-btn {
-  min-width: 116rpx;
-  padding: 14rpx 20rpx;
-  border-radius: 28rpx;
+  flex-shrink: 0;
+  width: auto;
+  padding: 10rpx 22rpx;
+  border-radius: 20rpx;
   background: #E8F3EE;
   color: #4F7D6B;
   font-size: 23rpx;
   font-weight: 700;
-}
-
-.logout-btn {
-  background: #F3EDE7;
-  color: #8A6B4D;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .stats-grid {
@@ -95,9 +90,86 @@
   margin-bottom: 20rpx;
 }
 
+.slot-toolbar {
+  position: relative;
+  z-index: 30;
+  gap: 16rpx;
+}
+
+.slot-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-width: 0;
+  flex: 1;
+}
+
+.slot-date-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.slot-date-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 18rpx;
+  border: 1rpx solid #DDE9E2;
+  border-radius: 16rpx;
+  background: #ffffff;
+  color: #4F7D6B;
+  font-size: 24rpx;
+  font-weight: 700;
+  box-shadow: 0 4rpx 10rpx rgba(127, 169, 152, 0.1);
+}
+
+.slot-date-arrow {
+  font-size: 20rpx;
+  color: #8CA097;
+  transition: transform 0.2s ease;
+}
+
+.slot-date-arrow.open {
+  transform: rotate(180deg);
+}
+
+.slot-date-menu {
+  position: absolute;
+  top: calc(100% + 8rpx);
+  left: 0;
+  min-width: 140rpx;
+  background: #ffffff;
+  border: 1rpx solid #DDE9E2;
+  border-radius: 16rpx;
+  box-shadow: 0 10rpx 28rpx rgba(45, 67, 57, 0.12);
+  overflow: hidden;
+  z-index: 40;
+}
+
+.slot-date-option {
+  padding: 18rpx 24rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #4F7D6B;
+  text-align: center;
+}
+
+.slot-date-option.active {
+  background: #E8F3EE;
+  color: #2D6A4F;
+}
+
+.slot-date-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: transparent;
+}
+
 .section-title {
   font-size: 32rpx;
   font-weight: 800;
+  flex-shrink: 0;
 }
 
 .last-time {
@@ -215,17 +287,6 @@
 .small-btn.muted {
   background: #EEF4F0;
   color: #4F7D6B;
-}
-
-.picker-row {
-  display: inline-flex;
-  padding: 14rpx 24rpx;
-  border-radius: 18rpx;
-  background: #F3F8F5;
-  color: #4F7D6B;
-  font-weight: 800;
-  font-size: 24rpx;
-  margin-bottom: 20rpx;
 }
 
 .slots-grid {

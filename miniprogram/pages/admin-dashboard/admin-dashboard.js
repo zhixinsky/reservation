@@ -47,6 +47,7 @@ Page({
     ],
     slotDateIndex: 0,
     selectedSlotDateLabel: '今天',
+    slotDateMenuVisible: false,
     slotItems: [],
     modalMask: false,
     vacationVisible: false,
@@ -178,11 +179,24 @@ Page({
     });
   },
 
-  onSlotDateChange(e) {
-    const slotDateIndex = Number(e.detail.value);
+  toggleSlotDateMenu() {
+    this.setData({ slotDateMenuVisible: !this.data.slotDateMenuVisible });
+  },
+
+  closeSlotDateMenu() {
+    if (this.data.slotDateMenuVisible) {
+      this.setData({ slotDateMenuVisible: false });
+    }
+  },
+
+  selectSlotDate(e) {
+    const slotDateIndex = Number(e.currentTarget.dataset.index);
+    const option = this.data.slotDateOptions[slotDateIndex];
+    if (!option) return;
     this.setData({
       slotDateIndex,
-      selectedSlotDateLabel: this.data.slotDateOptions[slotDateIndex].label
+      selectedSlotDateLabel: option.label,
+      slotDateMenuVisible: false
     });
     this.loadTimeSlots();
   },

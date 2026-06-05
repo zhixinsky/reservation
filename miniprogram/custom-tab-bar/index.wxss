@@ -46,19 +46,114 @@
   color: #2D6A4F;
 }
 
-.tab-icon {
-  width: 32rpx;
-  margin-right: 10rpx;
-  font-size: 30rpx;
-  line-height: 1;
-  text-align: center;
-  color: #9CA8A0;
-}
-
-.tab-item.active .tab-icon {
-  color: #2D6A4F;
-}
-
 .tab-text {
   line-height: 1;
+}
+
+/* 预约：日历图标 */
+.tab-icon-book {
+  position: relative;
+  width: 34rpx;
+  height: 34rpx;
+  margin-right: 10rpx;
+}
+
+.book-hook {
+  position: absolute;
+  top: 1rpx;
+  width: 4rpx;
+  height: 9rpx;
+  border-radius: 2rpx;
+  background: #9CA8A0;
+}
+
+.book-hook-l {
+  left: 8rpx;
+}
+
+.book-hook-r {
+  right: 8rpx;
+}
+
+.book-panel {
+  position: absolute;
+  left: 2rpx;
+  right: 2rpx;
+  bottom: 0;
+  top: 8rpx;
+  border-radius: 8rpx;
+  border: 3rpx solid #9CA8A0;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.book-header {
+  height: 8rpx;
+  background: #9CA8A0;
+}
+
+.book-dot-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 5rpx;
+}
+
+.book-dot {
+  width: 5rpx;
+  height: 5rpx;
+  margin: 0 2rpx;
+  border-radius: 50%;
+  background: #9CA8A0;
+}
+
+.tab-item.active .book-hook,
+.tab-item.active .book-header,
+.tab-item.active .book-dot {
+  background: #2D6A4F;
+}
+
+.tab-item.active .book-panel {
+  border-color: #2D6A4F;
+  background: rgba(232, 245, 233, 0.45);
+}
+
+/* 我的：用户图标 */
+.tab-icon-user {
+  position: relative;
+  width: 34rpx;
+  height: 34rpx;
+  margin-right: 10rpx;
+}
+
+.user-head {
+  position: absolute;
+  top: 2rpx;
+  left: 50%;
+  width: 14rpx;
+  height: 14rpx;
+  margin-left: -7rpx;
+  border-radius: 50%;
+  border: 3rpx solid #9CA8A0;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.user-body {
+  position: absolute;
+  left: 4rpx;
+  right: 4rpx;
+  bottom: 1rpx;
+  height: 14rpx;
+  border: 3rpx solid #9CA8A0;
+  border-bottom: 0;
+  border-radius: 12rpx 12rpx 0 0;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.tab-item.active .user-head,
+.tab-item.active .user-body {
+  border-color: #2D6A4F;
 }

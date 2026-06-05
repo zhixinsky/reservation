@@ -10,11 +10,11 @@
 
     <view class="announcement-bar">
       <view class="announcement-inner">
-        <text class="announcement-icon">⌾</text>
-        <view class="announcement-wrap {{announcementScrollable ? 'scrollable' : ''}}">
+        <image class="announcement-icon" src="/images/bell.svg" mode="aspectFit"></image>
+        <view class="announcement-wrap {{announcementScrollable ? 'scrollable' : ''}}" id="announcementWrap">
           <view class="announcement-track">
-            <text class="announcement-text">{{announcementText}}</text>
-            <text class="announcement-text duplicate">{{announcementText}}</text>
+            <view class="announcement-text" id="announcementText">{{announcementText}}</view>
+            <view class="announcement-text duplicate">{{announcementText}}</view>
           </view>
         </view>
       </view>

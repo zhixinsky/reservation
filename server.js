@@ -1161,6 +1161,7 @@ app.post('/api/admin/stylist/vacation', requireAuth, (req, res) => {
 // ========== 公告 API ==========
 const dataDir = path.join(__dirname, 'data');
 const announcementFile = path.join(dataDir, 'announcement.json');
+const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间 11:00-22:00，请提前预约到店！';
 
 function getAnnouncement() {
     try {
@@ -1172,7 +1173,7 @@ function getAnnouncement() {
     } catch (e) {
         console.error('读取公告失败:', e.message);
     }
-    return '';
+    return DEFAULT_ANNOUNCEMENT_TEXT;
 }
 
 function saveAnnouncement(text) {

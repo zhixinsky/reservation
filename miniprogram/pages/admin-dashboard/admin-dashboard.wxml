@@ -1,14 +1,8 @@
 <view class="admin-page">
-  <view class="header">
-    <view>
-      <view class="brand-title">欧诺造型</view>
-      <view class="brand-subtitle">发型师管理</view>
-    </view>
-    <view class="header-actions">
-      <button class="pill-btn" bindtap="openVacationModal">休假设置</button>
-      <button class="pill-btn" bindtap="openAnnouncementModal">公告设置</button>
-      <button class="logout-btn" bindtap="goHome">返回首页</button>
-    </view>
+  <view class="header-actions">
+    <button class="action-btn" bindtap="openVacationModal">休假设置</button>
+    <button class="action-btn" bindtap="openAnnouncementModal">公告设置</button>
+    <button class="action-btn home" bindtap="goHome">返回首页</button>
   </view>
 
   <view class="stats-grid">
@@ -29,7 +23,7 @@
   <view class="section">
     <view class="section-header">
       <view class="section-title">预约列表 <text class="last-time">{{lastUpdateTime}}</text></view>
-      <button class="refresh-btn" bindtap="loadAppointments">刷新</button>
+      <view class="refresh-btn" bindtap="loadAppointments">刷新</view>
     </view>
     <view class="tabs">
       <view wx:for="{{filters}}" wx:key="key" class="tab {{currentFilter === item.key ? 'active' : ''}}" bindtap="setFilter" data-key="{{item.key}}">{{item.label}}</view>
@@ -55,13 +49,28 @@
   </view>
 
   <view class="section">
-    <view class="section-header">
-      <view class="section-title">时间段管理</view>
-      <button class="refresh-btn" bindtap="loadTimeSlots">刷新</button>
+    <view class="section-header slot-toolbar">
+      <view class="slot-toolbar-left">
+        <view class="section-title">时间段管理</view>
+        <view class="slot-date-dropdown">
+          <view class="slot-date-trigger" bindtap="toggleSlotDateMenu">
+            <text>{{selectedSlotDateLabel}}</text>
+            <text class="slot-date-arrow {{slotDateMenuVisible ? 'open' : ''}}">▾</text>
+          </view>
+          <view wx:if="{{slotDateMenuVisible}}" class="slot-date-menu">
+            <view
+              wx:for="{{slotDateOptions}}"
+              wx:key="key"
+              class="slot-date-option {{slotDateIndex === index ? 'active' : ''}}"
+              bindtap="selectSlotDate"
+              data-index="{{index}}"
+            >{{item.label}}</view>
+          </view>
+        </view>
+      </view>
+      <view class="refresh-btn" bindtap="loadTimeSlots">刷新</view>
     </view>
-    <picker mode="selector" range="{{slotDateOptions}}" range-key="label" value="{{slotDateIndex}}" bindchange="onSlotDateChange">
-      <view class="picker-row">{{selectedSlotDateLabel}}</view>
-    </picker>
+    <view wx:if="{{slotDateMenuVisible}}" class="slot-date-mask" bindtap="closeSlotDateMenu"></view>
     <view class="slots-grid">
       <view wx:for="{{slotItems}}" wx:key="time" class="slot {{item.adminClass}}" bindtap="toggleSlot" data-time="{{item.time}}" data-can-toggle="{{item.canToggle}}">
         <view>{{item.displayTime}}</view>

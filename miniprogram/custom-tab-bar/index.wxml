@@ -1,7 +1,22 @@
 <cover-view class="tab-shell {{visible ? '' : 'hidden'}}">
   <cover-view class="tab-capsule">
     <cover-view wx:for="{{list}}" wx:key="pagePath" class="tab-item {{selected === index ? 'active' : ''}}" data-index="{{index}}" data-path="{{item.pagePath}}" bindtap="switchTab">
-      <cover-view class="tab-icon">{{item.icon}}</cover-view>
+      <cover-view wx:if="{{index === 0}}" class="tab-icon-book">
+        <cover-view class="book-hook book-hook-l"></cover-view>
+        <cover-view class="book-hook book-hook-r"></cover-view>
+        <cover-view class="book-panel">
+          <cover-view class="book-header"></cover-view>
+          <cover-view class="book-dot-row">
+            <cover-view class="book-dot"></cover-view>
+            <cover-view class="book-dot"></cover-view>
+            <cover-view class="book-dot"></cover-view>
+          </cover-view>
+        </cover-view>
+      </cover-view>
+      <cover-view wx:else class="tab-icon-user">
+        <cover-view class="user-head"></cover-view>
+        <cover-view class="user-body"></cover-view>
+      </cover-view>
       <cover-view class="tab-text">{{item.text}}</cover-view>
     </cover-view>
   </cover-view>

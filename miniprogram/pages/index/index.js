@@ -1,5 +1,8 @@
 const { callApi } = require('../../utils/api');
 
+const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间 11:00-22:00，请提前预约到店！';
+const EMPTY_ANNOUNCEMENT_TEXT = '暂无公告';
+
 function pad2(n) {
   return String(n).padStart(2, '0');
 }
@@ -58,7 +61,7 @@ function serviceTypeText(serviceType) {
 
 Page({
   data: {
-    announcementText: '暂无公告',
+    announcementText: DEFAULT_ANNOUNCEMENT_TEXT,
     announcementScrollable: false,
     bookingDisabled: false,
     stylistId: null,
@@ -103,6 +106,11 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 0 });
     }
+    wx.nextTick(() => this.updateAnnouncementScrollable());
+  },
+
+  onReady() {
+    wx.nextTick(() => this.updateAnnouncementScrollable());
   },
 
   onHide() {
@@ -139,16 +147,38 @@ Page({
     }
   },
 
+  updateAnnouncementScrollable() {
+    const query = this.createSelectorQuery();
+    query.select('#announcementWrap').boundingClientRect();
+    query.select('#announcementText').boundingClientRect();
+    query.exec((res) => {
+      const wrap = res && res[0];
+      const text = res && res[1];
+      if (!wrap || !text || !wrap.width) return;
+      const scrollable = text.width > wrap.width;
+      if (scrollable !== this.data.announcementScrollable) {
+        this.setData({ announcementScrollable: scrollable });
+      }
+    });
+  },
+
   async loadAnnouncement() {
     try {
       const data = await this.callApi('getAnnouncement');
-      const text = data && data.text && data.text.trim() ? data.text.trim() : '暂无公告';
+      const text = data && data.text && data.text.trim() ? data.text.trim() : EMPTY_ANNOUNCEMENT_TEXT;
       this.setData({
         announcementText: text,
-        announcementScrollable: text.length > 18
+        announcementScrollable: false
+      }, () => {
+        wx.nextTick(() => this.updateAnnouncementScrollable());
       });
     } catch (e) {
-      this.setData({ announcementText: '暂无公告', announcementScrollable: false });
+      this.setData({
+        announcementText: DEFAULT_ANNOUNCEMENT_TEXT,
+        announcementScrollable: false
+      }, () => {
+        wx.nextTick(() => this.updateAnnouncementScrollable());
+      });
     }
   },
 

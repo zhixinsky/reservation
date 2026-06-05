@@ -5,12 +5,10 @@ Component({
     list: [
       {
         pagePath: '/pages/index/index',
-        icon: '⌂',
         text: '预约'
       },
       {
         pagePath: '/pages/my/my',
-        icon: '☰',
         text: '我的'
       }
     ]
