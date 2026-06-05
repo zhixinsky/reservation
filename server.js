@@ -25,10 +25,9 @@ function hasWechatCloudCert() {
     }
 }
 
-/** 云托管开启「开放接口服务」后，应走 HTTP 云调用，无需 access_token */
+/** 仅当显式开启时才走 HTTP 云调用；证书存在不代表开放接口服务已配置完成 */
 function useWechatCloudOpenApi() {
-    if (process.env.WX_USE_OPENAPI === '0') return false;
-    return process.env.WX_USE_OPENAPI === '1' || hasWechatCloudCert();
+    return process.env.WX_USE_OPENAPI === '1';
 }
 
 function getWechatApiBaseUrl() {
@@ -43,6 +42,18 @@ function getWechatRequestConfig() {
         });
     }
     return config;
+}
+
+function formatWechatApiError(e) {
+    const status = e.response && e.response.status;
+    const wechatMsg = e.response && e.response.data && (e.response.data.errmsg || e.response.data.message);
+    if (status === 502) {
+        return '微信接口网关异常(502)。若已开启开放接口服务，请确认权限含 /wxa/business/getuserphonenumber 并重新发布版本；否则请配置 WX_APPSECRET 后重试';
+    }
+    if (wechatMsg) return wechatMsg;
+    if (e.message && e.message.includes('未配置 WX_APPSECRET')) return e.message;
+    if (e.message && !/status code \d+/.test(e.message)) return e.message;
+    return '获取手机号失败，请稍后重试';
 }
 
 async function getWechatAccessToken() {
@@ -100,9 +111,12 @@ app.post('/api/wechat/phone-number', async (req, res) => {
         console.error('获取微信手机号失败:', {
             message: e.message,
             code: e.code,
-            response: e.response && e.response.data
+            status: e.response && e.response.status,
+            response: e.response && e.response.data,
+            useOpenApi: useWechatCloudOpenApi(),
+            hasCloudCert: hasWechatCloudCert()
         });
-        res.json({ success: false, message: e.message || '获取手机号失败' });
+        res.json({ success: false, message: formatWechatApiError(e) });
     }
 });
 

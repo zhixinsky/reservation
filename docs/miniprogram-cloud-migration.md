@@ -42,14 +42,23 @@ WX_APPSECRET=你的小程序 AppSecret
 
 手机号快速验证：小程序前端只拿手机号授权 `code`，后端调用微信 `getuserphonenumber` 接口换取手机号。
 
-### 云托管手机号证书问题
+### 云托管手机号接口问题
 
-如果在云托管环境出现 `self-signed certificate` 错误，说明 Node.js 不信任云托管注入的微信 API 代理证书。请按以下步骤处理：
+云托管调用微信接口有两种方式，二选一即可：
+
+**方式 A（推荐，默认）：HTTPS + WX_APPSECRET**
+
+1. 在云托管环境变量配置 `WX_APPSECRET`（小程序 AppSecret）。
+2. 重新发布服务版本。`Dockerfile` 已配置 `NODE_EXTRA_CA_CERTS`，`server.js` 会自动信任云托管注入证书，解决 `self-signed certificate`。
+
+**方式 B：HTTP 开放接口服务（免 AppSecret）**
 
 1. 在云托管控制台打开 **云调用 → 开放接口服务** 开关。
 2. 在权限配置中加入接口：`/wxa/business/getuserphonenumber`。
-3. **重新发布服务版本**（仅改环境变量不够，必须重新构建版本）。
-4. 项目 `Dockerfile` 已配置 `NODE_EXTRA_CA_CERTS=/app/cert/certificate.crt`，`server.js` 会自动优先走 HTTP 云调用（免 `access_token`）。
+3. 环境变量设置 `WX_USE_OPENAPI=1`。
+4. **重新发布服务版本**（仅改变量不够，必须重新构建版本）。
+
+若出现 `502`，通常是走了方式 B 但开放接口服务未正确生效；去掉 `WX_USE_OPENAPI` 并配置 `WX_APPSECRET` 即可回到方式 A。
 
 本地开发不走云调用，仍需配置 `WX_APPSECRET`。
 
