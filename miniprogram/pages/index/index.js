@@ -1,0 +1,685 @@
+const PHONE_RE = /^1[3-9]\d{9}$/;
+const { callApi } = require('../../utils/api');
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function ymdFromDate(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function formatDateText(ymd) {
+  const parts = String(ymd || '').split('-');
+  if (parts.length < 3) return ymd || '';
+  return `${parts[1]}/${parts[2]}`;
+}
+
+function formatTimeDisplay(timeStr) {
+  if (!timeStr) return '';
+  const firstTime = String(timeStr).split(',')[0].trim();
+  return firstTime.split('-')[0] || firstTime;
+}
+
+function getVacationRanges(stylist) {
+  if (!stylist) return [];
+  if (Array.isArray(stylist.vacationRanges)) return stylist.vacationRanges;
+  if (stylist.vacationStartDate && stylist.vacationEndDate) {
+    return [{ vacationStartDate: stylist.vacationStartDate, vacationEndDate: stylist.vacationEndDate }];
+  }
+  return [];
+}
+
+function isYmdInVacation(stylist, ymd) {
+  return getVacationRanges(stylist).some(r => r.vacationStartDate && r.vacationEndDate && ymd >= r.vacationStartDate && ymd <= r.vacationEndDate);
+}
+
+function hasBookableDayInThreeDayWindow(stylist) {
+  const now = new Date();
+  for (let i = 0; i < 3; i += 1) {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    if (!isYmdInVacation(stylist, ymdFromDate(d))) return true;
+  }
+  return false;
+}
+
+function formatWaitTime(totalMinutes) {
+  if (totalMinutes <= 0) return { line2: '到店后预计准时' };
+  if (totalMinutes < 60) return { line2: '按您预约时间到店需等待 ', numberPart: `${totalMinutes} 分钟` };
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (m === 0) return { line2: '按您预约时间到店需等待 ', numberPart: `${h} 小时` };
+  return { line2: '按您预约时间到店需等待 ', numberPart: `${h} 小时 ${m} 分钟` };
+}
+
+function serviceTypeText(serviceType) {
+  return serviceType === 'dye' ? '烫染' : '剪发';
+}
+
+Page({
+  data: {
+    announcementText: '暂无公告',
+    announcementScrollable: false,
+    bookingDisabled: false,
+    stylistId: null,
+    currentId: null,
+    drawerVisible: false,
+    maskVisible: false,
+    selectedServiceType: 'cut',
+    selectedDate: '',
+    dateTabs: [],
+    allSlots: [],
+    slotItems: [],
+    slotsLoading: false,
+    slotsUpdating: false,
+    selectedTimeSlot: [],
+    refreshTimer: null,
+    phoneModalVisible: false,
+    phoneInput: '',
+    phoneError: '',
+    successVisible: false,
+    displayId: '',
+    cancelModalVisible: false,
+    cancelStep: 1,
+    cancelPhone: '',
+    cancelError: '',
+    cancelError2: '',
+    selectedAppointments: [],
+    cancellableAppointments: [],
+    nonCancellableAppointments: [],
+    progressModalVisible: false,
+    progressStep: 1,
+    progressPhone: '',
+    progressError: '',
+    progressRows: []
+  },
+
+  onLoad() {
+    this.init();
+    this.loadAnnouncement();
+  },
+
+  onShow() {
+    this.init();
+  },
+
+  onHide() {
+    this.stopRefresh();
+  },
+
+  onUnload() {
+    this.stopRefresh();
+  },
+
+  callApi(action, payload = {}) {
+    return callApi(action, payload);
+  },
+
+  async loadAnnouncement() {
+    try {
+      const data = await this.callApi('getAnnouncement');
+      const text = data && data.text && data.text.trim() ? data.text.trim() : '暂无公告';
+      this.setData({
+        announcementText: text,
+        announcementScrollable: text.length > 18
+      });
+    } catch (e) {
+      this.setData({ announcementText: '暂无公告', announcementScrollable: false });
+    }
+  },
+
+  async init() {
+    try {
+      const stylists = await this.callApi('getStylists');
+      if (!Array.isArray(stylists) || stylists.length === 0) return;
+      const stylist = stylists[0];
+      this.setData({
+        stylistId: stylist.id,
+        currentId: stylist.id,
+        bookingDisabled: !hasBookableDayInThreeDayWindow(stylist)
+      });
+    } catch (e) {
+      console.error('加载发型师信息失败:', e);
+    }
+  },
+
+  buildDateTabs() {
+    const now = new Date();
+    const days = ['今天', '明天', '后天'];
+    return days.map((day, index) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() + index);
+      return {
+        day,
+        date: ymdFromDate(d),
+        label: `${d.getMonth() + 1}/${d.getDate()}`
+      };
+    });
+  },
+
+  async openBook(e) {
+    await this.init();
+    if (!this.data.stylistId) {
+      wx.showToast({ title: '无法获取发型师信息', icon: 'none' });
+      return;
+    }
+
+    const selectedServiceType = e.currentTarget.dataset.type || 'cut';
+    const dateTabs = this.buildDateTabs();
+    const selectedDate = dateTabs[0].date;
+    this.setData({
+      currentId: this.data.stylistId,
+      selectedServiceType,
+      dateTabs,
+      selectedDate,
+      selectedTimeSlot: [],
+      drawerVisible: true,
+      maskVisible: true
+    });
+
+    await this.loadSlots(selectedDate);
+    this.startRefresh();
+  },
+
+  async switchDate(e) {
+    const date = e.currentTarget.dataset.date;
+    this.setData({ selectedDate: date, selectedTimeSlot: [], slotsUpdating: true });
+    setTimeout(() => this.loadSlots(date, true), 150);
+  },
+
+  async loadSlots(date, silent = false) {
+    if (!silent) this.setData({ slotsLoading: true, slotItems: [] });
+    if (silent) this.setData({ slotsUpdating: true });
+    try {
+      const slots = await this.callApi('getSlots', {
+        stylistId: this.data.currentId,
+        date
+      });
+      const allSlots = Array.isArray(slots) ? slots : [];
+      this.setData({
+        allSlots,
+        slotItems: this.buildSlotItems(allSlots),
+        slotsLoading: false,
+        slotsUpdating: false
+      });
+    } catch (e) {
+      wx.showToast({ title: '时段加载失败', icon: 'none' });
+      this.setData({ slotsLoading: false, slotsUpdating: false });
+    }
+  },
+
+  buildSlotItems(slots) {
+    const selectedServiceType = this.data.selectedServiceType;
+    const clickableSlots = new Set();
+    const unavailableSlots = new Set();
+
+    if (selectedServiceType === 'dye') {
+      for (let startIdx = 0; startIdx < slots.length; startIdx += 1) {
+        const startSlot = slots[startIdx];
+        if (!this.isSlotAvailable(startSlot)) continue;
+
+        const validSlots = [];
+        let skippedCount = 0;
+        let currentIdx = startIdx;
+        while (validSlots.length < 4 && currentIdx < slots.length) {
+          const slot = slots[currentIdx];
+          if (this.isSlotAvailable(slot)) {
+            validSlots.push(currentIdx);
+          } else if (skippedCount < 1) {
+            skippedCount += 1;
+          } else {
+            break;
+          }
+          currentIdx += 1;
+        }
+
+        if (validSlots.length === 4) {
+          clickableSlots.add(startSlot.time);
+        } else if (validSlots.length > 0) {
+          validSlots.forEach(idx => unavailableSlots.add(slots[idx].time));
+        }
+      }
+    }
+
+    return slots.map(t => {
+      let statusClass = 'unavailable';
+      let clickable = false;
+      if (selectedServiceType === 'dye') {
+        if (clickableSlots.has(t.time)) {
+          statusClass = 'available';
+          clickable = true;
+        } else if (unavailableSlots.has(t.time) || !this.isSlotAvailable(t)) {
+          statusClass = 'unavailable';
+        }
+      } else {
+        const isDefaultMealTime = t.time === '12:00-12:30' || t.time === '18:00-18:30';
+        if (t.status !== 'booked' && t.status !== 'blocked' && t.status !== 'past' && !isDefaultMealTime && t.available) {
+          statusClass = 'available';
+          clickable = true;
+        }
+      }
+      return {
+        ...t,
+        displayTime: formatTimeDisplay(t.time),
+        statusClass,
+        clickable
+      };
+    });
+  },
+
+  isSlotAvailable(slot) {
+    return slot && slot.status !== 'booked' && slot.status !== 'blocked' && slot.status !== 'past' && slot.available;
+  },
+
+  selectTimeSlot(e) {
+    const clickable = e.currentTarget.dataset.clickable === true || e.currentTarget.dataset.clickable === 'true';
+    if (!clickable) return;
+    const time = e.currentTarget.dataset.time;
+
+    if (this.data.selectedServiceType === 'dye') {
+      const startIndex = this.data.allSlots.findIndex(s => s.time === time);
+      if (startIndex === -1) {
+        wx.showToast({ title: '无法找到该时间段', icon: 'none' });
+        return;
+      }
+      const selectedSlots = [];
+      let skippedCount = 0;
+      let currentIndex = startIndex;
+      while (selectedSlots.length < 4 && currentIndex < this.data.allSlots.length) {
+        const slot = this.data.allSlots[currentIndex];
+        if (this.isSlotAvailable(slot)) {
+          selectedSlots.push(slot.time);
+        } else if (skippedCount < 1) {
+          skippedCount += 1;
+        } else {
+          break;
+        }
+        currentIndex += 1;
+      }
+      if (selectedSlots.length !== 4) {
+        wx.showToast({ title: '该时间段无法预约', icon: 'none' });
+        return;
+      }
+      this.setData({ selectedTimeSlot: selectedSlots });
+      setTimeout(() => this.openPhoneModal(), 100);
+      return;
+    }
+
+    this.setData({ selectedTimeSlot: [time] });
+    this.openPhoneModal();
+  },
+
+  openPhoneModal() {
+    this.setData({
+      phoneModalVisible: true,
+      maskVisible: true,
+      phoneInput: '',
+      phoneError: ''
+    });
+  },
+
+  closePhoneModal() {
+    this.setData({
+      phoneModalVisible: false,
+      maskVisible: this.data.drawerVisible,
+      selectedTimeSlot: []
+    });
+    if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
+  },
+
+  onPhoneInput(e) {
+    this.setData({ phoneInput: e.detail.value, phoneError: '' });
+  },
+
+  async confirmBooking() {
+    const phone = String(this.data.phoneInput || '').trim();
+    if (!PHONE_RE.test(phone)) {
+      this.setData({ phoneError: phone ? '请输入正确的手机号码' : '请输入手机号' });
+      return;
+    }
+
+    if (this.data.selectedServiceType === 'dye' && this.data.selectedTimeSlot.length !== 4) {
+      this.setData({ phoneError: '预约失败，请重新选择时间段' });
+      return;
+    }
+    if (this.data.selectedServiceType !== 'dye' && this.data.selectedTimeSlot.length !== 1) {
+      this.setData({ phoneError: '请选择一个时间段' });
+      return;
+    }
+
+    wx.showLoading({ title: '预约中' });
+    try {
+      const time = this.data.selectedServiceType === 'dye'
+        ? this.data.selectedTimeSlot.join(',')
+        : this.data.selectedTimeSlot[0];
+      const data = await this.callApi('bookAppointment', {
+        stylistId: this.data.currentId,
+        time,
+        date: this.data.selectedDate,
+        userName: '',
+        phone,
+        serviceType: this.data.selectedServiceType || 'cut'
+      });
+      wx.hideLoading();
+      if (data && data.success) {
+        wx.setStorageSync('my_appointment', {
+          appId: data.appId,
+          date: this.data.selectedDate,
+          time,
+          phone
+        });
+        this.stopRefresh();
+        this.setData({
+          phoneModalVisible: false,
+          drawerVisible: false,
+          maskVisible: true,
+          successVisible: true,
+          displayId: data.appId
+        });
+      } else {
+        this.setData({ phoneError: (data && data.message) || '预约失败，请刷新重试' });
+      }
+    } catch (e) {
+      wx.hideLoading();
+      this.setData({ phoneError: '网络错误，请稍后重试' });
+    }
+  },
+
+  openCancelModal() {
+    const savedApp = wx.getStorageSync('my_appointment') || {};
+    this.setData({
+      cancelModalVisible: true,
+      maskVisible: true,
+      cancelStep: 1,
+      cancelPhone: savedApp.phone || '',
+      cancelError: '',
+      cancelError2: '',
+      selectedAppointments: [],
+      cancellableAppointments: [],
+      nonCancellableAppointments: []
+    });
+  },
+
+  closeCancelModal() {
+    this.setData({
+      cancelModalVisible: false,
+      maskVisible: false,
+      cancelPhone: '',
+      cancelError: '',
+      cancelError2: '',
+      selectedAppointments: [],
+      cancellableAppointments: [],
+      nonCancellableAppointments: []
+    });
+  },
+
+  backToCancelStep1() {
+    this.setData({ cancelStep: 1, selectedAppointments: [], cancelError2: '' });
+  },
+
+  onCancelPhoneInput(e) {
+    this.setData({ cancelPhone: e.detail.value, cancelError: '' });
+  },
+
+  async queryAppointments() {
+    const phone = String(this.data.cancelPhone || '').trim();
+    if (!PHONE_RE.test(phone)) {
+      this.setData({ cancelError: phone ? '请输入正确的手机号码' : '请输入手机号' });
+      return;
+    }
+
+    wx.showLoading({ title: '查询中' });
+    try {
+      const data = await this.callApi('queryAppointments', { phone });
+      wx.hideLoading();
+      if (!data || !data.success) {
+        this.setData({ cancelError: (data && data.message) || '查询失败，请检查手机号' });
+        return;
+      }
+      const appointments = Array.isArray(data.appointments) ? data.appointments.map(this.decorateAppointment) : [];
+      if (appointments.length === 0) {
+        this.setData({ cancelError: '未找到该手机号的预约记录' });
+        return;
+      }
+      this.setData({
+        cancelStep: 2,
+        selectedAppointments: [],
+        cancellableAppointments: appointments.filter(a => a.canCancel),
+        nonCancellableAppointments: appointments.filter(a => !a.canCancel),
+        cancelError: '',
+        cancelError2: ''
+      });
+    } catch (e) {
+      wx.hideLoading();
+      this.setData({ cancelError: '网络错误，请稍后重试' });
+    }
+  },
+
+  decorateAppointment(app) {
+    return {
+      ...app,
+      checked: false,
+      dateText: formatDateText(app.date),
+      timeDisplay: app.serviceType === 'dye' ? app.time : String(app.time || '').split('-')[0],
+      serviceTypeText: serviceTypeText(app.serviceType)
+    };
+  },
+
+  toggleAppointment(e) {
+    const id = e.currentTarget.dataset.id;
+    const selected = this.data.selectedAppointments.includes(id)
+      ? this.data.selectedAppointments.filter(item => item !== id)
+      : [...this.data.selectedAppointments, id];
+    const selectedSet = new Set(selected);
+    this.setData({
+      selectedAppointments: selected,
+      cancellableAppointments: this.data.cancellableAppointments.map(app => ({
+        ...app,
+        checked: selectedSet.has(app.id)
+      })),
+      cancelError2: ''
+    });
+  },
+
+  async confirmCancel() {
+    if (this.data.selectedAppointments.length === 0) {
+      this.setData({ cancelError2: '请至少选择一个要取消的预约' });
+      return;
+    }
+    wx.showLoading({ title: '取消中' });
+    try {
+      const data = await this.callApi('cancelAppointments', {
+        appointmentIds: this.data.selectedAppointments
+      });
+      wx.hideLoading();
+      if (data && data.success) {
+        wx.removeStorageSync('my_appointment');
+        wx.showModal({
+          title: '取消成功',
+          content: data.message || (data.cancelledCount > 1 ? `已成功取消 ${data.cancelledCount} 个预约` : '预约已成功取消'),
+          showCancel: false
+        });
+        this.closeCancelModal();
+      } else {
+        this.setData({ cancelError2: (data && data.message) || '取消失败' });
+      }
+    } catch (e) {
+      wx.hideLoading();
+      this.setData({ cancelError2: '网络错误，请稍后重试' });
+    }
+  },
+
+  openProgressModal() {
+    const savedApp = wx.getStorageSync('my_appointment') || {};
+    this.setData({
+      progressModalVisible: true,
+      maskVisible: true,
+      progressStep: 1,
+      progressPhone: savedApp.phone || '',
+      progressError: '',
+      progressRows: []
+    });
+  },
+
+  closeProgressModal() {
+    this.setData({
+      progressModalVisible: false,
+      maskVisible: false,
+      progressPhone: '',
+      progressError: '',
+      progressRows: []
+    });
+  },
+
+  onProgressPhoneInput(e) {
+    this.setData({ progressPhone: e.detail.value, progressError: '' });
+  },
+
+  async queryProgress() {
+    const phone = String(this.data.progressPhone || '').trim();
+    if (!PHONE_RE.test(phone)) {
+      this.setData({ progressError: phone ? '请输入正确的手机号码' : '请输入手机号' });
+      return;
+    }
+
+    wx.showLoading({ title: '查询中' });
+    try {
+      const data = await this.callApi('queryAppointments', { phone });
+      if (!data || !data.success) {
+        wx.hideLoading();
+        this.setData({ progressError: (data && data.message) || '查询失败，请检查手机号' });
+        return;
+      }
+      const appointments = Array.isArray(data.appointments) ? data.appointments : [];
+      if (appointments.length === 0) {
+        wx.hideLoading();
+        this.setData({ progressError: '未找到该手机号的预约记录' });
+        return;
+      }
+      const rows = [];
+      for (const app of appointments) {
+        rows.push(await this.buildProgressRow(app));
+      }
+      wx.hideLoading();
+      this.setData({
+        progressStep: 2,
+        progressRows: rows,
+        progressError: ''
+      });
+    } catch (e) {
+      wx.hideLoading();
+      this.setData({ progressError: '网络错误，请稍后重试' });
+    }
+  },
+
+  async buildProgressRow(app) {
+    const todayStr = ymdFromDate(new Date());
+    const now = new Date();
+    const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+    let delayLine1 = '';
+    let delayLine2 = '';
+    let numberPart = '';
+    let aheadCount = null;
+
+    if (app.date > todayStr) {
+      delayLine1 = '未到预约日';
+    } else if (app.date < todayStr) {
+      delayLine1 = '已过期';
+    } else if (app.stylistId == null) {
+      delayLine1 = '暂无排队信息';
+    } else {
+      try {
+        const queue = await this.callApi('getDayQueue', {
+          date: app.date,
+          stylistId: app.stylistId
+        });
+        if (Array.isArray(queue) && queue.length > 0) {
+          const myIndex = queue.findIndex(q => q.time === app.time && q.serviceType === app.serviceType);
+          aheadCount = myIndex >= 0 ? myIndex : 0;
+          const first = queue[0];
+          const endPart = first.time.split('-')[1];
+          const delayMinutes = endPart ? currentTotalMinutes - this.timeToMinutes(endPart.trim()) : 0;
+          if (aheadCount === 0) {
+            delayLine1 = '您当前是队列第一位';
+            delayLine2 = '预计准时';
+            aheadCount = null;
+          } else {
+            delayLine1 = '您前面还有X位已预约未完成的客户';
+            const wait = formatWaitTime(delayMinutes);
+            delayLine2 = wait.line2;
+            numberPart = wait.numberPart || '';
+          }
+        } else {
+          delayLine1 = '预计准时';
+        }
+      } catch (e) {
+        delayLine1 = '暂无排队信息';
+      }
+    }
+
+    return {
+      key: `${app.id || app.appId}-${app.date}-${app.time}`,
+      dateStr: formatDateText(app.date),
+      timeDisplay: app.serviceType === 'dye' ? app.time : String(app.time || '').split('-')[0],
+      serviceTypeText: serviceTypeText(app.serviceType),
+      appId: app.appId,
+      delayLine1,
+      delayLine2,
+      numberPart,
+      aheadCount,
+      hasAheadCount: aheadCount !== null
+    };
+  },
+
+  timeToMinutes(time) {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  },
+
+  openAdminLogin() {
+    wx.navigateTo({ url: '/pages/admin-login/admin-login' });
+  },
+
+  startRefresh() {
+    this.stopRefresh();
+    this.refreshTimer = setInterval(() => {
+      if (this.data.drawerVisible && this.data.selectedDate) {
+        this.loadSlots(this.data.selectedDate, true);
+      } else {
+        this.stopRefresh();
+      }
+    }, 10000);
+  },
+
+  stopRefresh() {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  },
+
+  closeDrawer() {
+    this.stopRefresh();
+    this.setData({
+      drawerVisible: false,
+      maskVisible: false,
+      selectedTimeSlot: [],
+      selectedServiceType: 'cut'
+    });
+  },
+
+  closeAll() {
+    this.stopRefresh();
+    this.setData({
+      drawerVisible: false,
+      maskVisible: false,
+      phoneModalVisible: false,
+      successVisible: false,
+      cancelModalVisible: false,
+      progressModalVisible: false,
+      selectedTimeSlot: [],
+      selectedServiceType: 'cut'
+    });
+  }
+});

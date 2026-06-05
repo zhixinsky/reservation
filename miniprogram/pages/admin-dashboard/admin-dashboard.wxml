@@ -1,0 +1,107 @@
+<view class="admin-page">
+  <view class="header">
+    <view>
+      <view class="brand-title">欧诺造型</view>
+      <view class="brand-subtitle">发型师管理</view>
+    </view>
+    <view class="header-actions">
+      <button class="pill-btn" bindtap="openVacationModal">休假设置</button>
+      <button class="pill-btn" bindtap="openAnnouncementModal">公告设置</button>
+      <button class="logout-btn" bindtap="goHome">返回首页</button>
+    </view>
+  </view>
+
+  <view class="stats-grid">
+    <view class="stat-card">
+      <view class="stat-label">待履约</view>
+      <view class="stat-num">{{stats.pending}}</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-label">已完成</view>
+      <view class="stat-num">{{stats.completed}}</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-label">所有预约</view>
+      <view class="stat-num">{{stats.all}}</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <view class="section-title">预约列表 <text class="last-time">{{lastUpdateTime}}</text></view>
+      <button class="refresh-btn" bindtap="loadAppointments">刷新</button>
+    </view>
+    <view class="tabs">
+      <view wx:for="{{filters}}" wx:key="key" class="tab {{currentFilter === item.key ? 'active' : ''}}" bindtap="setFilter" data-key="{{item.key}}">{{item.label}}</view>
+    </view>
+
+    <view wx:if="{{filteredAppointments.length === 0}}" class="empty">暂无预约</view>
+    <view wx:for="{{filteredAppointments}}" wx:key="id" class="appointment-card {{item.serviceType}}">
+      <view class="appointment-top">
+        <view>
+          <view class="appointment-title">{{item.dateText}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
+          <view class="appointment-sub">预约号: {{item.appId}} · 尾号 {{item.phoneLast4}}</view>
+        </view>
+        <view class="badges">
+          <text class="badge {{item.isNewUser ? 'new' : 'old'}}">{{item.isNewUser ? '新客' : '老客'}}</text>
+          <text class="badge status">{{item.statusText}}</text>
+        </view>
+      </view>
+      <view class="appointment-actions" wx:if="{{item.canOperate}}">
+        <button class="small-btn muted" bindtap="adminCancel" data-id="{{item.id}}">取消</button>
+        <button class="small-btn" bindtap="completeAppointment" data-id="{{item.id}}" disabled="{{!item.canComplete}}">完成</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <view class="section-title">时间段管理</view>
+      <button class="refresh-btn" bindtap="loadTimeSlots">刷新</button>
+    </view>
+    <picker mode="selector" range="{{slotDateOptions}}" range-key="label" value="{{slotDateIndex}}" bindchange="onSlotDateChange">
+      <view class="picker-row">{{selectedSlotDateLabel}}</view>
+    </picker>
+    <view class="slots-grid">
+      <view wx:for="{{slotItems}}" wx:key="time" class="slot {{item.adminClass}}" bindtap="toggleSlot" data-time="{{item.time}}" data-can-toggle="{{item.canToggle}}">
+        <view>{{item.displayTime}}</view>
+        <text>{{item.adminText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{modalMask}}" class="modal-mask" bindtap="closeModals"></view>
+
+  <view class="modal {{vacationVisible ? 'show' : ''}}">
+    <view class="modal-title">休假设置</view>
+    <view class="saved-ranges" wx:if="{{vacationRanges.length > 0}}">
+      <view wx:for="{{vacationRanges}}" wx:key="index" class="range-row">
+        <text>{{item.vacationStartDate}} 至 {{item.vacationEndDate}}</text>
+        <button bindtap="removeVacationRange" data-index="{{index}}">删除</button>
+      </view>
+    </view>
+    <view class="date-row">
+      <picker mode="date" value="{{vacationStartDate}}" start="{{today}}" bindchange="onVacationStartChange">
+        <view class="date-picker">开始：{{vacationStartDate}}</view>
+      </picker>
+      <picker mode="date" value="{{vacationEndDate}}" start="{{today}}" bindchange="onVacationEndChange">
+        <view class="date-picker">结束：{{vacationEndDate}}</view>
+      </picker>
+    </view>
+    <view wx:if="{{vacationError}}" class="modal-error">{{vacationError}}</view>
+    <view class="modal-actions">
+      <button class="small-btn muted" bindtap="clearVacation">清空休假</button>
+      <button class="small-btn" bindtap="saveVacation">保存</button>
+    </view>
+  </view>
+
+  <view class="modal {{announcementVisible ? 'show' : ''}}">
+    <view class="modal-title">公告设置</view>
+    <textarea class="textarea" value="{{announcementText}}" bindinput="onAnnouncementInput" placeholder="例如：欢迎光临欧诺造型 · 营业时间 11:00-22:00"></textarea>
+    <view wx:if="{{announcementError}}" class="modal-error">{{announcementError}}</view>
+    <view class="modal-actions">
+      <button class="small-btn muted" bindtap="closeModals">取消</button>
+      <button class="small-btn" bindtap="saveAnnouncement">保存</button>
+    </view>
+  </view>
+</view>

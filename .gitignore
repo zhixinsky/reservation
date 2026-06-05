@@ -1,0 +1,21 @@
+# 环境变量文件（包含敏感信息）
+.env
+
+# 发型师配置文件（包含密码）
+stylists.json
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+project.private.config.json
+
+# 数据库文件
+data/
+*.db
+*.sqlite
+*.sqlite3

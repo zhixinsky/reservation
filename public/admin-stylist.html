@@ -1,0 +1,2195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <title>欧诺造型 | 发型师管理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --eucalyptus-green: #7FA998;
+            --eucalyptus-light: #F0F4F2;
+            --eucalyptus-muted: #A8C3B8;
+            --wood-brown: #8D775F;
+            --wood-light: #D7CCC8;
+            --cream: #FAF9F6;
+            --stone: #E5E0D8;
+            --sage-dark: #4A5D54;
+            --admin-success: #10b981;
+            --admin-danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Quicksand', 'PingFang SC', sans-serif;
+            background-color: var(--cream);
+            color: var(--sage-dark);
+            -webkit-tap-highlight-color: transparent;
+            padding-bottom: 20px;
+            min-height: 100vh;
+        }
+        
+        h1, h2, h3, .serif-font {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .soft-shadow {
+            box-shadow: 0 4px 20px rgba(127, 169, 152, 0.08);
+        }
+
+        header {
+            background: var(--cream);
+            background: rgba(250, 249, 246, 0.9);
+            backdrop-filter: blur-lg;
+            border-bottom: 1px solid var(--stone);
+            color: var(--sage-dark);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(127, 169, 152, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 0.8rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--eucalyptus-green);
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        header .brand {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--sage-dark);
+            letter-spacing: -0.02em;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+        }
+
+        .logout-btn {
+            background: var(--eucalyptus-green);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.7em;
+            font-weight: 600;
+            transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 2px 8px rgba(127, 169, 152, 0.2);
+        }
+
+        .logout-btn:hover {
+            background: #6a9585;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(127, 169, 152, 0.3);
+        }
+
+        .logout-btn:active {
+            transform: scale(0.95);
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 24px;
+            max-width: 960px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 24px;
+            padding: 16px;
+            box-shadow: 0 4px 20px rgba(127, 169, 152, 0.08);
+            border: 1px solid var(--stone);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-card h3 {
+            font-size: 0.625rem;
+            color: var(--wood-brown);
+            margin-bottom: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4em;
+        }
+
+        .stat-card .number {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--sage-dark);
+        }
+
+        .appointments-section {
+            background: white;
+            border-radius: 32px;
+            padding: 24px 24px 24px 24px;
+            box-shadow: 0 4px 20px rgba(127, 169, 152, 0.08);
+            border: 1px solid var(--stone);
+            margin-bottom: 12px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            color: var(--sage-dark);
+            font-size: 1.125rem;
+            font-weight: 700;
+        }
+
+        .filter-tabs {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .filter-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-tab {
+            padding: 10px 8px;
+            border: 1px solid var(--stone);
+            background: white;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
+            color: var(--wood-brown);
+            text-align: center;
+        }
+
+        .filter-tab:active {
+            transform: scale(0.95);
+        }
+
+        .filter-tab.active {
+            background: var(--eucalyptus-green);
+            color: white;
+            border-color: var(--eucalyptus-green);
+            box-shadow: 0 2px 8px rgba(127, 169, 152, 0.2);
+        }
+
+        /* 时间线布局 */
+        .timeline-container {
+            position: relative;
+            padding-left: 64px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .timeline-time {
+            position: absolute;
+            left: -60px;
+            width: 44px;
+            text-align: right;
+            font-size: 1rem;
+            color: var(--wood-brown);
+            font-weight: 600;
+            line-height: 1.2em;
+            top: 4px;
+            padding-right: 12px;
+            height: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            box-sizing: border-box;
+        }
+
+        .timeline-segment {
+            position: absolute;
+            left: -48px;
+            top: calc(1.2em + 10px);
+            width: 1px;
+            bottom: 4px;
+            background: #eceeec;
+            z-index: 1;
+        }
+
+        .appointment-card {
+            flex: 1;
+            min-width: min(400px, 100%);
+            max-width: 100%;
+            margin-left: 0px;
+            margin-right: -12px;
+            background: white;
+            border-radius: 20px;
+            padding: 10px 16px;
+            border: 1px solid var(--stone);
+            box-shadow: 0 4px 20px rgba(127, 169, 152, 0.08);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .appointment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(127, 169, 152, 0.12);
+        }
+
+        .appointment-card.cut-service {
+            background: var(--eucalyptus-light);
+            border-left: 4px solid var(--eucalyptus-green);
+        }
+
+        .appointment-card.dye-service {
+            background: rgba(232, 213, 196, 0.3);
+            border-left: 4px solid var(--wood-brown);
+        }
+
+        .appointment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .appointment-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--sage-dark);
+            margin: 0;
+            padding: 0;
+            letter-spacing: 0.02em;
+        }
+
+        .appointment-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .appointment-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .service-tag {
+            display: inline-block;
+            padding: 0;
+            border-radius: 12px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            line-height: 1.2;
+        }
+
+        .service-tag.cut {
+            background: transparent;
+            color: var(--eucalyptus-green);
+        }
+
+        .service-tag.dye {
+            background: transparent;
+            color: var(--eucalyptus-green);
+        }
+        
+        .user-type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+        
+        .user-type-badge.new-user {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        
+        .user-type-badge.old-user {
+            background: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ffcc80;
+        }
+
+        .appointment-duration {
+            font-size: 0.75rem;
+            color: var(--wood-brown);
+            font-weight: 500;
+        }
+
+        .appointment-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            margin-bottom: 0;
+        }
+
+        .appointment-id {
+            font-size: 0.7rem;
+            color: var(--eucalyptus-green);
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        .view-profile-btn {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--stone);
+            color: var(--sage-dark);
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .view-profile-btn:hover {
+            background: white;
+            border-color: var(--eucalyptus-green);
+            color: var(--eucalyptus-green);
+        }
+
+        .appointment-item {
+            padding: 16px;
+            border-bottom: 1px solid var(--stone);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: 0.3s;
+            border-radius: 16px;
+            margin-bottom: 8px;
+        }
+
+        .appointment-item:active {
+            background: var(--eucalyptus-light);
+        }
+
+        .appointment-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .app-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .app-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-row-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .app-id {
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1rem;
+            color: var(--admin-dark);
+            margin-bottom: 6px;
+        }
+
+        .app-meta {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .app-meta span {
+            white-space: nowrap;
+        }
+
+        .app-status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .status-booked {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-cancelled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn-cancel {
+            background: #fee2e2;
+            color: var(--admin-danger);
+            border: none;
+            padding: 10px 16px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
+            white-space: nowrap;
+            margin-left: 10px;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);
+        }
+
+        .btn-cancel:hover {
+            background: var(--admin-danger);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-cancel:active {
+            transform: scale(0.95);
+        }
+
+        .btn-complete {
+            background: var(--admin-success);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-complete:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-complete:active {
+            transform: scale(0.95);
+        }
+
+        .btn-complete:disabled {
+            background: var(--stone);
+            color: var(--wood-brown);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-complete:disabled:active {
+            transform: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--eucalyptus-muted);
+            background: var(--eucalyptus-light);
+            border-radius: 40px;
+            border: 2px dashed rgba(168, 195, 184, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state .material-symbols-outlined {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        #notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 12px 25px;
+            border-radius: 8px;
+            color: white;
+            z-index: 9999;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        #notification.success {
+            background: var(--admin-success);
+        }
+
+        #notification.error {
+            background: var(--admin-danger);
+        }
+
+        .refresh-btn {
+            background: var(--eucalyptus-green);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 2px 4px rgba(127, 169, 152, 0.2);
+        }
+
+        .refresh-btn:hover {
+            background: #6a9585;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(127, 169, 152, 0.3);
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="display: flex; flex-direction: column;">
+            <h1>欧诺造型</h1>
+            <div class="brand">发型师管理</div>
+        </div>
+        <div class="header-right">
+            <div id="statusDisplay" style="min-width: 60px; padding: 6px 16px; border-radius: 16px; background: var(--eucalyptus-light); border: 1px solid rgba(168, 195, 184, 0.3); display: flex; align-items: center; justify-content: center; color: var(--eucalyptus-green); cursor: pointer; transition: all 0.3s; font-size: 0.7em; font-weight: 600;" onclick="openVacationModal()" title="点击设置休假">
+                <span style="white-space: nowrap;">休假设置</span>
+            </div>
+            <button type="button" id="announcementBtn" onclick="openAnnouncementModal()" style="min-width: 72px; padding: 6px 14px; border-radius: 16px; background: var(--eucalyptus-light); border: 1px solid rgba(168, 195, 184, 0.3); color: var(--eucalyptus-green); cursor: pointer; font-size: 0.7em; font-weight: 600; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 4px;" title="公告设置">
+                公告设置
+            </button>
+
+            <button class="logout-btn" onclick="window.location.href='/'">返回首页</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="notification"></div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>待履约</h3>
+                <div class="number" id="todayCount">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>已完成</h3>
+                <div class="number" id="todayCompletedCount">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>所有预约</h3>
+                <div class="number" id="allCount">0</div>
+            </div>
+        </div>
+
+        <div class="appointments-section">
+            <div class="section-header">
+                <h2>预约列表 <span id="lastUpdateTime" style="font-size: 0.7rem; color: #94a3b8; font-weight: normal; margin-left: 10px;"></span></h2>
+                <button class="refresh-btn" onclick="loadAppointments()" id="refreshBtn">刷新</button>
+            </div>
+
+            <div class="filter-tabs">
+                <div class="filter-tab active" onclick="filterAppointments('today')" id="tab-today">今天</div>
+                <div class="filter-tab" onclick="filterAppointments('tomorrow')" id="tab-tomorrow">明天</div>
+                <div class="filter-tab" onclick="filterAppointments('dayAfterTomorrow')" id="tab-dayAfterTomorrow">后天</div>
+                <div class="filter-tab" onclick="filterAppointments('completed')" id="tab-completed">已完成</div>
+            </div>
+
+            <div id="appointmentsList">
+                <div class="empty-state">
+                    <div>加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 时间段管理区域 -->
+        <div class="appointments-section" style="margin-top: 0;">
+            <div class="section-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <h2>时间段管理</h2>
+                    <select id="timeSlotDateSelect" onchange="onTimeSlotDateChange()" style="
+                        padding: 6px 12px;
+                        border: 1px solid var(--stone);
+                        border-radius: 12px;
+                        background: white;
+                        font-size: 0.7rem;
+                        font-weight: 600;
+                        color: var(--sage-dark);
+                        cursor: pointer;
+                        box-shadow: 0 2px 4px rgba(127, 169, 152, 0.1);
+                    ">
+                        <option value="today">今天</option>
+                        <option value="tomorrow">明天</option>
+                        <option value="dayAfterTomorrow">后天</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="refresh-btn" onclick="loadTimeSlots()" id="refreshSlotsBtn">刷新</button>
+                </div>
+            </div>
+
+            <div id="timeSlotsList" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 0;">
+                <div class="empty-state">
+                    <div>加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allAppointments = [];
+        let currentTimeSlotDate = ''; // 当前选择的时间段日期
+        let currentFilter = 'today'; // 默认显示今天
+        const sessionId = localStorage.getItem('sessionId');
+        const role = localStorage.getItem('role');
+        const stylistName = localStorage.getItem('stylistName');
+        const stylistId = localStorage.getItem('stylistId'); // 在页面加载时获取并保存
+
+        // 格式化时间显示：从时间段（如"10:00-10:30"）提取开始时间（"10:00"）
+        function formatTimeDisplay(timeStr) {
+            if (!timeStr) return '';
+            // 如果是逗号分隔的多个时间段（烫染服务），取第一个时间段的开始时间
+            if (timeStr.includes(',')) {
+                const firstTime = timeStr.split(',')[0].trim();
+                const [startTime] = firstTime.split('-');
+                return startTime;
+            }
+            // 单个时间段，提取开始时间
+            const [startTime] = timeStr.split('-');
+            return startTime || timeStr;
+        }
+        
+        // 获取今天的日期字符串（使用本地时区，格式：YYYY-MM-DD，与用户端保持一致）
+        function getTodayDateStr() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // 获取指定日期偏移后的日期字符串（使用本地时区，与用户端保持一致）
+        function getDateStr(offset = 0) {
+            const d = new Date();
+            d.setDate(d.getDate() + offset);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 检查登录状态 - 使用localStorage实现持久登录
+        if (!sessionId || role !== 'stylist') {
+            window.location.href = '/admin-login.html';
+        }
+        
+        // 检查 stylistId 是否存在
+        if (!stylistId) {
+            console.error('stylistId not found in localStorage, redirecting to login');
+            alert('登录信息不完整，请重新登录');
+            setTimeout(() => {
+                window.location.href = '/admin-login.html';
+            }, 1000);
+        }
+
+        // 加载并显示状态
+        updateStatusDisplay();
+
+        // 不再需要验证会话，保持登录状态
+        async function verifySession() {
+            // 持久登录，不自动退出
+            return true;
+        }
+
+        async function loadAppointments() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            const lastUpdateTime = document.getElementById('lastUpdateTime');
+            
+            // 显示加载状态
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = '刷新中...';
+            }
+            
+            try {
+                const res = await fetch('/api/admin/appointments', {
+                    headers: { 'x-session-id': sessionId }
+                });
+                const data = await res.json();
+                allAppointments = data;
+                
+                // 调试：检查返回的数据
+                console.log('加载的预约数据:', allAppointments);
+                console.log('预约数量:', allAppointments.length);
+                
+                updateStats();
+                // 确保当前筛选按钮高亮显示
+                filterAppointments(currentFilter);
+                
+                // 如果时间段已经加载，重新渲染以同步预约状态
+                if (allTimeSlots && allTimeSlots.length > 0) {
+                    renderTimeSlots();
+                }
+                
+                // 更新最后刷新时间
+                if (lastUpdateTime) {
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    lastUpdateTime.textContent = `最后更新: ${timeStr}`;
+                }
+            } catch (e) {
+                showNotification('加载失败，请刷新重试', 'error');
+            } finally {
+                // 恢复按钮状态
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = '刷新';
+                }
+            }
+        }
+
+        function updateStats() {
+            const todayStr = getTodayDateStr();
+            const tomorrowStr = getDateStr(1);
+            const dayAfterTomorrowStr = getDateStr(2);
+            
+            // 今日预约：今天未取消且未完成的预约
+            const todayApps = allAppointments.filter(a => 
+                a.date === todayStr && 
+                a.status !== 'cancelled' && 
+                a.status !== 'completed'
+            );
+            
+            // 今日完成：今天状态为 'completed' 的预约
+            const todayCompletedApps = allAppointments.filter(a => 
+                a.date === todayStr && 
+                a.status === 'completed'
+            );
+            
+            // 所有预约：三天内（今天、明天、后天）的所有预约（排除已取消的）
+            const allApps = allAppointments.filter(a => {
+                const appDate = a.date;
+                return (appDate === todayStr || appDate === tomorrowStr || appDate === dayAfterTomorrowStr) &&
+                       a.status !== 'cancelled';
+            });
+
+            document.getElementById('todayCount').textContent = todayApps.length;
+            document.getElementById('todayCompletedCount').textContent = todayCompletedApps.length;
+            document.getElementById('allCount').textContent = allApps.length;
+            
+            // 更新标签人数
+            updateTabCounts();
+        }
+        
+        function updateTabCounts() {
+            const todayStr = getTodayDateStr();
+            const tomorrowStr = getDateStr(1);
+            const dayAfterTomorrowStr = getDateStr(2);
+            
+            // 今天已预约但未完成的数量
+            const todayCount = allAppointments.filter(a => a.date === todayStr && a.status === 'booked').length;
+            document.getElementById('tab-today').textContent = `今天(${todayCount})`;
+            
+            // 明天有效预约数（排除已取消和已完成的）
+            const tomorrowCount = allAppointments.filter(a => {
+                const appDate = String(a.date).trim();
+                const targetDate = String(tomorrowStr).trim();
+                return appDate === targetDate && a.status !== 'cancelled' && a.status !== 'completed';
+            }).length;
+            document.getElementById('tab-tomorrow').textContent = `明天(${tomorrowCount})`;
+            
+            // 后天有效预约数（排除已取消和已完成的）
+            const dayAfterTomorrowCount = allAppointments.filter(a => {
+                const appDate = String(a.date).trim();
+                const targetDate = String(dayAfterTomorrowStr).trim();
+                return appDate === targetDate && a.status !== 'cancelled' && a.status !== 'completed';
+            }).length;
+            document.getElementById('tab-dayAfterTomorrow').textContent = `后天(${dayAfterTomorrowCount})`;
+            
+            // 已完成：只显示当天的完成人数
+            const completedTodayCount = allAppointments.filter(a => a.date === todayStr && a.status === 'completed').length;
+            document.getElementById('tab-completed').textContent = `已完成(${completedTodayCount})`;
+        }
+
+        function filterAppointments(filter) {
+            // 如果没有指定filter，默认使用"today"
+            if (!filter) {
+                filter = 'today';
+            }
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
+            
+            // 根据filter参数找到对应的按钮并高亮
+            const tabs = document.querySelectorAll('.filter-tab');
+            tabs.forEach((tab, index) => {
+                const filterMap = ['today', 'tomorrow', 'dayAfterTomorrow', 'completed'];
+                if (filterMap[index] === filter) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // 如果通过点击事件触发，也高亮点击的按钮
+            if (event?.target) {
+                event.target.classList.add('active');
+            }
+
+            const todayStr = getTodayDateStr();
+            const tomorrowStr = getDateStr(1);
+            const dayAfterTomorrowStr = getDateStr(2);
+            
+            let filtered = [];
+
+            switch (filter) {
+                case 'today':
+                    // 今天有效预约（排除已取消和已完成的）
+                    filtered = allAppointments.filter(a => {
+                        const appDate = String(a.date).trim();
+                        const targetDate = String(todayStr).trim();
+                        return appDate === targetDate && a.status !== 'cancelled' && a.status !== 'completed';
+                    });
+                    break;
+                case 'tomorrow':
+                    // 明天有效预约（排除已取消和已完成的）
+                    filtered = allAppointments.filter(a => {
+                        // 确保日期格式匹配（去除可能的空格）
+                        const appDate = String(a.date).trim();
+                        const targetDate = String(tomorrowStr).trim();
+                        return appDate === targetDate && a.status !== 'cancelled' && a.status !== 'completed';
+                    });
+                    break;
+                case 'dayAfterTomorrow':
+                    // 后天有效预约（排除已取消和已完成的）
+                    filtered = allAppointments.filter(a => {
+                        const appDate = String(a.date).trim();
+                        const targetDate = String(dayAfterTomorrowStr).trim();
+                        return appDate === targetDate && a.status !== 'cancelled' && a.status !== 'completed';
+                    });
+                    break;
+                case 'completed':
+                    // 只显示今天已完成的预约
+                    filtered = allAppointments.filter(a => {
+                        const appDate = String(a.date).trim();
+                        const targetDate = String(todayStr).trim();
+                        return appDate === targetDate && a.status === 'completed';
+                    });
+                    break;
+                default:
+                    // 默认显示今天（排除已取消和已完成的）
+                    filtered = allAppointments.filter(a => {
+                        const appDate = String(a.date).trim();
+                        const targetDate = String(todayStr).trim();
+                        return appDate === targetDate && a.status !== 'cancelled' && a.status !== 'completed';
+                    });
+            }
+
+            // 按日期和时间排序（已完成的按时间倒序，最新的在前）
+            if (filter === 'completed') {
+                filtered.sort((a, b) => {
+                    const dateA = new Date(a.date + ' ' + a.time.split('-')[0]);
+                    const dateB = new Date(b.date + ' ' + b.time.split('-')[0]);
+                    return dateB - dateA; // 最新的在前
+                });
+            } else {
+                filtered.sort((a, b) => {
+                    if (a.date !== b.date) return a.date.localeCompare(b.date);
+                    return a.time.localeCompare(b.time);
+                });
+            }
+
+            renderAppointments(filtered, filter === 'completed');
+        }
+
+        function renderAppointments(apps, isCompletedView = false) {
+            const container = document.getElementById('appointmentsList');
+            
+            if (apps.length === 0) {
+                const emptyText = isCompletedView ? '暂无已完成的预约' : '暂无预约记录';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <span class="material-symbols-outlined">potted_plant</span>
+                        <p style="font-size: 0.75rem; font-weight: 500; letter-spacing: 0.05em; margin: 0;">${emptyText}</p>
+                        <p style="font-size: 0.625rem; opacity: 0.75; margin-top: 4px;">A peaceful moment ahead</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 获取当前时间和今天日期
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTotalMinutes = currentHour * 60 + currentMinute;
+
+            // 按时间排序
+            const sortedApps = [...apps].sort((a, b) => {
+                const timeA = formatTimeDisplay(a.time);
+                const timeB = formatTimeDisplay(b.time);
+                return timeA.localeCompare(timeB);
+            });
+
+            // 计算服务时长（分钟）
+            function getServiceDuration(timeStr, serviceType) {
+                if (serviceType === 'dye') {
+                    // 烫染服务：4个时间段，每个30分钟，共120分钟
+                    return 120;
+                } else {
+                    // 剪发服务：1个时间段，30分钟
+                    return 30;
+                }
+            }
+
+            container.innerHTML = `
+                <div class="timeline-container">
+                    ${sortedApps.map(app => {
+                        const canCancel = !isCompletedView && app.status !== 'cancelled' && app.status !== 'completed';
+                        
+                        // 显示预约号（手机号后4位）
+                        const phoneLast4 = app.phone ? app.phone.slice(-4) : '';
+                        // 根据服务类型显示"剪发"或"烫染"
+                        const serviceTypeText = app.serviceType === 'dye' ? '烫染' : '剪发';
+                        const serviceClass = app.serviceType === 'dye' ? 'dye' : 'cut';
+                        const cardClass = app.serviceType === 'dye' ? 'dye-service' : 'cut-service';
+
+                        // 判断是否可以点击完成按钮
+                        let canComplete = false;
+                        let completeButtonDisabled = true;
+                        if (!isCompletedView && app.status !== 'cancelled' && app.status !== 'completed') {
+                            // 只能点击当天的预约
+                            if (app.date === todayStr) {
+                                // 解析时间段开始时间
+                                const [startTime] = app.time.split('-');
+                                const [startHour, startMin] = startTime.split(':').map(Number);
+                                const startTotalMinutes = startHour * 60 + startMin;
+                                
+                                // 当前时间必须大于时间段的开始时间
+                                if (currentTotalMinutes > startTotalMinutes) {
+                                    canComplete = true;
+                                    completeButtonDisabled = false;
+                                }
+                            }
+                        }
+
+                        // 格式化显示时间：只显示开始时间
+                        const displayTime = formatTimeDisplay(app.time);
+                        const duration = getServiceDuration(app.time, app.serviceType);
+                        
+                        return `
+                            <div class="timeline-item">
+                                <div class="timeline-time">${displayTime}</div>
+                                <div class="timeline-segment"></div>
+                                <div class="appointment-card ${cardClass}">
+                                    <div class="appointment-header">
+                                        <h3 class="appointment-name">${phoneLast4}</h3>
+                                        <div class="appointment-actions">
+                                            ${canCancel ? `<button class="btn-cancel" onclick="cancelApp('${app.id}')" style="padding: 8px 14px; font-size: 0.75rem;">取消</button>` : ''}
+                                            ${!isCompletedView && app.status !== 'cancelled' && app.status !== 'completed' ? `
+                                                <button class="btn-complete" ${completeButtonDisabled ? 'disabled' : ''} ${canComplete ? `onclick="completeAppointment('${app.id}')"` : ''} style="padding: 8px 14px; font-size: 0.75rem;">完成</button>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="appointment-footer">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span class="service-tag ${serviceClass}">${serviceTypeText}</span>
+                                            ${app.isNewUser !== undefined ? `
+                                                <span class="user-type-badge ${app.isNewUser ? 'new-user' : 'old-user'}">
+                                                    ${app.isNewUser ? '新客' : '老客'}
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                        ${app.phone ? `<a href="tel:${app.phone}" class="view-profile-btn">联系客户</a>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        async function completeAppointment(appointmentId) {
+            if (!confirm('确认已完成该预约服务？')) {
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/admin/complete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-session-id': sessionId
+                    },
+                    body: JSON.stringify({ appointmentId })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('预约已完成', 'success');
+                    // 刷新预约列表
+                    loadAppointments();
+                } else {
+                    showNotification(data.message || '操作失败', 'error');
+                }
+            } catch (e) {
+                showNotification('网络错误，请稍后重试', 'error');
+                console.error(e);
+            }
+        }
+        
+        async function cancelApp(appointmentId) {
+            if (!confirm(`确定取消此预约吗？`)) return;
+
+            try {
+                const res = await fetch('/api/admin/cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-session-id': sessionId
+                    },
+                    body: JSON.stringify({ appointmentId })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('预约已取消', 'success');
+                    loadAppointments();
+                } else {
+                    showNotification(data.message || '取消失败', 'error');
+                }
+            } catch (e) {
+                showNotification('操作失败，请重试', 'error');
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = type;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/admin-login.html';
+        }
+
+        // 初始化 - 默认显示今天
+        verifySession();
+        
+        // 确保日期选择器默认选择"今天"
+        const dateSelect = document.getElementById('timeSlotDateSelect');
+        if (dateSelect) {
+            dateSelect.value = 'today';
+        }
+        
+        // 先加载预约数据，然后加载时间段（确保预约数据可用于时间段渲染）
+        async function initializeData() {
+            await updateStatusDisplay(); // 先更新状态显示
+            await loadAppointments();
+            await loadTimeSlots(); // 初始化加载时间段
+        }
+        initializeData();
+        
+        // 更频繁的自动刷新：每15秒刷新一次，确保及时看到新预约
+        setInterval(() => {
+            // 检查日期是否变化，如果变化了，重置为"今天"（使用本地时区）
+            const currentDate = getTodayDateStr();
+            const lastKnownDate = localStorage.getItem('lastKnownDate');
+            
+            if (lastKnownDate && lastKnownDate !== currentDate) {
+                // 日期已变化，重置筛选为"今天"
+                currentFilter = 'today';
+                const dateSelect = document.getElementById('timeSlotDateSelect');
+                if (dateSelect) {
+                    dateSelect.value = 'today';
+                }
+                // 更新最后已知日期
+                localStorage.setItem('lastKnownDate', currentDate);
+            } else if (!lastKnownDate) {
+                // 首次运行，记录当前日期
+                localStorage.setItem('lastKnownDate', currentDate);
+            }
+            
+            loadAppointments();
+            loadTimeSlots(); // 同时刷新时间段
+        }, 15000); // 每15秒自动刷新
+        
+        // 页面获得焦点时立即刷新（用户切换回页面时）
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                loadAppointments();
+                loadTimeSlots(); // 同时刷新时间段
+            }
+        });
+        
+        // 页面获得焦点时刷新
+        window.addEventListener('focus', () => {
+            loadAppointments();
+            loadTimeSlots(); // 同时刷新时间段
+        });
+        
+        // 确保默认显示今天
+        currentFilter = 'today';
+        // 记录当前日期，用于检测跨日（使用本地时区）
+        localStorage.setItem('lastKnownDate', getTodayDateStr());
+        
+        // ========== 时间段管理功能 ==========
+        let allTimeSlots = [];
+        let blockedSlots = [];
+        
+        // 获取选择的日期字符串（使用本地时区，与用户端保持一致）
+        function getSelectedDateStr() {
+            const select = document.getElementById('timeSlotDateSelect');
+            const selectedValue = select ? select.value : 'today';
+            
+            if (selectedValue === 'tomorrow') {
+                return getDateStr(1);
+            } else if (selectedValue === 'dayAfterTomorrow') {
+                return getDateStr(2);
+            } else {
+                // 默认今天
+                return getTodayDateStr();
+            }
+        }
+        
+        // 检查并更新日期选择器的默认值（跨日后自动更新）
+        function checkAndUpdateDateSelect() {
+            const dateSelect = document.getElementById('timeSlotDateSelect');
+            if (!dateSelect) return;
+            
+            // 如果当前选择的是"today"，但实际日期已经变化，保持"today"选择
+            // 这个函数主要用于确保选择器状态正确
+            // 由于我们每次加载时都使用当前时间计算，所以不需要特别处理
+        }
+        
+        // 日期选择改变事件
+        function onTimeSlotDateChange() {
+            loadTimeSlots();
+        }
+        
+        async function loadTimeSlots() {
+            const refreshBtn = document.getElementById('refreshSlotsBtn');
+            if (refreshBtn) {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = '刷新中...';
+            }
+            
+            try {
+                const selectedDateStr = getSelectedDateStr();
+                
+                // 使用页面加载时获取的 stylistId
+                if (!stylistId) {
+                    console.error('stylistId not found');
+                    showNotification('无法加载时间段：缺少发型师ID，请重新登录', 'error');
+                    return;
+                }
+                
+                const slotsRes = await fetch(`/api/slots/${stylistId}?date=${selectedDateStr}`, {
+                    headers: { 'x-session-id': sessionId }
+                });
+                
+                if (!slotsRes.ok) {
+                    throw new Error(`HTTP error! status: ${slotsRes.status}`);
+                }
+                
+                const allSlots = await slotsRes.json();
+                
+                // 获取已锁定的时间段
+                const blockedRes = await fetch(`/api/admin/blocked-slots?stylistId=${stylistId}&date=${selectedDateStr}`, {
+                    headers: { 'x-session-id': sessionId }
+                });
+                
+                if (!blockedRes.ok) {
+                    console.warn('Failed to load blocked slots');
+                    blockedSlots = [];
+                } else {
+                    blockedSlots = await blockedRes.json();
+                }
+                
+                // 保存选择的日期，用于后续操作
+                currentTimeSlotDate = selectedDateStr;
+                
+                // 显示所有时间段，不过滤
+                allTimeSlots = Array.isArray(allSlots) ? allSlots : [];
+                
+                console.log('Loaded time slots:', allTimeSlots.length, 'for date:', selectedDateStr);
+                
+                renderTimeSlots();
+            } catch (e) {
+                showNotification('加载时间段失败', 'error');
+                console.error('loadTimeSlots error:', e);
+            } finally {
+                if (refreshBtn) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = '刷新';
+                }
+            }
+        }
+        
+        function renderTimeSlots() {
+            const container = document.getElementById('timeSlotsList');
+            if (!container) {
+                console.error('timeSlotsList container not found');
+                return;
+            }
+            
+            // 确保 allTimeSlots 是数组
+            if (!Array.isArray(allTimeSlots)) {
+                console.error('allTimeSlots is not an array:', allTimeSlots);
+                allTimeSlots = [];
+            }
+            
+                if (allTimeSlots.length === 0) {
+                const select = document.getElementById('timeSlotDateSelect');
+                const selectedValue = select ? select.value : 'today';
+                let dateText = '今天';
+                if (selectedValue === 'tomorrow') {
+                    dateText = '明天';
+                } else if (selectedValue === 'dayAfterTomorrow') {
+                    dateText = '后天';
+                }
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <span class="material-symbols-outlined">potted_plant</span>
+                        <p style="font-size: 0.75rem; font-weight: 500; letter-spacing: 0.05em; margin: 0;">${dateText}暂无可管理的时间段</p>
+                        <p style="font-size: 0.625rem; opacity: 0.75; margin-top: 4px;">No time slots available</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 获取当前时间和选择的日期（使用本地时区）
+            const now = new Date();
+            const selectedDateStr = currentTimeSlotDate || getSelectedDateStr();
+            const todayStr = getTodayDateStr();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTotalMinutes = currentHour * 60 + currentMinute;
+            
+            // 判断选择的日期是否是今天
+            const isToday = selectedDateStr === todayStr;
+            
+            container.innerHTML = allTimeSlots.map(slot => {
+                // 确保 slot 有 time 属性
+                if (!slot || !slot.time) {
+                    console.warn('Invalid slot:', slot);
+                    return '';
+                }
+                
+                // 解析时间段开始时间和结束时间
+                const [startTime, endTime] = slot.time.split('-');
+                const [startHour, startMin] = startTime.split(':').map(Number);
+                const [endHour, endMin] = endTime.split(':').map(Number);
+                const startTotalMinutes = startHour * 60 + startMin;
+                const endTotalMinutes = endHour * 60 + endMin;
+                
+                // 检查该时间段是否已被预约（使用选择的日期）
+                // 对于有 originalTimeSlots 的预约（烫染服务），只检查精确匹配和原始时间段列表
+                // 对于没有 originalTimeSlots 的预约（剪发服务），使用时间段范围匹配
+                const appointment = allAppointments.find(a => {
+                    if (a.date !== selectedDateStr || a.status === 'cancelled') {
+                        return false;
+                    }
+                    
+                    // 精确匹配
+                    if (a.time === slot.time) {
+                        return true;
+                    }
+                    
+                    // 如果预约有 originalTimeSlots（烫染服务），只检查原始时间段列表
+                    // 不使用时间段范围匹配，避免误判被跳过的默认锁定时间段
+                    if (a.originalTimeSlots && Array.isArray(a.originalTimeSlots)) {
+                        if (a.originalTimeSlots.includes(slot.time)) {
+                            return true;
+                        }
+                        // 有 originalTimeSlots 的预约，不使用时间段范围匹配，直接返回 false
+                        return false;
+                    }
+                    
+                    // 如果没有 originalTimeSlots（剪发服务），使用时间段范围匹配
+                    try {
+                        const [appStart, appEnd] = a.time.split('-');
+                        const [slotStart, slotEnd] = slot.time.split('-');
+                        if (appStart && appEnd && slotStart && slotEnd) {
+                            const appStartMin = appStart.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m));
+                            const appEndMin = appEnd.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m));
+                            const slotStartMin = slotStart.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m));
+                            const slotEndMin = slotEnd.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m));
+                            // 如果当前时间段在预约的时间范围内，则匹配
+                            if (slotStartMin >= appStartMin && slotEndMin <= appEndMin) {
+                                return true;
+                            }
+                        }
+                    } catch (e) {
+                        // 解析失败，忽略
+                    }
+                    return false;
+                });
+                
+                // 检查是否被锁定（包括默认锁定的时间段）
+                const isBlocked = Array.isArray(blockedSlots) && blockedSlots.some(b => b && b.time === slot.time);
+                
+                // 检查是否是默认锁定的时间段（12:00-12:30 和 18:00-18:30）
+                // 如果该时间段没有被预约，且不在 blocked_slots 中（说明发型师没有主动解锁），则视为已锁定
+                const isDefaultMealTime = (slot.time === '12:00-12:30' || slot.time === '18:00-18:30');
+                const isUnlocked = Array.isArray(blockedSlots) && blockedSlots.some(b => b && b.time === slot.time + '_UNLOCKED');
+                const isDefaultBlocked = isDefaultMealTime && !appointment && !isBlocked && !isUnlocked;
+                
+                // 判断状态（按优先级：已完成 > 已预约 > 已锁定 > 已过期/可预约）
+                let status = '';
+                let borderColor = '#e2e8f0';
+                let bgColor = 'white';
+                let canToggle = false;
+                
+                // 1. 判断是否已完成（有预约且状态为 completed）
+                if (appointment && appointment.status === 'completed') {
+                    status = '已完成';
+                    borderColor = '#10b981';
+                    bgColor = '#d1fae5';
+                    canToggle = false;
+                }
+                // 2. 判断是否已预约（有预约且状态为 booked）
+                else if (appointment && appointment.status === 'booked') {
+                    status = '已预约';
+                    borderColor = '#3b82f6';
+                    bgColor = '#dbeafe';
+                    canToggle = false;
+                }
+                // 3. 判断是否已锁定（包括默认锁定的时间段）
+                else if (isBlocked || isDefaultBlocked) {
+                    status = '已锁定';
+                    borderColor = '#ef4444';
+                    bgColor = '#fee2e2';
+                    canToggle = true; // 可以解锁
+                }
+                // 4. 判断已过期/可预约（仅对今天的日期判断）
+                else if (isToday) {
+                    // 判断当前时间是否在该时间段内
+                    const isCurrentTimeInSlot = currentTotalMinutes >= startTotalMinutes && currentTotalMinutes <= endTotalMinutes;
+                    
+                    if (isCurrentTimeInSlot) {
+                        // 当前时间在该时间段内
+                        // 判断是否在开始时间10分钟内
+                        const timeDiff = currentTotalMinutes - startTotalMinutes;
+                        if (timeDiff <= 10) {
+                            // 在开始时间10分钟内，显示"可预约"
+                            status = '可预约';
+                            borderColor = '#fbbf24';
+                            bgColor = '#fef9e7';
+                            canToggle = true; // 可以锁定
+                        } else {
+                            // 超过开始时间10分钟，显示"已过期"
+                            status = 'Expired';
+                            borderColor = '#cbd5e1';
+                            bgColor = '#f8fafc';
+                            canToggle = false;
+                        }
+                    } else if (currentTotalMinutes > endTotalMinutes) {
+                        // 当前时间超过结束时间，显示"已过期"
+                        status = 'Expired';
+                        borderColor = '#cbd5e1';
+                        bgColor = '#f8fafc';
+                        canToggle = false;
+                    } else {
+                        // 当前时间早于开始时间，显示"可预约"
+                        status = '可预约';
+                        borderColor = '#fbbf24';
+                        bgColor = '#fef9e7';
+                        canToggle = true; // 可以锁定
+                    }
+                }
+                // 5. 未来日期，显示"可预约"
+                else {
+                    status = '可预约';
+                    borderColor = '#fbbf24';
+                    bgColor = '#fef9e7';
+                    canToggle = true; // 可以锁定
+                }
+                
+                // 根据状态设置样式
+                let cardBg = 'white';
+                let cardBorder = 'var(--stone)';
+                let cardTextColor = 'var(--sage-dark)';
+                let statusColor = 'var(--wood-brown)';
+                let iconOpacity = '0.3';
+                
+                if (status === '已预约') {
+                    cardBg = 'rgba(254, 243, 199, 0.6)';
+                    cardBorder = 'rgba(251, 146, 60, 0.4)';
+                    statusColor = 'rgba(234, 88, 12, 0.9)';
+                } else if (status === '已完成') {
+                    cardBg = 'rgba(219, 234, 254, 0.6)';
+                    cardBorder = 'rgba(59, 130, 246, 0.4)';
+                    statusColor = 'rgba(37, 99, 235, 0.9)';
+                } else if (status === '已锁定') {
+                    cardBg = 'rgba(254, 226, 226, 0.6)';
+                    cardBorder = 'rgba(239, 68, 68, 0.4)';
+                    statusColor = 'rgba(220, 38, 38, 0.9)';
+                } else if (status === '可预约') {
+                    cardBg = 'rgba(220, 252, 231, 0.6)';
+                    cardBorder = 'rgba(34, 197, 94, 0.4)';
+                    statusColor = 'rgba(22, 163, 74, 0.9)';
+                } else if (status === 'Expired') {
+                    cardBg = 'rgba(241, 245, 249, 0.8)';
+                    cardBorder = 'rgba(148, 163, 184, 0.5)';
+                    statusColor = 'rgba(100, 116, 139, 0.8)';
+                    cardTextColor = 'rgba(100, 116, 139, 0.7)';
+                } else {
+                    cardBg = 'var(--stone)';
+                    cardBg = 'rgba(229, 224, 216, 0.4)';
+                    cardBorder = 'var(--stone)';
+                    statusColor = 'var(--wood-brown)';
+                }
+                
+                return `
+                    <div class="time-slot-item" style="
+                        padding: 8px 8px;
+                        border: 1px solid ${cardBorder};
+                        border-radius: 16px;
+                        background: ${cardBg};
+                        text-align: center;
+                        cursor: ${canToggle ? 'pointer' : 'default'};
+                        opacity: ${canToggle ? '1' : '0.7'};
+                        position: relative;
+                        overflow: hidden;
+                        ${status === '可预约' ? 'box-shadow: 0 4px 20px rgba(127, 169, 152, 0.08);' : ''}
+                        transition: all 0.3s;
+                    " onclick="${canToggle ? `toggleTimeSlot('${slot.time}')` : ''}" onmouseover="${canToggle ? 'this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 6px 24px rgba(127, 169, 152, 0.12)\';' : ''}" onmouseout="${canToggle ? 'this.style.transform=\'\'; this.style.boxShadow=\'\';' : ''}">
+                        ${status === '可预约' ? `<div style="position: absolute; right: -4px; bottom: -4px; opacity: ${iconOpacity};">
+                            <span class="material-symbols-outlined" style="font-size: 24px; color: var(--eucalyptus-green);">nest_eco_leaf</span>
+                        </div>` : ''}
+                        ${status === '已锁定' ? `<div style="position: absolute; top: 4px; right: 4px; opacity: ${iconOpacity};">
+                            <span class="material-symbols-outlined" style="font-size: 12px; color: rgba(220, 38, 38, 0.9);">block</span>
+                        </div>` : ''}
+                        <div style="font-weight: 700; margin-bottom: 4px; font-size: 0.7rem; color: ${cardTextColor}; white-space: nowrap;">${formatTimeDisplay(slot.time)}</div>
+                        <div style="font-size: 0.55rem; color: ${statusColor}; line-height: 1.2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+                            ${status}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function toggleTimeSlot(time) {
+            try {
+                const selectedDateStr = currentTimeSlotDate || getSelectedDateStr();
+                // 使用页面加载时获取的 stylistId
+                if (!stylistId) {
+                    showNotification('缺少发型师ID，请重新登录', 'error');
+                    return;
+                }
+                
+                // 检查是否被明确锁定（在 blocked_slots 表中）
+                const isBlocked = Array.isArray(blockedSlots) && blockedSlots.some(b => b && b.time === time);
+                
+                // 检查是否是默认锁定的时间段（12:00-12:30 和 18:00-18:30）
+                const isDefaultMealTime = (time === '12:00-12:30' || time === '18:00-18:30');
+                
+                // 检查是否已解锁（有 _UNLOCKED 标记）
+                const isUnlocked = Array.isArray(blockedSlots) && blockedSlots.some(b => b && b.time === time + '_UNLOCKED');
+                
+                // 检查是否有预约（需要支持合并后的时间段）
+                // 对于有 originalTimeSlots 的预约（烫染服务），只检查精确匹配和原始时间段列表
+                // 对于没有 originalTimeSlots 的预约（剪发服务），使用时间段范围匹配
+                const appointment = allAppointments.find(a => {
+                    if (a.date !== selectedDateStr || a.status === 'cancelled') {
+                        return false;
+                    }
+                    
+                    // 精确匹配
+                    if (a.time === time) {
+                        return true;
+                    }
+                    
+                    // 如果预约有 originalTimeSlots（烫染服务），只检查原始时间段列表
+                    // 不使用时间段范围匹配，避免误判被跳过的默认锁定时间段
+                    if (a.originalTimeSlots && Array.isArray(a.originalTimeSlots)) {
+                        if (a.originalTimeSlots.includes(time)) {
+                            return true;
+                        }
+                        // 有 originalTimeSlots 的预约，不使用时间段范围匹配，直接返回 false
+                        return false;
+                    }
+                    
+                    // 如果没有 originalTimeSlots（剪发服务），使用时间段范围匹配
+                    try {
+                        const [appStart, appEnd] = a.time.split('-');
+                        const [slotStart, slotEnd] = time.split('-');
+                        if (appStart && appEnd && slotStart && slotEnd) {
+                            const appStartMin = appStart.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m));
+                            const appEndMin = appEnd.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m));
+                            const slotStartMin = slotStart.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m));
+                            const slotEndMin = slotEnd.split(':').reduce((h, m) => parseInt(h) * 60 + parseInt(m));
+                            // 如果当前时间段在预约的时间范围内，则匹配
+                            if (slotStartMin >= appStartMin && slotEndMin <= appEndMin) {
+                                return true;
+                            }
+                        }
+                    } catch (e) {
+                        // 解析失败，忽略
+                    }
+                    return false;
+                });
+                
+                // 判断当前状态：如果被明确锁定，或者是默认锁定且未解锁，则视为已锁定
+                const isCurrentlyBlocked = isBlocked || (isDefaultMealTime && !appointment && !isUnlocked);
+                
+                if (isCurrentlyBlocked) {
+                    // 解锁
+                    const res = await fetch('/api/admin/unblock', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-session-id': sessionId
+                        },
+                        body: JSON.stringify({ stylistId, date: selectedDateStr, time })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showNotification('时间段已解锁', 'success');
+                        loadTimeSlots();
+                        // 触发预约列表刷新，以便同步显示
+                        loadAppointments();
+                    } else {
+                        showNotification('解锁失败', 'error');
+                    }
+                } else {
+                    // 锁定
+                    const res = await fetch('/api/admin/block', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-session-id': sessionId
+                        },
+                        body: JSON.stringify({ stylistId, date: selectedDateStr, time })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showNotification('时间段已锁定', 'success');
+                        loadTimeSlots();
+                        // 触发预约列表刷新，以便同步显示
+                        loadAppointments();
+                    } else {
+                        showNotification('锁定失败', 'error');
+                    }
+                }
+            } catch (e) {
+                showNotification('操作失败', 'error');
+                console.error(e);
+            }
+        }
+        
+        // 时间段管理自动刷新：每15秒刷新一次（与预约列表同步）
+        // 注意：时间段刷新已经在 loadAppointments 的 setInterval 中处理，这里不需要重复
+        
+        // ========== 状态显示和休假设置功能 ==========
+        let currentStylistInfo = null; // 存储当前发型师信息
+        
+        // 更新状态显示
+        async function updateStatusDisplay() {
+            try {
+                // 获取当前发型师信息
+                const res = await fetch('/api/admin/stylist/info', {
+                    headers: { 'x-session-id': sessionId },
+                    cache: 'no-store'
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    console.error('获取发型师信息失败:', data.error || res.status);
+                    return;
+                }
+                currentStylistInfo = data;
+                
+                const statusDisplay = document.getElementById('statusDisplay');
+                if (!statusDisplay) return;
+                
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+                const currentTotalMinutes = currentHour * 60 + currentMinute;
+                const today = getTodayDateStr();
+                
+                // 判断当前时间是否在工作时间内（10:00-22:00）
+                const workStartMinutes = 10 * 60; // 10:00
+                const workEndMinutes = 22 * 60; // 22:00
+                const isWorkTime = currentTotalMinutes >= workStartMinutes && currentTotalMinutes < workEndMinutes;
+                
+                let statusText = '';
+                let statusClass = '';
+                
+                const vacRanges = getStylistVacationRangesAdmin(currentStylistInfo);
+                const onVacationToday = vacRanges.some(
+                    r => today >= r.vacationStartDate && today <= r.vacationEndDate
+                );
+                if (vacRanges.length > 0) {
+                    if (onVacationToday) {
+                        statusText = '休假中';
+                        statusClass = 'status-vacation';
+                    } else if (isWorkTime) {
+                        statusText = '工作中';
+                        statusClass = 'status-working';
+                    } else {
+                        statusText = '休息中';
+                        statusClass = 'status-resting';
+                    }
+                } else {
+                    // 没有设置休假，根据时间判断
+                    if (isWorkTime) {
+                        statusText = '工作中';
+                        statusClass = 'status-working';
+                    } else {
+                        statusText = '休息中';
+                        statusClass = 'status-resting';
+                    }
+                }
+                
+                const statusSpan = statusDisplay.querySelector('span');
+                statusSpan.textContent = '休假设置';
+                statusDisplay.className = statusClass;
+                const vrTip = getStylistVacationRangesAdmin(currentStylistInfo);
+                if (vrTip.length > 0) {
+                    const tip = vrTip.map(r => `${formatYmdToCn(r.vacationStartDate)}～${formatYmdToCn(r.vacationEndDate)}`).join('；');
+                    statusDisplay.title = `已设休假：${tip}（点击修改）`;
+                } else {
+                    statusDisplay.title = '点击设置休假';
+                }
+                
+                // 根据状态设置不同的颜色（使用桉树绿色系）
+                if (statusClass === 'status-working') {
+                    // 工作中：跟eco图标一样的样式
+                    statusDisplay.style.background = 'var(--eucalyptus-light)';
+                    statusDisplay.style.border = '1px solid rgba(168, 195, 184, 0.3)';
+                    statusDisplay.style.color = 'var(--eucalyptus-green)';
+                    statusSpan.style.color = 'var(--eucalyptus-green)';
+                } else if (statusText === '休假中' || statusClass === 'status-vacation') {
+                    // 休假中：木质棕
+                    statusDisplay.style.background = 'var(--wood-brown)';
+                    statusDisplay.style.border = '1px solid var(--wood-brown)';
+                    statusDisplay.style.color = 'white';
+                    statusSpan.style.color = 'white';
+                    statusDisplay.className = 'status-vacation';
+                } else {
+                    // 休息中：石头色
+                    statusDisplay.style.background = 'var(--stone)';
+                    statusDisplay.style.border = '1px solid var(--stone)';
+                    statusDisplay.style.color = 'var(--wood-brown)';
+                    statusSpan.style.color = 'var(--wood-brown)';
+                }
+                
+                // 添加hover效果
+                statusDisplay.onmouseenter = function() {
+                    this.style.transform = 'scale(1.05)';
+                    this.style.opacity = '0.9';
+                };
+                statusDisplay.onmouseleave = function() {
+                    this.style.transform = 'scale(1)';
+                    this.style.opacity = '1';
+                };
+            } catch (e) {
+                console.error('更新状态显示失败:', e);
+            }
+        }
+        
+        // 格式化日期为 "几月几日"
+        function formatDate(date) {
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            return `${month}月${day}日`;
+        }
+        
+        function formatYmdToCn(ymd) {
+            if (!ymd || typeof ymd !== 'string') return '';
+            const p = ymd.split('-');
+            if (p.length < 3) return ymd;
+            const m = parseInt(p[1], 10);
+            const d = parseInt(p[2], 10);
+            return `${m}月${d}日`;
+        }
+
+        function getStylistVacationRangesAdmin(info) {
+            if (!info) return [];
+            // 只要存在 vacationRanges 数组（含空数组），以它为准，避免清除后仍被旧的 vacationStartDate/End 污染
+            if (Array.isArray(info.vacationRanges)) {
+                return info.vacationRanges
+                    .filter(r => r && r.vacationStartDate && r.vacationEndDate)
+                    .map(r => ({ vacationStartDate: r.vacationStartDate, vacationEndDate: r.vacationEndDate }));
+            }
+            if (info.vacationStartDate && info.vacationEndDate) {
+                return [{ vacationStartDate: info.vacationStartDate, vacationEndDate: info.vacationEndDate }];
+            }
+            return [];
+        }
+
+        function applyLocalStylistVacationRanges(vr) {
+            const ranges = Array.isArray(vr) ? vr : [];
+            const first = ranges[0];
+            currentStylistInfo = {
+                ...currentStylistInfo,
+                vacationRanges: ranges,
+                vacationStartDate: first ? first.vacationStartDate : null,
+                vacationEndDate: first ? first.vacationEndDate : null
+            };
+        }
+
+        function fillVacationSavedTopMount() {
+            const mount = document.getElementById('vacationSavedTopMount');
+            if (!mount) return;
+            const ranges = getStylistVacationRangesAdmin(currentStylistInfo);
+            if (!ranges.length) {
+                mount.innerHTML = '';
+                return;
+            }
+            const rowStyle =
+                'display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 5px; padding: 6px 12px; border-radius: 10px; background: rgba(127, 169, 152, 0.12); border: 1px solid rgba(127, 169, 152, 0.35); box-sizing: border-box; min-height: 0;';
+            const btnClear =
+                'flex-shrink: 0; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--wood-brown); background: transparent; color: var(--wood-brown); font-size: 0.6rem; font-weight: 700; cursor: pointer; letter-spacing: 0.05em; line-height: 1.2;';
+            let html = `<div style="margin-bottom: 6px; color: var(--wood-brown); font-size: 0.55rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;">已保存的休假</div>`;
+            ranges.forEach((r, i) => {
+                html += `<div style="${rowStyle}">
+                    <span style="color: var(--sage-dark); font-size: 0.7rem; font-weight: 600; line-height: 1.2;">${formatYmdToCn(r.vacationStartDate)} 至 ${formatYmdToCn(r.vacationEndDate)}</span>
+                    <button type="button" onclick="clearVacationSegment(${i})" style="${btnClear}">清除</button>
+                </div>`;
+            });
+            if (ranges.length > 1) {
+                html += `<button type="button" onclick="clearVacation()" style="width: 100%; margin-top: 2px; padding: 5px; border-radius: 8px; border: 1px dashed var(--wood-brown); background: transparent; color: var(--wood-brown); font-size: 0.6rem; font-weight: 700; cursor: pointer; line-height: 1.2;">全部清除</button>`;
+            }
+            mount.innerHTML = html;
+        }
+        
+        // 打开休假设置弹窗
+        function openVacationModal() {
+            closeVacationModal();
+            const modal = document.createElement('div');
+            modal.id = 'vacationModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(74, 93, 84, 0.4);
+                backdrop-filter: blur(4px);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                box-sizing: border-box;
+            `;
+            
+            const todayStr = getTodayDateStr();
+            const tomorrowStr = getDateStr(1);
+            
+            modal.innerHTML = `
+                <div style="background: var(--cream); border-radius: 48px; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 32px; box-sizing: border-box; overflow-x: hidden; border: 1px solid var(--stone); box-shadow: 0 20px 60px rgba(45, 67, 57, 0.2);">
+                    <div id="vacationSavedTopMount" style="margin-bottom: 10px;"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+                        <div style="display: flex; flex-direction: column;">
+                            <h3 style="margin: 0; color: var(--sage-dark); font-size: 1.5rem; font-weight: 700; font-family: 'Playfair Display', serif;">休假设置</h3>
+                            <p style="margin: 4px 0 0 0; color: var(--wood-brown); font-size: 0.75rem;">设置您的休假时间</p>
+                        </div>
+                        <button type="button" onclick="closeVacationModal()" style="width: 40px; height: 40px; border-radius: 50%; background: var(--eucalyptus-light); color: var(--eucalyptus-green); border: none; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onmouseover="this.style.background='var(--eucalyptus-green)'; this.style.color='white';" onmouseout="this.style.background='var(--eucalyptus-light)'; this.style.color='var(--eucalyptus-green)';">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+                        </button>
+                    </div>
+                    <div style="margin-bottom: 12px; box-sizing: border-box; width: 100%;">
+                        <label style="display: block; margin-bottom: 4px; color: var(--wood-brown); font-weight: 700; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.15em; margin-left: 4px;">开始日期</label>
+                        <div style="position: relative;">
+                            <input type="date" id="vacationStartDate" value="${todayStr}" min="${todayStr}" style="
+                                width: 100%;
+                                max-width: 100%;
+                                padding: 8px 38px 8px 14px;
+                                border: 1px solid var(--stone);
+                                border-radius: 12px;
+                                font-size: 0.8rem;
+                                box-sizing: border-box;
+                                outline: none;
+                                -webkit-appearance: none;
+                                appearance: none;
+                                background: white;
+                                color: var(--sage-dark);
+                                transition: all 0.3s;
+                                line-height: 1.2;
+                                min-height: 0;
+                            " onfocus="this.style.borderColor='var(--eucalyptus-green)'; this.style.boxShadow='0 0 0 2px rgba(127, 169, 152, 0.2)';" onblur="this.style.borderColor='var(--stone)'; this.style.boxShadow='none';">
+                            <span class="material-symbols-outlined" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--eucalyptus-green); pointer-events: none; font-size: 16px;">calendar_today</span>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 12px; box-sizing: border-box; width: 100%;">
+                        <label style="display: block; margin-bottom: 4px; color: var(--wood-brown); font-weight: 700; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.15em; margin-left: 4px;">结束日期</label>
+                        <div style="position: relative;">
+                            <input type="date" id="vacationEndDate" value="${tomorrowStr}" min="${todayStr}" style="
+                                width: 100%;
+                                max-width: 100%;
+                                padding: 8px 38px 8px 14px;
+                                border: 1px solid var(--stone);
+                                border-radius: 12px;
+                                font-size: 0.8rem;
+                                box-sizing: border-box;
+                                outline: none;
+                                -webkit-appearance: none;
+                                appearance: none;
+                                background: white;
+                                color: var(--sage-dark);
+                                transition: all 0.3s;
+                                line-height: 1.2;
+                                min-height: 0;
+                            " onfocus="this.style.borderColor='var(--eucalyptus-green)'; this.style.boxShadow='0 0 0 2px rgba(127, 169, 152, 0.2)';" onblur="this.style.borderColor='var(--stone)'; this.style.boxShadow='none';">
+                            <span class="material-symbols-outlined" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--eucalyptus-green); pointer-events: none; font-size: 16px;">calendar_today</span>
+                        </div>
+                    </div>
+                    <div id="vacationError" style="color: var(--admin-danger); margin-bottom: 15px; display: none; font-size: 0.75rem;"></div>
+                    <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 24px;">
+                        <button type="button" onclick="saveVacation()" style="
+                            width: 100%;
+                            padding: 16px;
+                            background: var(--eucalyptus-green);
+                            color: white;
+                            border: none;
+                            border-radius: 16px;
+                            font-size: 0.75rem;
+                            cursor: pointer;
+                            font-weight: 700;
+                            letter-spacing: 0.05em;
+                            box-shadow: 0 4px 12px rgba(127, 169, 152, 0.3);
+                            transition: all 0.3s;
+                        " onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(127, 169, 152, 0.4)';" onmouseout="this.style.opacity='1'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(127, 169, 152, 0.3)';" onmousedown="this.style.transform='scale(0.98)';                        " onmouseup="this.style.transform='translateY(-1px)';">
+                            保存设置
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            fillVacationSavedTopMount();
+            
+            // 点击背景关闭
+            modal.onclick = (e) => {
+                if (e.target === modal) closeVacationModal();
+            };
+        }
+        
+        // 关闭休假设置弹窗
+        function closeVacationModal() {
+            const modal = document.getElementById('vacationModal');
+            if (modal) modal.remove();
+        }
+        
+        // 保存休假设置
+        async function saveVacation() {
+            const startDate = document.getElementById('vacationStartDate').value;
+            const endDate = document.getElementById('vacationEndDate').value;
+            const errorDiv = document.getElementById('vacationError');
+            
+            if (!startDate || !endDate) {
+                errorDiv.textContent = '请选择开始和结束日期';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (startDate > endDate) {
+                errorDiv.textContent = '开始日期不能晚于结束日期';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const existing = getStylistVacationRangesAdmin(currentStylistInfo);
+                const next = existing.map(r => ({
+                    vacationStartDate: r.vacationStartDate,
+                    vacationEndDate: r.vacationEndDate
+                }));
+                const dup = next.some(
+                    r => r.vacationStartDate === startDate && r.vacationEndDate === endDate
+                );
+                if (!dup) {
+                    next.push({ vacationStartDate: startDate, vacationEndDate: endDate });
+                }
+
+                const res = await fetch('/api/admin/stylist/vacation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-session-id': sessionId
+                    },
+                    body: JSON.stringify({ vacationRanges: next })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    const vr = Array.isArray(data.vacationRanges) ? data.vacationRanges : next;
+                    applyLocalStylistVacationRanges(vr);
+                    fillVacationSavedTopMount();
+                    showNotification(dup ? '该休假区间已存在' : '已保存休假', 'success');
+                    await loadAppointments();
+                    await loadTimeSlots();
+                    await updateStatusDisplay();
+                } else {
+                    errorDiv.textContent = data.message || '设置失败';
+                    errorDiv.style.display = 'block';
+                }
+            } catch (e) {
+                errorDiv.textContent = '网络错误，请稍后重试';
+                errorDiv.style.display = 'block';
+                console.error('保存休假设置失败:', e);
+            }
+        }
+        
+        async function clearVacationSegment(index) {
+            const ranges = getStylistVacationRangesAdmin(currentStylistInfo);
+            if (index < 0 || index >= ranges.length) return;
+            if (!confirm('确定清除该段休假？')) return;
+
+            const next = ranges.filter((_, i) => i !== index).map(r => ({
+                vacationStartDate: r.vacationStartDate,
+                vacationEndDate: r.vacationEndDate
+            }));
+
+            try {
+                const res = await fetch('/api/admin/stylist/vacation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-session-id': sessionId
+                    },
+                    body: JSON.stringify({ vacationRanges: next })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    const vr = Array.isArray(data.vacationRanges) ? data.vacationRanges : next;
+                    applyLocalStylistVacationRanges(vr);
+                    fillVacationSavedTopMount();
+                    showNotification('已清除', 'success');
+                    await updateStatusDisplay();
+                    await loadAppointments();
+                    await loadTimeSlots();
+                } else {
+                    showNotification(data.message || '清除失败', 'error');
+                }
+            } catch (e) {
+                showNotification('网络错误，请稍后重试', 'error');
+                console.error('清除休假失败:', e);
+            }
+        }
+
+        // 清除全部休假
+        async function clearVacation() {
+            if (!confirm('确定清除全部休假吗？')) return;
+
+            try {
+                const res = await fetch('/api/admin/stylist/vacation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-session-id': sessionId
+                    },
+                    body: JSON.stringify({ vacationRanges: [] })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    applyLocalStylistVacationRanges([]);
+                    fillVacationSavedTopMount();
+                    showNotification('已清除全部休假', 'success');
+                    await updateStatusDisplay();
+                    await loadAppointments();
+                    await loadTimeSlots();
+                } else {
+                    showNotification(data.message || '清除失败', 'error');
+                }
+            } catch (e) {
+                showNotification('网络错误，请稍后重试', 'error');
+                console.error('清除休假设置失败:', e);
+            }
+        }
+        
+        // 打开公告设置弹窗
+        async function openAnnouncementModal() {
+            const modal = document.createElement('div');
+            modal.id = 'announcementModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(74, 93, 84, 0.4);
+                backdrop-filter: blur(4px);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                box-sizing: border-box;
+            `;
+            modal.innerHTML = `
+                <div style="background: var(--cream); border-radius: 48px; max-width: 500px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 32px; box-sizing: border-box; overflow-x: hidden; border: 1px solid var(--stone); box-shadow: 0 20px 60px rgba(45, 67, 57, 0.2);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <div>
+                            <h3 style="margin: 0; color: var(--sage-dark); font-size: 1.5rem; font-weight: 700; font-family: 'Playfair Display', serif;">公告设置</h3>
+                            <p style="margin: 4px 0 0 0; color: var(--wood-brown); font-size: 0.75rem;">用户端首页将显示此公告，留空则显示「暂无公告」</p>
+                        </div>
+                        <button onclick="closeAnnouncementModal()" style="width: 40px; height: 40px; border-radius: 50%; background: var(--eucalyptus-light); color: var(--eucalyptus-green); border: none; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onmouseover="this.style.background='var(--eucalyptus-green)'; this.style.color='white';" onmouseout="this.style.background='var(--eucalyptus-light)'; this.style.color='var(--eucalyptus-green)';">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+                        </button>
+                    </div>
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; margin-bottom: 8px; color: var(--wood-brown); font-weight: 700; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.15em; margin-left: 4px;">公告内容</label>
+                        <textarea id="announcementTextarea" placeholder="例如：欢迎光临欧诺造型 · 营业时间 11:00-22:00" rows="4" style="
+                            width: 100%;
+                            padding: 16px 20px;
+                            border: 1px solid var(--stone);
+                            border-radius: 16px;
+                            font-size: 0.9rem;
+                            font-family: inherit;
+                            box-sizing: border-box;
+                            outline: none;
+                            resize: vertical;
+                            min-height: 100px;
+                            color: var(--sage-dark);
+                            transition: all 0.3s;
+                        " onfocus="this.style.borderColor='var(--eucalyptus-green)'; this.style.boxShadow='0 0 0 2px rgba(127, 169, 152, 0.2)';" onblur="this.style.borderColor='var(--stone)'; this.style.boxShadow='none';"></textarea>
+                    </div>
+                    <div id="announcementError" style="color: var(--admin-danger); margin-bottom: 15px; display: none; font-size: 0.75rem;"></div>
+                    <button onclick="saveAnnouncement()" style="
+                        width: 100%;
+                        padding: 16px;
+                        background: var(--eucalyptus-green);
+                        color: white;
+                        border: none;
+                        border-radius: 16px;
+                        font-size: 0.75rem;
+                        cursor: pointer;
+                        font-weight: 700;
+                        letter-spacing: 0.05em;
+                        box-shadow: 0 4px 12px rgba(127, 169, 152, 0.3);
+                        transition: all 0.3s;
+                    " onmouseover="this.style.opacity='0.9'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 6px 16px rgba(127, 169, 152, 0.4)';" onmouseout="this.style.opacity='1'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(127, 169, 152, 0.3)';">
+                        保存公告
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if (e.target === modal) closeAnnouncementModal(); };
+            try {
+                const res = await fetch('/api/admin/announcement', { headers: { 'x-session-id': sessionId } });
+                const data = await res.json();
+                const ta = document.getElementById('announcementTextarea');
+                if (ta && data.text) ta.value = data.text;
+            } catch (e) {
+                console.error('加载公告失败', e);
+            }
+        }
+        
+        function closeAnnouncementModal() {
+            const m = document.getElementById('announcementModal');
+            if (m) m.remove();
+        }
+        
+        async function saveAnnouncement() {
+            const ta = document.getElementById('announcementTextarea');
+            const err = document.getElementById('announcementError');
+            if (!ta || !err) return;
+            const text = (ta.value || '').trim();
+            try {
+                const res = await fetch('/api/admin/announcement', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-session-id': sessionId },
+                    body: JSON.stringify({ text: text })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('公告已保存', 'success');
+                    closeAnnouncementModal();
+                } else {
+                    err.textContent = data.message || '保存失败';
+                    err.style.display = 'block';
+                }
+            } catch (e) {
+                err.textContent = '网络错误，请稍后重试';
+                err.style.display = 'block';
+            }
+        }
+        
+        // 定期更新状态显示（每分钟）
+        setInterval(() => {
+            updateStatusDisplay();
+        }, 60000);
+    </script>
+</body>
+</html>

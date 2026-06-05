@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/admin-login/admin-login",
+    "pages/admin-dashboard/admin-dashboard"
+  ],
+  "window": {
+    "navigationBarTitleText": "预约服务",
+    "navigationBarBackgroundColor": "#F9FBF9",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F9FBF9"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

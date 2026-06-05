@@ -1,0 +1,2008 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <title>预约服务</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4A5D4E;
+            --background-light: #FDFCF8;
+            --sage-light: #E9F0E8;
+            --sage-dark: #2D352E;
+            --champagne-light: #F5EFE6;
+            --champagne-dark: #36322E;
+            --sage-green: #A7C4A0;
+            --sage-light-old: #D4E2D2;
+            --sandy-beige: #E8D5C4;
+            --botanical-dark: #2D4339;
+            --off-white: #F9FBF9;
+            --mint-primary: #E8F5E9;
+            --mint-accent: #81C784;
+            --mint-dark: #2D6A4F;
+        }
+
+        html {
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--off-white);
+            background-image: radial-gradient(circle at 2px 2px, rgba(167, 196, 160, 0.1) 1px, transparent 0);
+            background-size: 24px 24px;
+            color: var(--botanical-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(167, 196, 160, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(232, 213, 196, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(167, 196, 160, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        h1, h2, h3, .font-display {
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -5%;
+            right: -5%;
+            width: 200px;
+            height: 200px;
+            opacity: 0.1;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .admin-link {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 80px;
+            height: 80px;
+            z-index: 100;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .admin-link:focus {
+            outline: none;
+        }
+
+        .admin-link:active {
+            outline: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 1.875rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            color: #111827;
+            margin-bottom: 8px;
+            text-shadow: none;
+        }
+
+        .header p {
+            font-size: 0.875rem;
+            color: #9ca3af;
+            font-weight: 300;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            text-shadow: none;
+        }
+
+        .booking-buttons {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .booking-btn {
+            width: 100%;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 1.5rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #111827;
+            font-size: 1rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 24px;
+            position: relative;
+            overflow: visible;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            text-align: left;
+        }
+
+        @media (max-width: 480px) {
+            .booking-btn {
+                padding: 24px;
+                gap: 24px;
+            }
+        }
+
+        .booking-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .booking-btn:active {
+            transform: scale(0.98);
+        }
+
+        .booking-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .booking-btn:disabled:hover {
+            transform: none;
+            box-shadow: 0 10px 30px -10px rgba(45, 67, 57, 0.1);
+        }
+
+        .btn-cut {
+            background: rgba(233, 240, 232, 0.8);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 15px -3px rgba(233, 240, 232, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-cut:hover {
+            background: rgba(233, 240, 232, 0.9);
+        }
+
+        .btn-dye {
+            background: rgba(245, 239, 230, 0.8);
+            border-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 15px -3px rgba(245, 239, 230, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-dye:hover {
+            background: rgba(245, 239, 230, 0.9);
+        }
+
+        .btn-icon-wrapper {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .btn-cut .btn-icon-wrapper {
+            background: rgba(74, 93, 78, 0.1);
+        }
+
+        .btn-dye .btn-icon-wrapper {
+            background: rgba(212, 195, 163, 0.2);
+        }
+
+        .btn-icon {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+
+        @media (max-width: 480px) {
+            .btn-icon-wrapper {
+                width: 80px;
+                height: 80px;
+            }
+            .btn-icon {
+                width: 60px;
+                height: 60px;
+            }
+        }
+
+        .btn-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-left: 8px;
+        }
+
+        .btn-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            color: #111827;
+            margin-bottom: 4px;
+        }
+
+        .btn-desc {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 400;
+            letter-spacing: 0.025em;
+        }
+
+        .btn-arrow {
+            color: #d1d5db;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+
+        .booking-btn:hover .btn-arrow {
+            transform: translateX(4px);
+        }
+
+        .link-row {
+            margin-top: 48px;
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .progress-link,
+        .cancel-link {
+            flex: 1 1 0;
+            min-width: 0;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            text-decoration: none;
+            padding: 12px 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 9999px;
+            transition: all 0.3s ease;
+            background: transparent;
+            font-weight: 300;
+            white-space: nowrap;
+        }
+
+        .progress-link {
+            color: var(--mint-dark);
+            border-color: rgba(45, 106, 79, 0.35);
+            background: transparent;
+        }
+
+        .progress-link:hover {
+            color: #1B4332;
+            border-color: var(--mint-dark);
+            background: rgba(255, 255, 255, 0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+        }
+
+        .cancel-link:hover {
+            background: #f9fafb;
+        }
+
+        .cancel-link:hover {
+            color: var(--botanical-dark);
+            border-color: rgba(45, 67, 57, 0.2);
+            background: rgba(255, 255, 255, 0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(45, 67, 57, 0.1);
+        }
+
+        /* 预约抽屉 */
+        .drawer {
+            position: fixed;
+            bottom: -100%;
+            left: 0; 
+            right: 0;
+            background: #ffffff;
+            border-top: 1px solid var(--sage-light);
+            border-radius: 32px 32px 0 0;
+            padding: 25px 17px 0;
+            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -4px 24px rgba(45, 67, 57, 0.08);
+            overflow: hidden;
+        }
+        
+        .drawer.show { 
+            bottom: 0; 
+        }
+        
+        .drawer .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--sage-light);
+            border: none;
+            color: var(--botanical-dark);
+            font-size: 1.8rem;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: 0.3s;
+            z-index: 10;
+        }
+        
+        .drawer .close-btn:hover {
+            background: var(--sage-green);
+            color: white;
+        }
+
+        .date-tabs {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            border-bottom: 1px solid #e5e5e5;
+            padding-bottom: 15px;
+            flex-shrink: 0;
+        }
+        
+        .date-tab {
+            text-align: center;
+            padding: 8px 12px;
+            border-radius: 16px;
+            color: rgba(45, 67, 57, 0.5);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid transparent;
+        }
+        
+        .date-tab.active {
+            color: var(--mint-dark);
+            background: var(--mint-primary);
+            border-color: var(--mint-accent);
+            font-weight: 600;
+        }
+        
+        .date-tab div { 
+            font-weight: 600; 
+            font-size: 0.9rem; 
+            margin-bottom: 2px; 
+        }
+
+        .slot-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: visible;
+            padding: 0 8px 40px 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .slot-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 5px;
+            transition: opacity 0.3s ease;
+            padding: 0 4px;
+        }
+        
+        .slot-grid.updating {
+            opacity: 0.5;
+        }
+        
+        .slot {
+            border: 1px solid var(--sage-light);
+            padding: 12px 0;
+            border-radius: 16px;
+            text-align: center;
+            font-size: 0.85rem;
+            color: rgba(45, 67, 57, 0.6);
+            transition: all 0.2s;
+            cursor: pointer;
+            background: var(--off-white);
+        }
+        
+        .slot.available { 
+            border-color: var(--sage-green); 
+            color: var(--botanical-dark); 
+            background: #ffffff;
+        }
+        
+        .slot.available:hover {
+            background: var(--sage-light);
+            transform: scale(1.05);
+            border-color: var(--sage-green);
+        }
+        
+        .slot.unavailable {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background: var(--sage-light);
+            border-color: var(--sage-light);
+        }
+        
+        .slot.selected {
+            background: var(--mint-primary) !important;
+            border-color: var(--mint-accent) !important;
+            border-width: 2px !important;
+            color: var(--mint-dark) !important;
+            font-weight: 700;
+            box-shadow: 0 0 0 2px rgba(129, 199, 132, 0.2), 0 4px 12px rgba(45, 106, 79, 0.15) !important;
+            transform: scale(1.02);
+            z-index: 10;
+            position: relative;
+        }
+        
+        .slot.adjacent-available {
+            background: var(--sage-light) !important;
+            border-color: var(--sage-green) !important;
+            border-width: 2px !important;
+            color: var(--botanical-dark) !important;
+            box-shadow: 0 0 0 1px rgba(167, 196, 160, 0.3), 0 2px 8px rgba(167, 196, 160, 0.2) !important;
+        }
+
+        /* 确保选中状态优先级最高 */
+        .slot.available.selected,
+        .slot.selected.available {
+            background: var(--mint-primary) !important;
+            border-color: var(--mint-accent) !important;
+            border-width: 2px !important;
+            color: var(--mint-dark) !important;
+            font-weight: 700 !important;
+            box-shadow: 0 0 0 2px rgba(129, 199, 132, 0.2), 0 4px 12px rgba(45, 106, 79, 0.15) !important;
+            transform: scale(1.02) !important;
+            z-index: 10 !important;
+            position: relative !important;
+        }
+
+        /* 确保相邻可用状态优先级高 */
+        .slot.available.adjacent-available,
+        .slot.adjacent-available.available {
+            background: var(--sage-light) !important;
+            border-color: var(--sage-green) !important;
+            border-width: 2px !important;
+            color: var(--botanical-dark) !important;
+            font-weight: 600 !important;
+            box-shadow: 0 0 0 1px rgba(167, 196, 160, 0.3), 0 2px 8px rgba(167, 196, 160, 0.2) !important;
+        }
+
+        /* 成功弹出窗 */
+        .success-modal {
+            position: fixed;
+            top: 50%; 
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 85%;
+            max-width: 350px;
+            background: #ffffff;
+            border: 1px solid var(--sage-light);
+            border-radius: 32px;
+            padding: 40px 25px;
+            text-align: center;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 10px 40px -10px rgba(45, 67, 57, 0.15);
+        }
+        
+        .success-modal.show {
+            visibility: visible;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .cancel-modal {
+            position: fixed;
+            top: 50%; 
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 85%;
+            max-width: 350px;
+            background: #ffffff;
+            border: 1px solid var(--sage-light);
+            border-radius: 32px;
+            padding: 30px 20px;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-sizing: border-box;
+            box-shadow: 0 10px 40px -10px rgba(45, 67, 57, 0.15);
+        }
+        
+        .cancel-modal.show {
+            visibility: visible;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .cancel-modal .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        
+        .cancel-modal .close-btn:hover {
+            background: #f5f5f5;
+            color: #1a1a1a;
+        }
+        
+        .cancel-modal input {
+            width: 100%;
+            max-width: 100%;
+            padding: 14px;
+            background: var(--off-white);
+            border: 1px solid var(--sage-light);
+            border-radius: 16px;
+            color: var(--botanical-dark);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        
+        .cancel-modal input:focus {
+            outline: none;
+            border-color: var(--sage-green);
+            background: #ffffff;
+        }
+        
+        .cancel-modal .cancel-btn {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .progress-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 85%;
+            max-width: 350px;
+            background: #ffffff;
+            border: 1px solid var(--sage-light);
+            border-radius: 32px;
+            padding: 30px 20px;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-sizing: border-box;
+            box-shadow: 0 10px 40px -10px rgba(45, 67, 57, 0.15);
+        }
+        .progress-modal.show {
+            visibility: visible;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .progress-modal .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .progress-modal .close-btn:hover {
+            background: #f5f5f5;
+            color: #1a1a1a;
+        }
+        .progress-modal input {
+            width: 100%;
+            max-width: 100%;
+            padding: 14px;
+            background: var(--off-white);
+            border: 1px solid var(--sage-light);
+            border-radius: 16px;
+            color: var(--botanical-dark);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .progress-modal input:focus {
+            outline: none;
+            border-color: var(--sage-green);
+            background: #ffffff;
+        }
+        .progress-modal .progress-query-btn {
+            width: 100%;
+            background: var(--mint-dark);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 24px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+        }
+        .progress-modal .progress-query-btn:hover {
+            background: #1B4332;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(45, 106, 79, 0.3);
+        }
+
+        .phone-modal {
+            position: fixed;
+            top: 50%; 
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 85%;
+            max-width: 350px;
+            background: #ffffff;
+            border: 1px solid var(--sage-light);
+            border-radius: 32px;
+            padding: 30px 20px;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-sizing: border-box;
+            box-shadow: 0 10px 40px -10px rgba(45, 67, 57, 0.15);
+        }
+        
+        .phone-modal.show {
+            visibility: visible;
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .phone-modal h3 {
+            color: var(--botanical-dark);
+            margin: 0 0 20px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+        
+        .phone-modal input {
+            width: 100%;
+            max-width: 100%;
+            padding: 14px;
+            background: var(--off-white);
+            border: 1px solid var(--sage-light);
+            border-radius: 16px;
+            color: var(--botanical-dark);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        
+        .phone-modal input:focus {
+            outline: none;
+            border-color: var(--sage-green);
+            background: #ffffff;
+        }
+        
+        .phone-modal .error-msg {
+            color: #ef4444;
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+            text-align: center;
+            display: none;
+            word-wrap: break-word;
+        }
+        
+        .phone-modal .error-msg.show {
+            display: block;
+        }
+        
+        .phone-modal .btn-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .phone-modal .btn-group button {
+            flex: 1;
+            box-sizing: border-box;
+        }
+        
+        .success-icon {
+            font-size: 3rem;
+            color: var(--mint-accent);
+            margin-bottom: 15px;
+        }
+        
+        .success-no {
+            font-size: 2.5rem;
+            color: var(--botanical-dark);
+            font-weight: 700;
+            letter-spacing: 4px;
+            margin: 20px 0;
+        }
+        
+        .confirm-btn {
+            background: var(--mint-dark);
+            color: #ffffff;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 24px;
+            font-weight: 600;
+            margin-top: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+        }
+
+        .confirm-btn:hover {
+            background: #1B4332;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(45, 106, 79, 0.3);
+        }
+        
+        .cancel-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 24px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .cancel-btn:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+        }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(45, 67, 57, 0.4);
+            display: none;
+            z-index: 999;
+            backdrop-filter: blur(4px);
+        }
+
+        .drawer-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--botanical-dark);
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .dye-notice {
+            background: rgba(167, 196, 160, 0.14);
+            border: 1px solid rgba(167, 196, 160, 0.35);
+            border-radius: 999px;
+            padding: 10px 14px;
+            margin: 0 auto 15px auto;
+            max-width: 90%;
+            align-self: center;
+            color: var(--botanical-dark);
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: none;
+            display: none;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+        }
+
+        .dye-notice.show {
+            display: flex;
+        }
+
+        .dye-notice-icon {
+            font-size: 1.1rem;
+            line-height: 1;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            background: rgba(74, 93, 78, 0.12);
+            color: var(--primary);
+        }
+
+        .dye-notice-icon.material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
+            font-size: 18px;
+        }
+
+        #dyeNoticeText {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        #dyeNoticeText strong {
+            color: rgba(45, 67, 57, 0.85);
+            font-size: 1.05em;
+            font-weight: 700;
+        }
+
+        /* 公告滚动 */
+        .announcement-bar {
+            width: 100%;
+            overflow: hidden;
+        }
+        .announcement-bar-inner {
+            display: flex;
+            align-items: center;
+            min-height: 40px;
+            padding: 8px 10px;
+            overflow: hidden;
+        }
+        .announcement-bar-icon {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            color: var(--primary);
+        }
+        .announcement-bar-icon svg {
+            display: block;
+        }
+        .announcement-scroll-wrap {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        .announcement-scroll-track {
+            display: inline-flex;
+            white-space: nowrap;
+        }
+        .announcement-scroll-wrap.scrollable .announcement-scroll-track {
+            animation: announcement-scroll 10s linear infinite;
+        }
+        .announcement-scroll-text {
+            display: inline-block;
+            white-space: nowrap;
+            padding-right: 3em;
+            color: rgba(45, 67, 57, 0.58);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+        .announcement-scroll-wrap:not(.scrollable) .announcement-scroll-text + .announcement-scroll-text {
+            display: none;
+        }
+        @keyframes announcement-scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+    </style>
+</head>
+<body>
+
+<a href="/admin-login.html" class="admin-link" title="进入管理页面"></a>
+
+<div class="container">
+    <div class="header">
+
+        <h1>欧诺造型 <span style="color: var(--primary); font-weight: 300;">·</span> 预约服务</h1>
+        <p>Premium Salon Selection</p>
+    </div>
+
+    <div class="announcement-bar">
+        <div class="announcement-bar-inner">
+            <span class="announcement-bar-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </span>
+            <div class="announcement-scroll-wrap">
+                <div class="announcement-scroll-track">
+                    <span class="announcement-scroll-text" id="announcementText">暂无公告</span>
+                    <span class="announcement-scroll-text" aria-hidden="true">暂无公告</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="booking-buttons">
+        <button class="booking-btn btn-cut" id="btn-cut" onclick="openBook('cut')">
+            <div class="btn-icon-wrapper">
+                <img src="/11.png" alt="剪发" class="btn-icon">
+            </div>
+            <div class="btn-content">
+                <div class="btn-title">预约剪发</div>
+                <div class="btn-desc">Professional Haircut Service</div>
+            </div>
+            <span class="material-symbols-outlined btn-arrow">chevron_right</span>
+        </button>
+        
+        <button class="booking-btn btn-dye" id="btn-dye" onclick="openBook('dye')">
+            <div class="btn-icon-wrapper">
+                <img src="/22.png" alt="烫染" class="btn-icon">
+            </div>
+            <div class="btn-content">
+                <div class="btn-title">预约烫染</div>
+                <div class="btn-desc">Perm & Color Artistry</div>
+            </div>
+            <span class="material-symbols-outlined btn-arrow">chevron_right</span>
+        </button>
+    </div>
+
+    <div class="link-row">
+        <a href="#" class="progress-link" onclick="openProgressModal(); return false;">排队查询 Progress</a>
+        <a href="#" class="cancel-link" onclick="openCancelModal(); return false;">取消预约 Cancel</a>
+    </div>
+</div>
+
+<div class="overlay" id="mask" onclick="closeAll()"></div>
+
+<div class="drawer" id="drawer">
+    <button class="close-btn" onclick="closeDrawer()" title="关闭">×</button>
+    <div class="drawer-title" id="targetName">选择时间</div>
+    
+    <div class="dye-notice" id="dyeNotice">
+        <span class="dye-notice-icon material-symbols-outlined" aria-hidden="true">info</span>
+        <span id="dyeNoticeText"></span>
+    </div>
+    
+    <div class="date-tabs" id="date-tabs"></div>
+
+    <div class="slot-scroll-area">
+        <div class="slot-grid" id="slot-grid"></div>
+    </div>
+</div>
+
+<div class="success-modal" id="successModal">
+    <div class="success-icon">✓</div>
+    <div style="font-size: 0.9rem; color: var(--botanical-dark); letter-spacing: 1px; margin-bottom: 10px; font-weight: 600;">预约成功</div>
+    <div style="margin: 20px 0;">
+        <div style="font-size: 0.9rem; color: rgba(45, 67, 57, 0.6); margin-bottom: 8px;">您的预约号</div>
+        <div class="success-no" id="displayId">---</div>
+    </div>
+    <div style="font-size: 0.75rem; color: rgba(45, 67, 57, 0.5); margin-top: 10px;">到店请出示您的预约号</div>
+    <div style="font-size: 0.75rem; color: rgba(45, 67, 57, 0.5); margin-top: 5px;">取消预约请使用手机号</div>
+    <button class="confirm-btn" onclick="closeAll()">确 认</button>
+</div>
+
+<div class="phone-modal" id="phoneModal">
+    <h3>请输入手机号</h3>
+    <input type="tel" id="phoneInput" placeholder="请输入手机号" maxlength="11" pattern="[0-9]*" autofocus>
+    <div class="error-msg" id="phoneError"></div>
+    <div class="btn-group">
+        <button class="confirm-btn" onclick="confirmBooking()" style="margin-top: 0;">确认预约</button>
+        <button class="confirm-btn" onclick="closePhoneModal()" style="background: var(--sage-light); color: var(--botanical-dark); margin-top: 0; box-shadow: none;">取 消</button>
+    </div>
+</div>
+
+<div class="cancel-modal" id="cancelModal">
+    <button class="close-btn" onclick="closeCancelModal()" title="关闭">×</button>
+    <h3 style="color: var(--botanical-dark); margin: 0 0 20px; font-weight: 700; letter-spacing: 0.5px; text-align: center;">取消预约</h3>
+    <div id="cancelStep1">
+        <input type="tel" id="cancelPhone" placeholder="请输入预约时的手机号" maxlength="11" pattern="[0-9]*">
+        <div id="cancelError" style="color: #ef4444; font-size: 0.8rem; margin-bottom: 10px; text-align: center; display: none;"></div>
+        <button class="cancel-btn" onclick="queryAppointments()">查询预约</button>
+    </div>
+    <div id="cancelStep2" style="display: none;">
+        <div style="font-size: 0.85rem; color: var(--botanical-dark); margin-bottom: 12px; text-align: center;">请选择要取消的预约：</div>
+        <div id="appointmentsList" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;"></div>
+        <div id="cancelError2" style="color: #ef4444; font-size: 0.8rem; margin-bottom: 10px; text-align: center; display: none;"></div>
+        <div style="display: flex; gap: 10px;">
+            <button class="cancel-btn" onclick="confirmCancel()" style="flex: 1;">确认取消</button>
+            <button class="cancel-btn" onclick="backToStep1()" style="flex: 1; background: var(--sage-light); color: var(--botanical-dark);">返回</button>
+        </div>
+    </div>
+</div>
+
+<div class="progress-modal" id="progressModal">
+    <button class="close-btn" onclick="closeProgressModal()" title="关闭">×</button>
+    <h3 style="color: var(--botanical-dark); margin: 0 0 20px; font-weight: 700; letter-spacing: 0.5px; text-align: center;">排队查询</h3>
+    <div id="progressStep1">
+        <input type="tel" id="progressPhone" placeholder="请输入预约时的手机号" maxlength="11" pattern="[0-9]*">
+        <div id="progressError" style="color: #ef4444; font-size: 0.8rem; margin-bottom: 10px; text-align: center; display: none;"></div>
+        <button class="progress-query-btn" onclick="queryProgress()">查询排队</button>
+    </div>
+    <div id="progressStep2" style="display: none;">
+        <div style="font-size: 0.8rem; color: rgba(45, 67, 57, 0.6); margin-bottom: 12px; text-align: center;">根据当前排队情况预估您的预约推迟时间</div>
+        <div id="progressResultList" style="max-height: 320px; overflow-y: auto; margin-bottom: 15px;"></div>
+        <button class="progress-query-btn" onclick="closeProgressModal()" style="margin-top: 0;">关 闭</button>
+    </div>
+</div>
+
+<script>
+    let currentId = null;
+    let selectedDate = null;
+    let selectedTimeSlot = [];
+    let slotRefreshInterval = null;
+    let allSlots = [];
+    let selectedServiceType = null;
+    let stylistId = null;
+
+    // 加载公告内容（管理端设置），无则显示「暂无公告」；仅当文字超出宽度时启用滚动
+    async function loadAnnouncement() {
+        var firstText = document.getElementById('announcementText');
+        var dup = firstText && firstText.nextElementSibling;
+        var wrap = document.querySelector('.announcement-scroll-wrap');
+        try {
+            var res = await fetch('/api/announcement');
+            var data = await res.json();
+            var text = (data.text && data.text.trim()) ? data.text.trim() : '暂无公告';
+            if (firstText) firstText.textContent = text;
+            if (dup && dup.classList.contains('announcement-scroll-text')) dup.textContent = text;
+        } catch (e) {
+            if (firstText) firstText.textContent = '暂无公告';
+            if (dup && dup.classList.contains('announcement-scroll-text')) dup.textContent = '暂无公告';
+        }
+        requestAnimationFrame(function() {
+            if (wrap && firstText && firstText.scrollWidth > wrap.clientWidth) {
+                wrap.classList.add('scrollable');
+            }
+        });
+    }
+
+    // 格式化时间显示：从时间段（如"10:00-10:30"）提取开始时间（"10:00"）
+    function formatTimeDisplay(timeStr) {
+        if (!timeStr) return '';
+        // 如果是逗号分隔的多个时间段（烫染服务），取第一个时间段的开始时间
+        if (timeStr.includes(',')) {
+            const firstTime = timeStr.split(',')[0].trim();
+            const [startTime] = firstTime.split('-');
+            return startTime;
+        }
+        // 单个时间段，提取开始时间
+        const [startTime] = timeStr.split('-');
+        return startTime || timeStr;
+    }
+
+    function ymdFromLocalDate(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function getStylistVacationRangesClient(stylist) {
+        if (!stylist) return [];
+        if (Array.isArray(stylist.vacationRanges) && stylist.vacationRanges.length) {
+            return stylist.vacationRanges;
+        }
+        if (stylist.vacationStartDate && stylist.vacationEndDate) {
+            return [{ vacationStartDate: stylist.vacationStartDate, vacationEndDate: stylist.vacationEndDate }];
+        }
+        return [];
+    }
+
+    function isYmdInVacation(stylist, ymd) {
+        const ranges = getStylistVacationRangesClient(stylist);
+        return ranges.some(
+            r => r.vacationStartDate && r.vacationEndDate && ymd >= r.vacationStartDate && ymd <= r.vacationEndDate
+        );
+    }
+
+    /** 用户端默认可约「今天、明天、后天」；仅当这三天均在休假区间内时禁用入口 */
+    function hasBookableDayInThreeDayWindow(stylist) {
+        const now = new Date();
+        for (let i = 0; i < 3; i++) {
+            const d = new Date(now);
+            d.setDate(now.getDate() + i);
+            if (!isYmdInVacation(stylist, ymdFromLocalDate(d))) return true;
+        }
+        return false;
+    }
+
+    function restoreDefaultBookingButtons() {
+        const btnCut = document.getElementById('btn-cut');
+        const btnDye = document.getElementById('btn-dye');
+        if (!btnCut || !btnDye) return;
+        btnCut.disabled = false;
+        btnDye.disabled = false;
+        btnCut.innerHTML = `
+            <div class="btn-icon-wrapper">
+                <img src="/11.png" alt="剪发" class="btn-icon">
+            </div>
+            <div class="btn-content">
+                <div class="btn-title">预约剪发</div>
+                <div class="btn-desc">Professional Haircut Service</div>
+            </div>
+            <span class="material-symbols-outlined btn-arrow">chevron_right</span>
+        `;
+        btnDye.innerHTML = `
+            <div class="btn-icon-wrapper">
+                <img src="/22.png" alt="烫染" class="btn-icon">
+            </div>
+            <div class="btn-content">
+                <div class="btn-title">预约烫染</div>
+                <div class="btn-desc">Perm & Color Artistry</div>
+            </div>
+            <span class="material-symbols-outlined btn-arrow" style="color: var(--sandy-beige); opacity: 0.8;">chevron_right</span>
+        `;
+    }
+
+    // 初始化：获取发型师与休假信息（与服务器同步）
+    async function init() {
+        try {
+            const res = await fetch('/api/stylists', { cache: 'no-store' });
+            const stylists = await res.json();
+            if (stylists.length > 0) {
+                stylistId = stylists[0].id;
+                currentId = stylistId;
+                const stylist = stylists[0];
+                const btnCut = document.getElementById('btn-cut');
+                const btnDye = document.getElementById('btn-dye');
+                if (!btnCut || !btnDye) return;
+                restoreDefaultBookingButtons();
+                if (!hasBookableDayInThreeDayWindow(stylist)) {
+                    btnCut.disabled = true;
+                    btnDye.disabled = true;
+                    btnCut.innerHTML = `
+                        <div class="btn-icon-wrapper">
+                            <img src="/11.png" alt="剪发" class="btn-icon">
+                        </div>
+                        <div class="btn-content">
+                            <div class="btn-title">不可预约</div>
+                            <div class="btn-desc">发型师休假中</div>
+                        </div>
+                        <span class="material-symbols-outlined btn-arrow">chevron_right</span>
+                    `;
+                    btnDye.innerHTML = `
+                        <div class="btn-icon-wrapper">
+                            <img src="/22.png" alt="烫染" class="btn-icon">
+                        </div>
+                        <div class="btn-content">
+                            <div class="btn-title">不可预约</div>
+                            <div class="btn-desc">发型师休假中</div>
+                        </div>
+                        <span class="material-symbols-outlined btn-arrow" style="color: var(--sandy-beige); opacity: 0.8;">chevron_right</span>
+                    `;
+                }
+            }
+        } catch (e) {
+            console.error("加载发型师信息失败:", e);
+        }
+    }
+
+    async function openBook(serviceType) {
+        await init();
+
+        if (!stylistId) {
+            alert('无法获取发型师信息，请刷新重试');
+            return;
+        }
+
+        currentId = stylistId;
+        selectedServiceType = serviceType;
+        const serviceText = serviceType === 'cut' ? '剪发' : '烫染';
+        document.getElementById('targetName').innerText = `预约${serviceText} - 选择时间`;
+        
+        // 隐藏烫染提示（不再显示）
+        const dyeNotice = document.getElementById('dyeNotice');
+        dyeNotice.classList.remove('show');
+        selectedTimeSlot = []; // 重置已选时间段
+        
+        const tabs = document.getElementById('date-tabs');
+        const days = ['今天', '明天', '后天'];
+        let tabsHtml = '';
+        
+        const now = new Date();
+        for(let i=0; i<3; i++) {
+            const d = new Date();
+            d.setDate(now.getDate() + i);
+            const dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            const dateLabel = (d.getMonth()+1) + '/' + d.getDate();
+            
+            if(i === 0) selectedDate = dateStr;
+
+            tabsHtml += `
+                <div class="date-tab ${i===0?'active':''}" data-date="${dateStr}" onclick="switchDate('${dateStr}', this)">
+                    <div>${days[i]}</div>
+                    <span>${dateLabel}</span>
+                </div>
+            `;
+        }
+        tabs.innerHTML = tabsHtml;
+
+        await loadSlots(selectedDate);
+
+        document.getElementById('drawer').classList.add('show');
+        document.getElementById('mask').style.display = 'block';
+        
+        if (slotRefreshInterval) {
+            clearInterval(slotRefreshInterval);
+        }
+        slotRefreshInterval = setInterval(() => {
+            if (document.getElementById('drawer').classList.contains('show')) {
+                loadSlots(selectedDate, true);
+            } else {
+                clearInterval(slotRefreshInterval);
+                slotRefreshInterval = null;
+            }
+        }, 10000);
+    }
+
+    async function switchDate(date, el) {
+        document.querySelectorAll('.date-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        selectedDate = date;
+        selectedTimeSlot = [];
+        
+        const grid = document.getElementById('slot-grid');
+        grid.classList.add('updating');
+        
+        setTimeout(async () => {
+            await loadSlots(date, true);
+        }, 150);
+    }
+
+    async function loadSlots(date, isSilentRefresh = false) {
+        const grid = document.getElementById('slot-grid');
+        
+        if (!isSilentRefresh) {
+            grid.innerHTML = '<div style="grid-column:span 3; text-align:center; padding:40px; color:#999; font-size:0.85rem;">加载中...</div>';
+        } else {
+            grid.classList.add('updating');
+        }
+        
+        try {
+            const res = await fetch(`/api/slots/${currentId}?date=${date}`);
+            const slots = await res.json();
+            
+            if (slots.length === 0) {
+                grid.innerHTML = '<div style="grid-column:span 3; text-align:center; padding:40px; color:#999; font-size:0.85rem;">该日期暂不可预约</div>';
+                grid.classList.remove('updating');
+                return;
+            }
+            
+            allSlots = slots;
+            
+            requestAnimationFrame(() => {
+                // 如果是烫染服务，需要检测连续可用时间段
+                let clickableSlots = new Set(); // 可点击的时间段集合
+                let unavailableSlots = new Set(); // 不可用（少于4个连续）的时间段集合
+                
+                if (selectedServiceType === 'dye') {
+                    // 检测所有连续可用时间段组（允许跳过1个不可用的时间段）
+                    // 检查每个时间段是否可以作为起始点
+                    for (let startIdx = 0; startIdx < slots.length; startIdx++) {
+                        const startSlot = slots[startIdx];
+                        
+                        // 起始时间段必须是可用的（不能是已预约、已锁定、已过期）
+                        if (startSlot.status === 'booked' || startSlot.status === 'blocked' || startSlot.status === 'past' || !startSlot.available) {
+                            continue;
+                        }
+                        
+                        // 从起始时间段开始，尝试找到4个可用时间段（允许跳过1个不可用的）
+                        let validSlots = []; // 记录有效的连续时间段索引
+                        let skippedCount = 0; // 已跳过的不可用时间段数量
+                        let currentIdx = startIdx;
+                        
+                        while (validSlots.length < 4 && currentIdx < slots.length) {
+                            const slot = slots[currentIdx];
+                            
+                            // 检查时间段是否可用
+                            const isAvailable = slot.status !== 'booked' && 
+                                              slot.status !== 'blocked' && 
+                                              slot.status !== 'past' && 
+                                              slot.available;
+                            
+                            if (isAvailable) {
+                                // 可用，添加到列表
+                                validSlots.push(currentIdx);
+                            } else {
+                                // 不可用，检查是否可以跳过
+                                if (skippedCount < 1) {
+                                    // 可以跳过1个
+                                    skippedCount++;
+                                } else {
+                                    // 已经跳过1个，不能再跳过，停止
+                                    break;
+                                }
+                            }
+                            
+                            currentIdx++;
+                        }
+                        
+                        // 如果成功找到4个可用时间段（允许跳过1个不可用的），标记起始时间段为可点击
+                        if (validSlots.length === 4) {
+                            clickableSlots.add(startSlot.time);
+                        } else if (validSlots.length > 0 && validSlots.length < 4) {
+                            // 如果找到了一些但不足4个，标记为不可用
+                            validSlots.forEach(idx => {
+                                unavailableSlots.add(slots[idx].time);
+                            });
+                        }
+                    }
+                }
+                
+                grid.innerHTML = slots.map((t, index) => {
+                    let statusClass = '';
+                    let isClickable = false;
+                    
+                    if (selectedServiceType === 'dye') {
+                        // 烫染服务：根据检测结果决定是否可点击
+                        // 对于烫染服务，默认锁定的时间段（12:00-12:30 和 18:00-18:30）视为可用
+                        if (clickableSlots.has(t.time)) {
+                            // 可以作为起始点，可点击（包括默认锁定的时间段）
+                            statusClass = 'available';
+                            isClickable = true;
+                        } else if (unavailableSlots.has(t.time)) {
+                            // 连续少于4个，不可用（灰色）
+                            statusClass = 'unavailable';
+                            isClickable = false;
+                        } else if (t.status === 'booked' || t.status === 'blocked' || t.status === 'past' || !t.available) {
+                            // 已预约、已锁定、已过期
+                            statusClass = 'unavailable';
+                            isClickable = false;
+                        } else {
+                            // 其他情况（包括默认锁定的时间段，但不在可点击列表中），不可用
+                            statusClass = 'unavailable';
+                            isClickable = false;
+                        }
+                    } else {
+                        // 剪发服务：保持原有逻辑（默认锁定的时间段仍然不可用）
+                        const isDefaultMealTime = (t.time === '12:00-12:30' || t.time === '18:00-18:30');
+                        if (t.status === 'booked' || t.status === 'blocked' || t.status === 'past') {
+                            statusClass = 'unavailable';
+                            isClickable = false;
+                        } else if (isDefaultMealTime) {
+                            // 剪发服务中，默认锁定的时间段不可用
+                            statusClass = 'unavailable';
+                            isClickable = false;
+                        } else {
+                            statusClass = 'available';
+                            isClickable = t.available;
+                        }
+                    }
+                    
+                    // 显示时间段时，只显示开始时间
+                    const displayTime = formatTimeDisplay(t.time);
+                    return `
+                        <div class="slot ${statusClass}" 
+                             onclick="${isClickable ? `selectTimeSlot('${t.time}')` : ''}">
+                            <div style="font-weight: 600; margin: 0; line-height: 1.2;">${displayTime}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                grid.classList.remove('updating');
+            });
+        } catch (e) {
+            grid.innerHTML = '<div style="grid-column:span 3; text-align:center; color:#ef4444;">时段加载失败</div>';
+            grid.classList.remove('updating');
+        }
+    }
+
+    function selectTimeSlot(time) {
+        if (selectedServiceType === 'dye') {
+            // 烫染服务：自动选择从该时间段开始的连续4个时间段
+            const startIndex = allSlots.findIndex(s => s.time === time);
+            if (startIndex === -1) {
+                alert('无法找到该时间段，请刷新重试');
+                return;
+            }
+            
+            // 从起始时间段开始，查找连续可用的4个时间段（允许跳过1个不可用的时间段）
+            const selectedSlots = [];
+            let skippedCount = 0; // 已跳过的不可用时间段数量
+            let currentIndex = startIndex;
+            
+            while (selectedSlots.length < 4 && currentIndex < allSlots.length) {
+                const slot = allSlots[currentIndex];
+                
+                // 检查时间段是否可用
+                const isAvailable = slot.status !== 'booked' && 
+                                  slot.status !== 'blocked' && 
+                                  slot.status !== 'past' && 
+                                  slot.available;
+                
+                if (isAvailable) {
+                    // 可用，添加到选择列表
+                    selectedSlots.push(slot.time);
+                } else {
+                    // 不可用，检查是否可以跳过
+                    if (skippedCount < 1) {
+                        // 可以跳过1个
+                        skippedCount++;
+                    } else {
+                        // 已经跳过1个，不能再跳过，停止
+                        break;
+                    }
+                }
+                
+                currentIndex++;
+            }
+            
+            // 如果成功找到4个连续时间段，自动选择并打开手机号输入
+            if (selectedSlots.length === 4) {
+                selectedTimeSlot = selectedSlots;
+                // 直接打开手机号输入
+                setTimeout(() => {
+                    openPhoneModal();
+                }, 100);
+            } else {
+                alert('该时间段无法预约，请选择其他时间段');
+            }
+        } else {
+            // 剪发服务：只需选择一个时间段
+            selectedTimeSlot = [time];
+            openPhoneModal();
+        }
+    }
+
+    function openPhoneModal() {
+        document.getElementById('phoneModal').classList.add('show');
+        document.getElementById('mask').style.display = 'block';
+        document.getElementById('phoneInput').value = '';
+        document.getElementById('phoneError').classList.remove('show');
+        setTimeout(() => document.getElementById('phoneInput').focus(), 100);
+    }
+    
+    function closePhoneModal() {
+        document.getElementById('phoneModal').classList.remove('show');
+        document.getElementById('mask').style.display = 'none';
+        selectedTimeSlot = [];
+        if (selectedDate) {
+            loadSlots(selectedDate, true);
+        }
+    }
+    
+    async function confirmBooking() {
+        const phone = document.getElementById('phoneInput').value.trim();
+        const errorDiv = document.getElementById('phoneError');
+        
+        if (!phone) {
+            errorDiv.textContent = '请输入手机号';
+            errorDiv.classList.add('show');
+            return;
+        }
+        
+        if (!/^1[3-9]\d{9}$/.test(phone)) {
+            errorDiv.textContent = '请输入正确的手机号码';
+            errorDiv.classList.add('show');
+            return;
+        }
+        
+        if (selectedServiceType === 'dye') {
+            if (selectedTimeSlot.length !== 4) {
+                errorDiv.textContent = '预约失败，请重新选择时间段';
+                errorDiv.classList.add('show');
+                return;
+            }
+            
+            // 验证时间段是否有效（允许跳过1个不可用的时间段，所以不需要严格连续验证）
+            // 后端会验证时间段是否真的可用
+        } else {
+            if (selectedTimeSlot.length !== 1) {
+                errorDiv.textContent = '请选择一个时间段';
+                errorDiv.classList.add('show');
+                return;
+            }
+        }
+        
+        errorDiv.classList.remove('show');
+        
+        try {
+            const timeSlot = selectedServiceType === 'dye' ? selectedTimeSlot.join(',') : selectedTimeSlot[0];
+            
+            const res = await fetch('/api/book', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    stylistId: currentId, 
+                    time: timeSlot, 
+                    date: selectedDate,
+                    userName: '',
+                    phone: phone,
+                    serviceType: selectedServiceType || 'cut'
+                })
+            });
+            
+            const data = await res.json();
+            
+            if(data.success) {
+                localStorage.setItem('my_appointment', JSON.stringify({
+                    appId: data.appId,
+                    date: selectedDate,
+                    time: timeSlot,
+                    phone: phone
+                }));
+
+                closePhoneModal();
+                document.getElementById('drawer').classList.remove('show');
+                document.getElementById('displayId').innerText = data.appId;
+                document.getElementById('successModal').classList.add('show');
+            } else {
+                errorDiv.textContent = data.message || '预约失败，请刷新重试';
+                errorDiv.classList.add('show');
+            }
+        } catch (e) {
+            errorDiv.textContent = '网络错误，请稍后重试';
+            errorDiv.classList.add('show');
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const phoneInput = document.getElementById('phoneInput');
+        if (phoneInput) {
+            phoneInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    confirmBooking();
+                }
+            });
+        }
+    });
+    
+    let selectedAppointments = [];
+    let allUserAppointments = [];
+    let progressUserAppointments = [];
+
+    function getTodayDateStr() {
+        const d = new Date();
+        const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
+    }
+
+    function openProgressModal() {
+        document.getElementById('progressModal').classList.add('show');
+        document.getElementById('mask').style.display = 'block';
+        document.getElementById('progressStep1').style.display = 'block';
+        document.getElementById('progressStep2').style.display = 'none';
+        document.getElementById('progressError').style.display = 'none';
+        document.getElementById('progressPhone').value = '';
+        const savedApp = JSON.parse(localStorage.getItem('my_appointment') || 'null');
+        if (savedApp && savedApp.phone) document.getElementById('progressPhone').value = savedApp.phone;
+        progressUserAppointments = [];
+        setTimeout(() => document.getElementById('progressPhone').focus(), 100);
+    }
+
+    function closeProgressModal() {
+        document.getElementById('progressModal').classList.remove('show');
+        document.getElementById('mask').style.display = 'none';
+        document.getElementById('progressError').style.display = 'none';
+        document.getElementById('progressPhone').value = '';
+        progressUserAppointments = [];
+    }
+
+    function formatWaitTime(totalMinutes) {
+        if (totalMinutes <= 0) return { line2: '到店后预计准时' };
+        if (totalMinutes < 60) return { line2: '按您预约时间到店需等待 ', numberPart: totalMinutes + ' 分钟' };
+        const h = Math.floor(totalMinutes / 60), m = totalMinutes % 60;
+        if (m === 0) return { line2: '按您预约时间到店需等待 ', numberPart: h + ' 小时' };
+        return { line2: '按您预约时间到店需等待 ', numberPart: h + ' 小时 ' + m + ' 分钟' };
+    }
+
+    async function queryProgress() {
+        const phone = document.getElementById('progressPhone').value.trim();
+        const errorDiv = document.getElementById('progressError');
+        errorDiv.style.display = 'none';
+        if (!phone) {
+            errorDiv.textContent = '请输入手机号';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        if (!/^1[3-9]\d{9}$/.test(phone)) {
+            errorDiv.textContent = '请输入正确的手机号码';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        try {
+            const res = await fetch('/api/appointments/query', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ phone })
+            });
+            const data = await res.json();
+            if (!data.success) {
+                errorDiv.textContent = data.message || '查询失败，请检查手机号';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            progressUserAppointments = data.appointments || [];
+            if (progressUserAppointments.length === 0) {
+                errorDiv.textContent = '未找到该手机号的预约记录';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            const todayStr = getTodayDateStr();
+            const now = new Date();
+            const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+            const resultRows = [];
+            for (const app of progressUserAppointments) {
+                const serviceTypeText = app.serviceType === 'dye' ? '烫染' : '剪发';
+                const dateStr = new Date(app.date + 'T00:00:00').toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+                const timeDisplay = app.serviceType === 'dye' ? app.time : app.time.split('-')[0];
+                // 排队信息：第一行「您前面还有X位已预约未完成的客户」；第二行「到店后需至少等待约 XX」
+                let delayLine1 = '';
+                let delayLine2 = '';
+                let aheadCountForRow = undefined;
+                if (app.date > todayStr) {
+                    delayLine1 = '未到预约日';
+                } else if (app.date < todayStr) {
+                    delayLine1 = '已过期';
+                } else if (app.stylistId == null) {
+                    delayLine1 = '暂无排队信息';
+                } else {
+                    try {
+                        const queueRes = await fetch('/api/appointments/day-queue?date=' + encodeURIComponent(app.date) + '&stylistId=' + encodeURIComponent(app.stylistId));
+                        const queue = await queueRes.json();
+                        if (queue && queue.length > 0) {
+                            const myIndex = queue.findIndex(q => q.time === app.time && q.serviceType === app.serviceType);
+                            const aheadCount = myIndex >= 0 ? myIndex : 0;
+                            const first = queue[0];
+                            const endPart = first.time.split('-')[1];
+                            const delayMinutes = endPart ? (currentTotalMinutes - (() => { const [eh, em] = endPart.trim().split(':').map(Number); return eh * 60 + em; })()) : 0;
+                            if (aheadCount === 0) {
+                                delayLine1 = '您当前是队列第一位';
+                                delayLine2 = '预计准时';
+                            } else {
+                                aheadCountForRow = aheadCount;
+                                delayLine1 = '您前面还有X位已预约未完成的客户';
+                                delayLine2 = formatWaitTime(delayMinutes);
+                            }
+                        } else {
+                            delayLine1 = '预计准时';
+                        }
+                    } catch (e) {
+                        delayLine1 = '暂无排队信息';
+                    }
+                }
+                resultRows.push({
+                    dateStr,
+                    timeDisplay,
+                    serviceTypeText,
+                    appId: app.appId,
+                    delayLine1,
+                    delayLine2,
+                    aheadCount: aheadCountForRow,
+                    waitInfo: (delayLine2 && typeof delayLine2 === 'object' && delayLine2.numberPart != null) ? delayLine2 : null
+                });
+            }
+            const numStyle = 'font-weight: 800; color: #c62828; font-size: 1.08em;';
+            const numStyleLine1 = 'font-weight: 800; color: #c62828; font-size: 1.3em;';
+            const listEl = document.getElementById('progressResultList');
+            listEl.innerHTML = resultRows.map(r => {
+                const line1Html = (r.aheadCount !== undefined && r.aheadCount !== null)
+                    ? ('您前面还有<span style="' + numStyleLine1 + '"> ' + r.aheadCount + ' </span>位已预约未完成的客户')
+                    : r.delayLine1;
+                let secondLine = '';
+                if (r.delayLine2) {
+                    if (r.waitInfo && r.waitInfo.line2 != null && r.waitInfo.numberPart != null) {
+                        secondLine = '<div style="font-size: 0.8rem; color: var(--mint-dark); font-weight: 600; margin-top: 4px;">' + r.waitInfo.line2 + '<span style="' + numStyle + '">' + r.waitInfo.numberPart + '</span></div>';
+                    } else {
+                        secondLine = '<div style="font-size: 0.8rem; color: var(--mint-dark); font-weight: 600; margin-top: 4px;">' + (typeof r.delayLine2 === 'string' ? r.delayLine2 : r.delayLine2.line2) + '</div>';
+                    }
+                }
+                return `
+                <div style="padding: 14px; margin-bottom: 10px; border: 1px solid var(--sage-light); border-radius: 16px; background: var(--off-white);">
+                    <div style="font-weight: 600; color: var(--botanical-dark); margin-bottom: 4px;">${r.dateStr} ${r.timeDisplay} － ${r.serviceTypeText}</div>
+                    <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 6px;">预约号: ${r.appId}</div>
+                    <div style="font-size: 0.8rem; color: var(--mint-dark); font-weight: 600;">${line1Html}</div>
+                    ${secondLine}
+                </div>
+            `;
+            }).join('');
+            document.getElementById('progressStep1').style.display = 'none';
+            document.getElementById('progressStep2').style.display = 'block';
+        } catch (e) {
+            errorDiv.textContent = '网络错误，请稍后重试';
+            errorDiv.style.display = 'block';
+        }
+    }
+
+    function openCancelModal() {
+        document.getElementById('cancelModal').classList.add('show');
+        document.getElementById('mask').style.display = 'block';
+        
+        const savedApp = JSON.parse(localStorage.getItem('my_appointment') || 'null');
+        if (savedApp && savedApp.phone) {
+            document.getElementById('cancelPhone').value = savedApp.phone;
+        }
+        
+        // 重置到第一步
+        document.getElementById('cancelStep1').style.display = 'block';
+        document.getElementById('cancelStep2').style.display = 'none';
+        selectedAppointments = [];
+        allUserAppointments = [];
+        
+        setTimeout(() => document.getElementById('cancelPhone').focus(), 100);
+    }
+    
+    function closeCancelModal() {
+        document.getElementById('cancelModal').classList.remove('show');
+        document.getElementById('mask').style.display = 'none';
+        document.getElementById('cancelError').style.display = 'none';
+        document.getElementById('cancelError2').style.display = 'none';
+        document.getElementById('cancelPhone').value = '';
+        selectedAppointments = [];
+        allUserAppointments = [];
+    }
+    
+    function backToStep1() {
+        document.getElementById('cancelStep1').style.display = 'block';
+        document.getElementById('cancelStep2').style.display = 'none';
+        selectedAppointments = [];
+    }
+    
+    async function queryAppointments() {
+        const phone = document.getElementById('cancelPhone').value.trim();
+        const errorDiv = document.getElementById('cancelError');
+        
+        if (!phone) {
+            errorDiv.textContent = '请输入手机号';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (!/^1[3-9]\d{9}$/.test(phone)) {
+            errorDiv.textContent = '请输入正确的手机号码';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        errorDiv.style.display = 'none';
+        
+        try {
+            const res = await fetch('/api/appointments/query', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ phone })
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                allUserAppointments = data.appointments;
+                
+                if (allUserAppointments.length === 0) {
+                    errorDiv.textContent = '未找到该手机号的预约记录';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                
+                // 显示预约列表
+                renderAppointmentsList();
+                document.getElementById('cancelStep1').style.display = 'none';
+                document.getElementById('cancelStep2').style.display = 'block';
+            } else {
+                errorDiv.textContent = data.message || '查询失败，请检查手机号';
+                errorDiv.style.display = 'block';
+            }
+        } catch (e) {
+            errorDiv.textContent = '网络错误，请稍后重试';
+            errorDiv.style.display = 'block';
+        }
+    }
+    
+    function renderAppointmentsList() {
+        const container = document.getElementById('appointmentsList');
+        const cancellableApps = allUserAppointments.filter(a => a.canCancel);
+        const nonCancellableApps = allUserAppointments.filter(a => !a.canCancel);
+        
+        let html = '';
+        
+        if (cancellableApps.length > 0) {
+            html += '<div style="margin-bottom: 15px;">';
+            cancellableApps.forEach(app => {
+                const serviceTypeText = app.serviceType === 'dye' ? '烫染' : '剪发';
+                const dateStr = new Date(app.date).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+                // 对于烫染服务，显示完整的时间段范围（如：11:30-14:00）
+                // 对于剪发服务，只显示开始时间
+                const timeDisplay = app.serviceType === 'dye' ? app.time : app.time.split('-')[0];
+                html += `
+                    <label style="display: flex; align-items: center; padding: 12px; margin-bottom: 8px; border: 2px solid var(--sage-green); border-radius: 12px; cursor: pointer; background: white;">
+                        <input type="checkbox" value="${app.id}" onchange="toggleAppointment('${app.id}')" style="margin-right: 12px; width: 18px; height: 18px; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: var(--botanical-dark);">${dateStr} ${timeDisplay} - ${serviceTypeText}</div>
+                            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">预约号: ${app.appId}</div>
+                        </div>
+                    </label>
+                `;
+            });
+            html += '</div>';
+        }
+        
+        if (nonCancellableApps.length > 0) {
+            html += '<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--stone);">';
+            html += '<div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px;">以下预约无法取消：</div>';
+            nonCancellableApps.forEach(app => {
+                const serviceTypeText = app.serviceType === 'dye' ? '烫染' : '剪发';
+                const dateStr = new Date(app.date).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
+                // 对于烫染服务，显示完整的时间段范围（如：11:30-14:00）
+                // 对于剪发服务，只显示开始时间
+                const timeDisplay = app.serviceType === 'dye' ? app.time : app.time.split('-')[0];
+                html += `
+                    <div style="padding: 10px; margin-bottom: 6px; border: 1px solid var(--stone); border-radius: 8px; background: #f8f9fa; opacity: 0.7;">
+                        <div style="font-size: 0.85rem; color: var(--botanical-dark);">${dateStr} ${timeDisplay} - ${serviceTypeText}</div>
+                        <div style="font-size: 0.7rem; color: #ef4444; margin-top: 4px;">${app.reason || '无法取消'}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+        }
+        
+        container.innerHTML = html;
+        selectedAppointments = [];
+    }
+    
+    function toggleAppointment(appointmentId) {
+        const checkbox = event.target;
+        if (checkbox.checked) {
+            if (!selectedAppointments.includes(appointmentId)) {
+                selectedAppointments.push(appointmentId);
+            }
+        } else {
+            selectedAppointments = selectedAppointments.filter(id => id !== appointmentId);
+        }
+    }
+    
+    async function confirmCancel() {
+        const errorDiv = document.getElementById('cancelError2');
+        
+        if (selectedAppointments.length === 0) {
+            errorDiv.textContent = '请至少选择一个要取消的预约';
+            errorDiv.style.display = 'block';
+            return;
+        }
+        
+        errorDiv.style.display = 'none';
+        
+        try {
+            const res = await fetch('/api/cancel', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ appointmentIds: selectedAppointments })
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                localStorage.removeItem('my_appointment');
+                const message = data.cancelledCount > 1 
+                    ? `已成功取消 ${data.cancelledCount} 个预约` 
+                    : '预约已成功取消';
+                if (data.message) {
+                    alert(message + '\n' + data.message);
+                } else {
+                    alert(message);
+                }
+                closeCancelModal();
+            } else {
+                errorDiv.textContent = data.message || '取消失败';
+                errorDiv.style.display = 'block';
+            }
+        } catch (e) {
+            errorDiv.textContent = '网络错误，请稍后重试';
+            errorDiv.style.display = 'block';
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const cancelPhoneInput = document.getElementById('cancelPhone');
+        if (cancelPhoneInput) {
+            cancelPhoneInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') queryAppointments();
+            });
+        }
+        const progressPhoneInput = document.getElementById('progressPhone');
+        if (progressPhoneInput) {
+            progressPhoneInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') queryProgress();
+            });
+        }
+    });
+
+    function closeDrawer() {
+        document.getElementById('drawer').classList.remove('show');
+        document.getElementById('mask').style.display = 'none';
+        selectedTimeSlot = [];
+        selectedServiceType = null;
+        const dyeNotice = document.getElementById('dyeNotice');
+        if (dyeNotice) {
+            dyeNotice.classList.remove('show');
+        }
+        if (slotRefreshInterval) {
+            clearInterval(slotRefreshInterval);
+            slotRefreshInterval = null;
+        }
+    }
+    
+    function closeAll() {
+        document.getElementById('drawer').classList.remove('show');
+        document.getElementById('successModal').classList.remove('show');
+        document.getElementById('cancelModal').classList.remove('show');
+        document.getElementById('progressModal').classList.remove('show');
+        document.getElementById('phoneModal').classList.remove('show');
+        document.getElementById('mask').style.display = 'none';
+        selectedTimeSlot = [];
+        selectedServiceType = null;
+        const dyeNotice = document.getElementById('dyeNotice');
+        if (dyeNotice) {
+            dyeNotice.classList.remove('show');
+        }
+        if (slotRefreshInterval) {
+            clearInterval(slotRefreshInterval);
+            slotRefreshInterval = null;
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            loadAnnouncement();
+        });
+    } else {
+        init();
+        loadAnnouncement();
+    }
+    window.addEventListener('load', loadAnnouncement);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) init();
+    });
+</script>
+</body>
+</html>

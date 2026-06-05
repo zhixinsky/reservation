@@ -1,0 +1,20 @@
+services:
+  reservation-system:
+    build: .
+    container_name: reservation-system
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./.env:/app/.env:ro
+      - ./stylists.json:/app/stylists.json:ro
+      - /volume1/docker/reservation-system/data:/app/data  # 映射到服务器指定目录，方便管理
+    networks:
+      - reservation-network
+
+# 注意：数据库文件存储在 /volume1/docker/reservation-system/data 目录
+# 可以直接在服务器上删除该目录下的文件来清空数据
+
+networks:
+  reservation-network:
+    driver: bridge
