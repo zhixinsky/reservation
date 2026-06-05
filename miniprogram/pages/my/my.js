@@ -30,6 +30,9 @@ Page({
   },
 
   onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 1 });
+    }
     const phone = wx.getStorageSync('verified_phone') || '';
     if (phone && phone !== this.data.phone) {
       this.setPhone(phone);

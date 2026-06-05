@@ -1,6 +1,6 @@
 .my-page {
   min-height: 100vh;
-  padding: 32rpx 28rpx 56rpx;
+  padding: 32rpx 28rpx 170rpx;
   box-sizing: border-box;
   background: #F9FBF9;
   color: #2D4339;
