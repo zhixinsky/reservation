@@ -41,8 +41,12 @@ function callApi(action, payload = {}) {
       });
     case 'bookAppointment':
       return containerRequest({ path: '/api/book', method: 'POST', data: payload });
+    case 'getPhoneNumber':
+      return containerRequest({ path: '/api/wechat/phone-number', method: 'POST', data: { code: payload.code } });
     case 'queryAppointments':
       return containerRequest({ path: '/api/appointments/query', method: 'POST', data: payload });
+    case 'queryAppointmentHistory':
+      return containerRequest({ path: '/api/appointments/history', method: 'POST', data: payload });
     case 'getDayQueue':
       return containerRequest({
         path: `/api/appointments/day-queue${qs({ date: payload.date, stylistId: payload.stylistId })}`

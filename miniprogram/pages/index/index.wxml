@@ -74,11 +74,11 @@
   </view>
 
   <view class="phone-modal {{phoneModalVisible ? 'show' : ''}}">
-    <view class="modal-title">请输入手机号</view>
-    <input class="modal-input" type="number" maxlength="11" placeholder="请输入手机号" value="{{phoneInput}}" bindinput="onPhoneInput" confirm-type="done" bindconfirm="confirmBooking" />
+    <view class="modal-title">授权手机号</view>
+    <view class="modal-hint">用于生成预约号并接收预约提醒</view>
     <view class="error-msg {{phoneError ? 'show' : ''}}">{{phoneError}}</view>
     <view class="btn-group">
-      <button class="confirm-btn" bindtap="confirmBooking">确认预约</button>
+      <button class="confirm-btn" open-type="getPhoneNumber" bindgetphonenumber="onBookingPhoneNumber">手机号快速验证</button>
       <button class="confirm-btn secondary" bindtap="closePhoneModal">取 消</button>
     </view>
   </view>
@@ -99,9 +99,9 @@
     <button class="modal-close" bindtap="closeCancelModal">×</button>
     <view class="modal-title">取消预约</view>
     <view wx:if="{{cancelStep === 1}}">
-      <input class="modal-input" type="number" maxlength="11" placeholder="请输入预约时的手机号" value="{{cancelPhone}}" bindinput="onCancelPhoneInput" confirm-type="search" bindconfirm="queryAppointments" />
+      <view class="modal-hint">授权预约手机号后查询可取消预约</view>
       <view class="inline-error" wx:if="{{cancelError}}">{{cancelError}}</view>
-      <button class="cancel-btn" bindtap="queryAppointments">查询预约</button>
+      <button class="cancel-btn" open-type="getPhoneNumber" bindgetphonenumber="onCancelPhoneNumber">手机号快速验证</button>
     </view>
     <view wx:else>
       <view class="modal-hint">请选择要取消的预约：</view>
@@ -133,9 +133,9 @@
     <button class="modal-close" bindtap="closeProgressModal">×</button>
     <view class="modal-title">排队查询</view>
     <view wx:if="{{progressStep === 1}}">
-      <input class="modal-input" type="number" maxlength="11" placeholder="请输入预约时的手机号" value="{{progressPhone}}" bindinput="onProgressPhoneInput" confirm-type="search" bindconfirm="queryProgress" />
+      <view class="modal-hint">授权预约手机号后查询排队进度</view>
       <view class="inline-error" wx:if="{{progressError}}">{{progressError}}</view>
-      <button class="progress-query-btn" bindtap="queryProgress">查询排队</button>
+      <button class="progress-query-btn" open-type="getPhoneNumber" bindgetphonenumber="onProgressPhoneNumber">手机号快速验证</button>
     </view>
     <view wx:else>
       <view class="modal-hint">根据当前排队情况预估您的预约推迟时间</view>

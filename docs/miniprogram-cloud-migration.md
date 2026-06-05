@@ -34,9 +34,13 @@ MYSQL_USERNAME=你的 MySQL 用户名
 MYSQL_PASSWORD=你的 MySQL 密码
 MYSQL_DATABASE=reservation_system
 MYSQL_CONNECTION_LIMIT=10
+WX_APPID=wxb76bea40dcb2999b
+WX_APPSECRET=你的小程序 AppSecret
 ```
 
 如果未填写 `MYSQL_DATABASE`，后端默认使用并自动创建 `reservation_system` 数据库。
+
+手机号快速验证依赖 `WX_APPSECRET`。小程序前端只拿手机号授权 `code`，后端用 `WX_APPSECRET` 调用微信接口换取手机号。
 
 服务启动时会自动创建这些 MySQL 表，不需要手动建表：
 

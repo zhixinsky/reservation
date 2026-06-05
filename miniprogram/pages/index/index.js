@@ -1,4 +1,3 @@
-const PHONE_RE = /^1[3-9]\d{9}$/;
 const { callApi } = require('../../utils/api');
 
 function pad2(n) {
@@ -76,7 +75,6 @@ Page({
     selectedTimeSlot: [],
     refreshTimer: null,
     phoneModalVisible: false,
-    phoneInput: '',
     phoneError: '',
     successVisible: false,
     displayId: '',
@@ -114,6 +112,28 @@ Page({
 
   callApi(action, payload = {}) {
     return callApi(action, payload);
+  },
+
+  async getAuthorizedPhone(e, errorKey) {
+    if (!e.detail || !e.detail.code) {
+      this.setData({ [errorKey]: '需要授权手机号后继续操作' });
+      return '';
+    }
+    wx.showLoading({ title: '验证中' });
+    try {
+      const data = await this.callApi('getPhoneNumber', { code: e.detail.code });
+      wx.hideLoading();
+      if (!data || !data.success || !data.phone) {
+        this.setData({ [errorKey]: (data && data.message) || '手机号验证失败' });
+        return '';
+      }
+      wx.setStorageSync('verified_phone', data.phone);
+      return data.phone;
+    } catch (err) {
+      wx.hideLoading();
+      this.setData({ [errorKey]: '手机号验证失败，请稍后重试' });
+      return '';
+    }
   },
 
   async loadAnnouncement() {
@@ -316,7 +336,6 @@ Page({
     this.setData({
       phoneModalVisible: true,
       maskVisible: true,
-      phoneInput: '',
       phoneError: ''
     });
   },
@@ -330,17 +349,13 @@ Page({
     if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
   },
 
-  onPhoneInput(e) {
-    this.setData({ phoneInput: e.detail.value, phoneError: '' });
+  async onBookingPhoneNumber(e) {
+    const phone = await this.getAuthorizedPhone(e, 'phoneError');
+    if (!phone) return;
+    this.confirmBooking(phone);
   },
 
-  async confirmBooking() {
-    const phone = String(this.data.phoneInput || '').trim();
-    if (!PHONE_RE.test(phone)) {
-      this.setData({ phoneError: phone ? '请输入正确的手机号码' : '请输入手机号' });
-      return;
-    }
-
+  async confirmBooking(phone) {
     if (this.data.selectedServiceType === 'dye' && this.data.selectedTimeSlot.length !== 4) {
       this.setData({ phoneError: '预约失败，请重新选择时间段' });
       return;
@@ -389,12 +404,11 @@ Page({
   },
 
   openCancelModal() {
-    const savedApp = wx.getStorageSync('my_appointment') || {};
     this.setData({
       cancelModalVisible: true,
       maskVisible: true,
       cancelStep: 1,
-      cancelPhone: savedApp.phone || '',
+      cancelPhone: '',
       cancelError: '',
       cancelError2: '',
       selectedAppointments: [],
@@ -420,17 +434,15 @@ Page({
     this.setData({ cancelStep: 1, selectedAppointments: [], cancelError2: '' });
   },
 
-  onCancelPhoneInput(e) {
-    this.setData({ cancelPhone: e.detail.value, cancelError: '' });
+  async onCancelPhoneNumber(e) {
+    const phone = await this.getAuthorizedPhone(e, 'cancelError');
+    if (!phone) return;
+    this.setData({ cancelPhone: phone });
+    this.queryAppointments(phone);
   },
 
-  async queryAppointments() {
-    const phone = String(this.data.cancelPhone || '').trim();
-    if (!PHONE_RE.test(phone)) {
-      this.setData({ cancelError: phone ? '请输入正确的手机号码' : '请输入手机号' });
-      return;
-    }
-
+  async queryAppointments(phoneArg) {
+    const phone = String(phoneArg || this.data.cancelPhone || '').trim();
     wx.showLoading({ title: '查询中' });
     try {
       const data = await this.callApi('queryAppointments', { phone });
@@ -513,12 +525,11 @@ Page({
   },
 
   openProgressModal() {
-    const savedApp = wx.getStorageSync('my_appointment') || {};
     this.setData({
       progressModalVisible: true,
       maskVisible: true,
       progressStep: 1,
-      progressPhone: savedApp.phone || '',
+      progressPhone: '',
       progressError: '',
       progressRows: []
     });
@@ -534,17 +545,15 @@ Page({
     });
   },
 
-  onProgressPhoneInput(e) {
-    this.setData({ progressPhone: e.detail.value, progressError: '' });
+  async onProgressPhoneNumber(e) {
+    const phone = await this.getAuthorizedPhone(e, 'progressError');
+    if (!phone) return;
+    this.setData({ progressPhone: phone });
+    this.queryProgress(phone);
   },
 
-  async queryProgress() {
-    const phone = String(this.data.progressPhone || '').trim();
-    if (!PHONE_RE.test(phone)) {
-      this.setData({ progressError: phone ? '请输入正确的手机号码' : '请输入手机号' });
-      return;
-    }
-
+  async queryProgress(phoneArg) {
+    const phone = String(phoneArg || this.data.progressPhone || '').trim();
     wx.showLoading({ title: '查询中' });
     try {
       const data = await this.callApi('queryAppointments', { phone });

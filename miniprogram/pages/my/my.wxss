@@ -1,0 +1,135 @@
+.my-page {
+  min-height: 100vh;
+  padding: 32rpx 28rpx 56rpx;
+  box-sizing: border-box;
+  background: #F9FBF9;
+  color: #2D4339;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+  padding: 34rpx 28rpx;
+  border-radius: 28rpx;
+  background: #ffffff;
+  border: 1rpx solid #E3EEE8;
+  box-shadow: 0 10rpx 28rpx rgba(45, 67, 57, 0.06);
+  margin-bottom: 24rpx;
+}
+
+.title {
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 42rpx;
+  font-weight: 800;
+}
+
+.subtitle {
+  margin-top: 8rpx;
+  color: #8A9A91;
+  font-size: 24rpx;
+}
+
+.auth-btn,
+.refresh-btn,
+.cancel-btn {
+  flex-shrink: 0;
+  padding: 18rpx 24rpx;
+  border-radius: 20rpx;
+  background: #2D6A4F;
+  color: #ffffff;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.refresh-btn {
+  background: #E8F5E9;
+  color: #2D6A4F;
+}
+
+.section {
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: #ffffff;
+  border: 1rpx solid #E3EEE8;
+  box-shadow: 0 10rpx 28rpx rgba(45, 67, 57, 0.05);
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 800;
+  margin-bottom: 22rpx;
+}
+
+.empty {
+  color: #94a3b8;
+  text-align: center;
+  padding: 48rpx 0;
+  font-size: 26rpx;
+}
+
+.appointment-card,
+.history-row {
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: #F9FBF9;
+  border: 1rpx solid #E9F0E8;
+  margin-bottom: 18rpx;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.appointment-title {
+  color: #2D4339;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.appointment-sub {
+  color: #94a3b8;
+  font-size: 24rpx;
+  margin-top: 8rpx;
+}
+
+.appointment-reason {
+  margin-top: 10rpx;
+  color: #ef4444;
+  font-size: 24rpx;
+}
+
+.cancel-btn {
+  margin-top: 20rpx;
+  width: 100%;
+}
+
+.status {
+  flex-shrink: 0;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  color: #64748b;
+  background: #F1F5F9;
+}
+
+.status.booked,
+.status.pending {
+  color: #2D6A4F;
+  background: #E8F5E9;
+}
+
+.status.completed {
+  color: #2563eb;
+  background: #EFF6FF;
+}
+
+.status.cancelled {
+  color: #ef4444;
+  background: #FEF2F2;
+}

@@ -5,11 +5,64 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 const { sendBookingSuccessSMS, sendCancelBookingSMS } = require('./sms-service');
 const { ready: dbReady, appointments: dbAppointments, blockedSlots: dbBlockedSlots, sessions: dbSessions, stylistVacations: dbStylistVacations } = require('./database');
 const app = express();
 app.use(bodyParser.json());
 // 静态文件延后挂载，确保 /api 等路由优先匹配（见文件末尾）
+
+let wechatAccessTokenCache = { token: '', expiresAt: 0 };
+
+async function getWechatAccessToken() {
+    const appid = process.env.WX_APPID || process.env.WECHAT_APPID || 'wxb76bea40dcb2999b';
+    const secret = process.env.WX_APPSECRET || process.env.WECHAT_APPSECRET;
+    if (!secret) {
+        throw new Error('未配置 WX_APPSECRET');
+    }
+    if (wechatAccessTokenCache.token && Date.now() < wechatAccessTokenCache.expiresAt) {
+        return wechatAccessTokenCache.token;
+    }
+    const { data } = await axios.get('https://api.weixin.qq.com/cgi-bin/token', {
+        params: {
+            grant_type: 'client_credential',
+            appid,
+            secret
+        },
+        timeout: 10000
+    });
+    if (!data || !data.access_token) {
+        throw new Error((data && data.errmsg) || '获取微信 access_token 失败');
+    }
+    wechatAccessTokenCache = {
+        token: data.access_token,
+        expiresAt: Date.now() + Math.max(60, Number(data.expires_in || 7200) - 300) * 1000
+    };
+    return data.access_token;
+}
+
+app.post('/api/wechat/phone-number', async (req, res) => {
+    const { code } = req.body || {};
+    if (!code) {
+        return res.json({ success: false, message: '缺少手机号授权 code' });
+    }
+    try {
+        const accessToken = await getWechatAccessToken();
+        const { data } = await axios.post(
+            `https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${encodeURIComponent(accessToken)}`,
+            { code },
+            { timeout: 10000 }
+        );
+        const phoneNumber = data && data.phone_info && data.phone_info.phoneNumber;
+        if (!phoneNumber) {
+            return res.json({ success: false, message: (data && data.errmsg) || '获取手机号失败' });
+        }
+        res.json({ success: true, phone: phoneNumber });
+    } catch (e) {
+        console.error('获取微信手机号失败:', e.message);
+        res.json({ success: false, message: e.message || '获取手机号失败' });
+    }
+});
 
 // 提供根目录的 favicon.ico
 app.get('/favicon.ico', (req, res) => {
@@ -1245,6 +1298,71 @@ app.post('/api/appointments/query', (req, res) => {
     res.json({
         success: true,
         appointments
+    });
+});
+
+app.post('/api/appointments/history', (req, res) => {
+    const { phone } = req.body;
+    if (!phone) {
+        return res.json({ success: false, message: '请输入手机号' });
+    }
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+        return res.json({ success: false, message: '请输入正确的手机号码' });
+    }
+
+    const rows = dbAppointments.find({ phone });
+    rows.sort((a, b) => {
+        if (a.date !== b.date) return b.date.localeCompare(a.date);
+        return b.time.localeCompare(a.time);
+    });
+
+    const processedIds = new Set();
+    const merged = [];
+    rows.forEach(app => {
+        if (processedIds.has(app.id)) return;
+        if (app.serviceType === 'dye') {
+            const appCreatedTime = new Date(app.createdAt || 0).getTime();
+            const related = rows.filter(a =>
+                !processedIds.has(a.id) &&
+                a.appId === app.appId &&
+                a.phone === app.phone &&
+                a.date === app.date &&
+                a.serviceType === 'dye' &&
+                a.status === app.status &&
+                Math.abs(new Date(a.createdAt || 0).getTime() - appCreatedTime) < 60000
+            );
+            if (related.length > 1) {
+                related.sort((a, b) => a.time.localeCompare(b.time));
+                const [firstStart] = related[0].time.split('-');
+                const [, lastEnd] = related[related.length - 1].time.split('-');
+                merged.push({
+                    ...app,
+                    time: `${firstStart}-${lastEnd}`,
+                    originalIds: related.map(a => a.id)
+                });
+                related.forEach(a => processedIds.add(a.id));
+            } else {
+                merged.push({ ...app, originalIds: [app.id] });
+                processedIds.add(app.id);
+            }
+        } else {
+            merged.push({ ...app, originalIds: [app.id] });
+            processedIds.add(app.id);
+        }
+    });
+
+    res.json({
+        success: true,
+        appointments: merged.map(app => ({
+            id: app.originalIds && app.originalIds.length > 0 ? app.originalIds[0] : app.id,
+            appId: app.appId,
+            date: app.date,
+            time: app.time,
+            serviceType: app.serviceType,
+            status: app.status,
+            stylistId: app.stylistId,
+            originalIds: app.originalIds || [app.id]
+        }))
     });
 });
 

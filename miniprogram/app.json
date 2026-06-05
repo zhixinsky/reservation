@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/my/my",
     "pages/admin-login/admin-login",
     "pages/admin-dashboard/admin-dashboard"
   ],
@@ -9,6 +10,22 @@
     "navigationBarBackgroundColor": "#F9FBF9",
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F9FBF9"
+  },
+  "tabBar": {
+    "color": "#9ca3af",
+    "selectedColor": "#2D6A4F",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "预约"
+      },
+      {
+        "pagePath": "pages/my/my",
+        "text": "我的"
+      }
+    ]
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"
