@@ -1,8 +1,8 @@
 # 使用官方 Node.js 运行时作为基础镜像
 FROM node:18-alpine
 
-# 安装时区数据（Alpine Linux 需要）
-RUN apk add --no-cache tzdata
+# 安装时区数据和 CA 根证书（请求微信 HTTPS 接口需要）
+RUN apk add --no-cache tzdata ca-certificates && update-ca-certificates
 
 # 设置工作目录
 WORKDIR /app

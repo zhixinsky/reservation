@@ -59,7 +59,11 @@ app.post('/api/wechat/phone-number', async (req, res) => {
         }
         res.json({ success: true, phone: phoneNumber });
     } catch (e) {
-        console.error('获取微信手机号失败:', e.message);
+        console.error('获取微信手机号失败:', {
+            message: e.message,
+            code: e.code,
+            response: e.response && e.response.data
+        });
         res.json({ success: false, message: e.message || '获取手机号失败' });
     }
 });
