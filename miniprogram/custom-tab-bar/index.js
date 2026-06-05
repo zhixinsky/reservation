@@ -1,6 +1,7 @@
 Component({
   data: {
     selected: 0,
+    visible: true,
     list: [
       {
         pagePath: '/pages/index/index',

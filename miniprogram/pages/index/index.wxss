@@ -292,6 +292,14 @@
   z-index: 10;
 }
 
+.drawer .close-btn {
+  padding: 0;
+  line-height: 72rpx;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-align: center;
+}
+
 .drawer-title,
 .modal-title {
   font-family: "Songti SC", "STSong", serif;

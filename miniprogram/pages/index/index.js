@@ -202,9 +202,16 @@ Page({
       drawerVisible: true,
       maskVisible: true
     });
+    this.setTabBarVisible(false);
 
     await this.loadSlots(selectedDate);
     this.startRefresh();
+  },
+
+  setTabBarVisible(visible) {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ visible });
+    }
   },
 
   async switchDate(e) {
@@ -397,6 +404,7 @@ Page({
           successVisible: true,
           displayId: data.appId
         });
+        this.setTabBarVisible(false);
       } else {
         this.setData({ phoneError: (data && data.message) || '预约失败，请刷新重试' });
       }
@@ -681,6 +689,7 @@ Page({
       selectedTimeSlot: [],
       selectedServiceType: 'cut'
     });
+    this.setTabBarVisible(true);
   },
 
   closeAll() {
@@ -695,5 +704,6 @@ Page({
       selectedTimeSlot: [],
       selectedServiceType: 'cut'
     });
+    this.setTabBarVisible(true);
   }
 });
