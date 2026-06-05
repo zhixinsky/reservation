@@ -5,6 +5,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 const axios = require('axios');
 const { sendBookingSuccessSMS, sendCancelBookingSMS } = require('./sms-service');
 const { ready: dbReady, appointments: dbAppointments, blockedSlots: dbBlockedSlots, sessions: dbSessions, stylistVacations: dbStylistVacations } = require('./database');
@@ -14,7 +15,40 @@ app.use(bodyParser.json());
 
 let wechatAccessTokenCache = { token: '', expiresAt: 0 };
 
+const WECHAT_CLOUD_CERT_PATH = process.env.NODE_EXTRA_CA_CERTS || '/app/cert/certificate.crt';
+
+function hasWechatCloudCert() {
+    try {
+        return fs.existsSync(WECHAT_CLOUD_CERT_PATH);
+    } catch (_) {
+        return false;
+    }
+}
+
+/** 云托管开启「开放接口服务」后，应走 HTTP 云调用，无需 access_token */
+function useWechatCloudOpenApi() {
+    if (process.env.WX_USE_OPENAPI === '0') return false;
+    return process.env.WX_USE_OPENAPI === '1' || hasWechatCloudCert();
+}
+
+function getWechatApiBaseUrl() {
+    return useWechatCloudOpenApi() ? 'http://api.weixin.qq.com' : 'https://api.weixin.qq.com';
+}
+
+function getWechatRequestConfig() {
+    const config = { timeout: 10000 };
+    if (!useWechatCloudOpenApi() && hasWechatCloudCert()) {
+        config.httpsAgent = new https.Agent({
+            ca: fs.readFileSync(WECHAT_CLOUD_CERT_PATH)
+        });
+    }
+    return config;
+}
+
 async function getWechatAccessToken() {
+    if (useWechatCloudOpenApi()) {
+        return null;
+    }
     const appid = process.env.WX_APPID || process.env.WECHAT_APPID || 'wxb76bea40dcb2999b';
     const secret = process.env.WX_APPSECRET || process.env.WECHAT_APPSECRET;
     if (!secret) {
@@ -23,13 +57,13 @@ async function getWechatAccessToken() {
     if (wechatAccessTokenCache.token && Date.now() < wechatAccessTokenCache.expiresAt) {
         return wechatAccessTokenCache.token;
     }
-    const { data } = await axios.get('https://api.weixin.qq.com/cgi-bin/token', {
+    const { data } = await axios.get(`${getWechatApiBaseUrl()}/cgi-bin/token`, {
         params: {
             grant_type: 'client_credential',
             appid,
             secret
         },
-        timeout: 10000
+        ...getWechatRequestConfig()
     });
     if (!data || !data.access_token) {
         throw new Error((data && data.errmsg) || '获取微信 access_token 失败');
@@ -47,11 +81,15 @@ app.post('/api/wechat/phone-number', async (req, res) => {
         return res.json({ success: false, message: '缺少手机号授权 code' });
     }
     try {
-        const accessToken = await getWechatAccessToken();
+        let url = `${getWechatApiBaseUrl()}/wxa/business/getuserphonenumber`;
+        if (!useWechatCloudOpenApi()) {
+            const accessToken = await getWechatAccessToken();
+            url += `?access_token=${encodeURIComponent(accessToken)}`;
+        }
         const { data } = await axios.post(
-            `https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${encodeURIComponent(accessToken)}`,
+            url,
             { code },
-            { timeout: 10000 }
+            getWechatRequestConfig()
         );
         const phoneNumber = data && data.phone_info && data.phone_info.phoneNumber;
         if (!phoneNumber) {

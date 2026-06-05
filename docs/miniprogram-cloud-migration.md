@@ -40,7 +40,18 @@ WX_APPSECRET=你的小程序 AppSecret
 
 如果未填写 `MYSQL_DATABASE`，后端默认使用并自动创建 `reservation_system` 数据库。
 
-手机号快速验证依赖 `WX_APPSECRET`。小程序前端只拿手机号授权 `code`，后端用 `WX_APPSECRET` 调用微信接口换取手机号。
+手机号快速验证：小程序前端只拿手机号授权 `code`，后端调用微信 `getuserphonenumber` 接口换取手机号。
+
+### 云托管手机号证书问题
+
+如果在云托管环境出现 `self-signed certificate` 错误，说明 Node.js 不信任云托管注入的微信 API 代理证书。请按以下步骤处理：
+
+1. 在云托管控制台打开 **云调用 → 开放接口服务** 开关。
+2. 在权限配置中加入接口：`/wxa/business/getuserphonenumber`。
+3. **重新发布服务版本**（仅改环境变量不够，必须重新构建版本）。
+4. 项目 `Dockerfile` 已配置 `NODE_EXTRA_CA_CERTS=/app/cert/certificate.crt`，`server.js` 会自动优先走 HTTP 云调用（免 `access_token`）。
+
+本地开发不走云调用，仍需配置 `WX_APPSECRET`。
 
 服务启动时会自动创建这些 MySQL 表，不需要手动建表：
 
