@@ -83,103 +83,87 @@ function refreshStylistVacationFromStore(stylist) {
     }
 }
 
-// 发型师数据：优先从配置文件读取，其次从环境变量，最后使用默认值
+// 发型师数据：优先从环境变量读取，其次从配置文件，最后使用默认值
 let stylists = [];
 
-// 方法1：从配置文件读取（推荐，便于维护）
-const stylistsConfigPath = process.env.STYLISTS_CONFIG_PATH || 'stylists.json';
-if (fs.existsSync(stylistsConfigPath)) {
+// 方法1：从环境变量读取（云托管推荐）
+if (process.env.STYLISTS_JSON) {
     try {
-        const configData = fs.readFileSync(stylistsConfigPath, 'utf8');
-        stylists = JSON.parse(configData);
-        console.log(`✓ 已从配置文件 ${stylistsConfigPath} 加载 ${stylists.length} 个发型师账号`);
+        const jsonStr = process.env.STYLISTS_JSON.replace(/\n/g, '').replace(/\s+/g, ' ');
+        stylists = JSON.parse(jsonStr);
+        console.log(`✓ 已从环境变量 STYLISTS_JSON 加载 ${stylists.length} 个发型师账号`);
     } catch (e) {
-        console.error(`❌ 配置文件 ${stylistsConfigPath} 格式错误:`, e.message);
+        console.error('❌ 环境变量 STYLISTS_JSON 格式错误:', e.message);
         console.log('⚠ 使用默认发型师数据');
         stylists = getDefaultStylists();
     }
 }
-// 方法2：从环境变量读取（如果配置文件不存在）
-else if (process.env.STYLISTS_JSON) {
-    try {
-        // 支持多行JSON（移除换行符和多余空格）
-        const jsonStr = process.env.STYLISTS_JSON.replace(/\n/g, '').replace(/\s+/g, ' ');
-        stylists = JSON.parse(jsonStr);
-        console.log(`✓ 已从环境变量加载 ${stylists.length} 个发型师账号`);
-    } catch (e) {
-        console.error('❌ 环境变量 STYLISTS_JSON 格式错误，使用默认发型师数据');
+// 方法2：从配置文件读取（本地开发备用）
+else {
+    const stylistsConfigPath = process.env.STYLISTS_CONFIG_PATH || 'stylists.json';
+    if (fs.existsSync(stylistsConfigPath)) {
+        try {
+            const configData = fs.readFileSync(stylistsConfigPath, 'utf8');
+            stylists = JSON.parse(configData);
+            console.log(`✓ 已从配置文件 ${stylistsConfigPath} 加载 ${stylists.length} 个发型师账号`);
+        } catch (e) {
+            console.error(`❌ 配置文件 ${stylistsConfigPath} 格式错误:`, e.message);
+            console.log('⚠ 使用默认发型师数据');
+            stylists = getDefaultStylists();
+        }
+    } else {
+        console.log('⚠ 使用默认发型师数据');
+        console.log('💡 提示：云托管请设置 STYLISTS_JSON 环境变量来配置发型师账号');
         stylists = getDefaultStylists();
     }
 }
-// 方法3：使用默认值
-else {
-    console.log('⚠ 使用默认发型师数据');
-    console.log(`💡 提示：创建 ${stylistsConfigPath} 文件或设置 STYLISTS_JSON 环境变量来配置发型师账号`);
+
+function validateStylistsConfig(list) {
+    if (!Array.isArray(list) || list.length === 0) {
+        throw new Error('发型师配置必须是非空数组');
+    }
+    for (const item of list) {
+        if (!item || item.id == null || !item.name || !item.username || !item.password) {
+            throw new Error('每个发型师必须包含 id、name、username、password');
+        }
+    }
+    return list;
+}
+
+try {
+    stylists = validateStylistsConfig(stylists);
+} catch (e) {
+    console.error('❌ 发型师配置无效:', e.message);
     stylists = getDefaultStylists();
 }
 
 applyPersistedVacationsToStylists(stylists);
 
-// 默认发型师数据（作为示例和备用）
+// 默认发型师数据（仅用于配置缺失时让服务可启动；生产环境请设置 STYLISTS_JSON）
 function getDefaultStylists() {
     return [
-        { 
-            id: 1, 
-            name: "Alexander", 
-            rank: "店长", 
-            specialty: "日系短发、商务造型", 
-            price: 298, 
-            photo: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400",
+        {
+            id: 1,
+            name: "店长",
             workStatus: 'working',
-            username: 'alexander',
-            password: 'alex123'
-        },
-        { 
-            id: 2, 
-            name: "Mika", 
-            rank: "总监", 
-            specialty: "韩式烫发、染发设计", 
-            price: 258, 
-            photo: "https://images.unsplash.com/photo-1595152772835-219674b2a8a6?w=400",
-            workStatus: 'working',
-            username: 'mika',
-            password: 'mika123'
-        },
-        { 
-            id: 3, 
-            name: "Daniel", 
-            rank: "资深", 
-            specialty: "欧美风格、创意造型", 
-            price: 198, 
-            photo: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400",
-            workStatus: 'free',
-            username: 'daniel',
-            password: 'daniel123'
-        },
-        { 
-            id: 4, 
-            name: "Sofia", 
-            rank: "资深", 
-            specialty: "长发造型、新娘发型", 
-            price: 198, 
-            photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400",
-            workStatus: 'working',
-            username: 'sofia',
-            password: 'sofia123'
-        },
-        { 
-            id: 5, 
-            name: "Kenji", 
-            rank: "资深", 
-            specialty: "男士造型、复古风格", 
-            price: 158, 
-            photo: "https://images.unsplash.com/photo-1605462863863-10d9e47e15ee?w=400",
-            workStatus: 'resting',
-            username: 'kenji',
-            password: 'kenji123'
+            username: 'tony',
+            password: 'change-me'
         }
     ];
 }
+
+/*
+// 如需完整发型师展示字段，可在 STYLISTS_JSON 中增加 rank、specialty、price、photo 等字段，例如：
+[
+  {
+    "id": 1,
+    "name": "店长",
+    "workStatus": "working",
+    "username": "tony",
+    "password": "your-password"
+  }
+]
+*/
 
 // 已移除超级管理员功能，仅保留发型师管理
 
@@ -197,7 +181,7 @@ app.get('/api/carousel-images', (req, res) => {
 });
 
 // 使用数据库存储（已迁移到 database.js）
-// appointments、blockedSlots、sessions 现在都存储在 SQLite 数据库中
+// appointments、blockedSlots、sessions 现在都存储在 MySQL 数据库中
 
 // --- API 接口 ---
 

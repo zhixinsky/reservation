@@ -48,22 +48,21 @@ stylist_vacations
 
 公告目前仍存放在 `data/announcement.json`，发型师账号仍优先读取 `stylists.json`。如需把公告和发型师账号也迁入 MySQL，可以继续扩展。
 
-## 初始化发型师
+## 发型师账号
 
-在 `stylists` 集合新增一条记录：
+云托管生产环境推荐用 `STYLISTS_JSON` 环境变量配置发型师账号。示例：
 
 ```json
-{
-  "id": 1,
-  "name": "店长",
-  "workStatus": "working",
-  "username": "tony",
-  "password": "change-me",
-  "vacationRanges": []
-}
+[{"id":1,"name":"店长","workStatus":"working","username":"tony","password":"你的密码"}]
 ```
 
-如果 `stylists` 集合为空，云函数会临时使用这条默认数据，但正式环境建议写入集合，方便后续管理端维护。
+后端读取顺序：
+
+```text
+STYLISTS_JSON 环境变量 -> stylists.json 本地文件 -> 默认占位账号
+```
+
+正式环境请务必设置 `STYLISTS_JSON`，不要依赖默认占位账号。
 
 ## 初始化公告
 
