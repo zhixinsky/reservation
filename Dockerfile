@@ -22,12 +22,13 @@ RUN mkdir -p /app/data
 # 设置数据目录权限
 RUN chmod 755 /app/data
 
-# 暴露端口（默认 3000，可通过环境变量修改）
-EXPOSE 3000
+# 云托管默认探测 80 端口
+EXPOSE 80
 
 # 设置环境变量
 ENV NODE_ENV=production
 ENV TZ=Asia/Shanghai
+ENV PORT=80
 
 # 启动应用
 CMD ["node", "server.js"]
