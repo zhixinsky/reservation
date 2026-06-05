@@ -16,7 +16,7 @@
 .tab-capsule {
   width: 420rpx;
   height: 84rpx;
-  padding: 6rpx 10rpx;
+  padding: 6rpx;
   box-sizing: border-box;
   border-radius: 999rpx;
   background: rgba(255, 255, 255, 0.82);
@@ -29,7 +29,7 @@
 }
 
 .tab-item {
-  width: 200rpx;
+  width: 204rpx;
   height: 72rpx;
   box-sizing: border-box;
   border-radius: 999rpx;
