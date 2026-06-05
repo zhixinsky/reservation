@@ -29,15 +29,16 @@ miniprogram/utils/api.js
 当前后端已经改为 MySQL 优先。云托管环境变量需要配置：
 
 ```text
-MYSQL_HOST=你的 MySQL 地址
-MYSQL_PORT=3306
-MYSQL_USER=你的 MySQL 用户名
+MYSQL_ADDRESS=你的 MySQL 地址:3306
+MYSQL_USERNAME=你的 MySQL 用户名
 MYSQL_PASSWORD=你的 MySQL 密码
 MYSQL_DATABASE=reservation_system
 MYSQL_CONNECTION_LIMIT=10
 ```
 
-服务启动时会自动创建这些 MySQL 表：
+如果未填写 `MYSQL_DATABASE`，后端默认使用并自动创建 `reservation_system` 数据库。
+
+服务启动时会自动创建这些 MySQL 表，不需要手动建表：
 
 ```text
 appointments

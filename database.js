@@ -9,12 +9,26 @@
 
 const mysql = require('mysql2/promise');
 
+function parseMysqlAddress() {
+    const address = process.env.MYSQL_ADDRESS || process.env.MYSQL_HOST || '';
+    if (!address) {
+        return { host: '', port: Number(process.env.MYSQL_PORT || 3306) };
+    }
+    const [host, port] = address.split(':');
+    return {
+        host,
+        port: Number(process.env.MYSQL_PORT || port || 3306)
+    };
+}
+
+const mysqlAddress = parseMysqlAddress();
+
 const MYSQL_CONFIG = {
-    host: process.env.MYSQL_HOST,
-    port: Number(process.env.MYSQL_PORT || 3306),
-    user: process.env.MYSQL_USER,
+    host: mysqlAddress.host,
+    port: mysqlAddress.port,
+    user: process.env.MYSQL_USER || process.env.MYSQL_USERNAME,
     password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DATABASE,
+    database: process.env.MYSQL_DATABASE || process.env.MYSQL_DB || process.env.MYSQL_DATABASE_NAME || 'reservation_system',
     waitForConnections: true,
     connectionLimit: Number(process.env.MYSQL_CONNECTION_LIMIT || 10),
     charset: 'utf8mb4'
@@ -66,6 +80,20 @@ async function ensureDatabase() {
         useDatabase = false;
         return;
     }
+
+    const bootstrapPool = mysql.createPool({
+        host: MYSQL_CONFIG.host,
+        port: MYSQL_CONFIG.port,
+        user: MYSQL_CONFIG.user,
+        password: MYSQL_CONFIG.password,
+        waitForConnections: true,
+        connectionLimit: 2,
+        charset: 'utf8mb4'
+    });
+    await bootstrapPool.query(
+        `CREATE DATABASE IF NOT EXISTS \`${MYSQL_CONFIG.database}\` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+    );
+    await bootstrapPool.end();
 
     pool = mysql.createPool(MYSQL_CONFIG);
     await pool.query('SELECT 1');
