@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40rpx 24rpx;
+  padding: 40rpx 0;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -30,8 +30,8 @@
 }
 
 .container {
-  width: 100%;
-  max-width: 702rpx;
+  width: calc(100vw - 40rpx);
+  max-width: none;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -133,8 +133,8 @@
 
 .booking-btn {
   width: 100%;
-  min-height: 208rpx;
-  padding: 48rpx 42rpx;
+  min-height: 204rpx;
+  padding: 46rpx 36rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.4);
   border-radius: 48rpx;
   color: #111827;
@@ -143,7 +143,7 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 48rpx;
+  gap: 32rpx;
   box-shadow: 0 20rpx 30rpx -6rpx rgba(0, 0, 0, 0.1), 0 8rpx 12rpx -4rpx rgba(0, 0, 0, 0.05);
   text-align: left;
   box-sizing: border-box;
@@ -162,8 +162,8 @@
 }
 
 .btn-icon-wrapper {
-  width: 160rpx;
-  height: 160rpx;
+  width: 132rpx;
+  height: 132rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -177,8 +177,8 @@
 }
 
 .btn-icon {
-  width: 120rpx;
-  height: 120rpx;
+  width: 96rpx;
+  height: 96rpx;
 }
 
 .btn-content {
@@ -191,13 +191,13 @@
 
 .btn-title {
   font-family: "Songti SC", "STSong", serif;
-  font-size: 40rpx;
+  font-size: 38rpx;
   font-weight: 700;
   color: #111827;
 }
 
 .btn-desc {
-  font-size: 24rpx;
+  font-size: 23rpx;
   color: #6b7280;
   font-weight: 400;
   letter-spacing: 1rpx;
@@ -205,7 +205,7 @@
 
 .btn-arrow {
   color: #d1d5db;
-  font-size: 58rpx;
+  font-size: 50rpx;
   flex-shrink: 0;
 }
 
