@@ -30,8 +30,8 @@
 }
 
 .container {
-  width: 710rpx;
-  max-width: 710rpx;
+  width: 670rpx;
+  max-width: 670rpx;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -124,7 +124,7 @@
 }
 
 .booking-buttons {
-  width: 710rpx;
+  width: 670rpx;
   align-self: stretch;
   display: flex;
   flex-direction: column;
@@ -132,7 +132,7 @@
 }
 
 .booking-btn {
-  width: 710rpx;
+  width: 670rpx;
   min-height: 204rpx;
   padding: 46rpx 36rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.4);
