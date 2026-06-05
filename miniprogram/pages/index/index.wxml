@@ -49,7 +49,7 @@
   <view wx:if="{{maskVisible}}" class="overlay" bindtap="closeAll"></view>
 
   <view class="drawer {{drawerVisible ? 'show' : ''}}">
-    <button class="close-btn" bindtap="closeDrawer">×</button>
+    <view class="close-btn" bindtap="closeDrawer">×</view>
     <view class="drawer-title">预约{{selectedServiceType === 'dye' ? '烫染' : '剪发'}} - 选择时间</view>
     <view class="date-tabs">
       <view wx:for="{{dateTabs}}" wx:key="date" class="date-tab {{selectedDate === item.date ? 'active' : ''}}" bindtap="switchDate" data-date="{{item.date}}">
