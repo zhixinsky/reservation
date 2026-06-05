@@ -20,6 +20,25 @@
   </view>
 
   <view wx:if="{{phone}}" class="section">
+    <view class="section-header">
+      <view class="section-title compact">排队查询</view>
+      <button class="mini-btn" bindtap="loadProgress">刷新</button>
+    </view>
+    <view wx:if="{{progressRows.length === 0}}" class="empty">暂无排队信息</view>
+    <view wx:for="{{progressRows}}" wx:key="key" class="progress-card">
+      <view class="appointment-title">{{item.dateStr}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
+      <view class="appointment-sub">预约号: {{item.appId}}</view>
+      <view class="progress-line">
+        <block wx:if="{{item.hasAheadCount}}">您前面还有<text class="red-num"> {{item.aheadCount}} </text>位已预约未完成的客户</block>
+        <block wx:else>{{item.delayLine1}}</block>
+      </view>
+      <view wx:if="{{item.delayLine2}}" class="progress-line second">
+        <text>{{item.delayLine2}}</text><text wx:if="{{item.numberPart}}" class="red-num small"> {{item.numberPart}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{phone}}" class="section">
     <view class="section-title">预约记录</view>
     <view wx:if="{{historyAppointments.length === 0}}" class="empty">暂无预约记录</view>
     <view wx:for="{{historyAppointments}}" wx:key="id" class="history-row">

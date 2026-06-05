@@ -20,13 +20,27 @@ function statusText(status) {
   return '已预约';
 }
 
+function ymdFromDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatWaitTime(totalMinutes) {
+  if (totalMinutes <= 0) return { line2: '到店后预计准时' };
+  if (totalMinutes < 60) return { line2: '按您预约时间到店需等待 ', numberPart: `${totalMinutes} 分钟` };
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (m === 0) return { line2: '按您预约时间到店需等待 ', numberPart: `${h} 小时` };
+  return { line2: '按您预约时间到店需等待 ', numberPart: `${h} 小时 ${m} 分钟` };
+}
+
 Page({
   data: {
     phone: '',
     maskedPhone: '',
     subtitleText: '授权手机号后查看预约记录',
     currentAppointments: [],
-    historyAppointments: []
+    historyAppointments: [],
+    progressRows: []
   },
 
   onShow() {
@@ -83,6 +97,7 @@ Page({
         currentAppointments: this.decorateList(current && current.appointments),
         historyAppointments: this.decorateList(history && history.appointments)
       });
+      await this.loadProgress(false);
     } catch (err) {
       wx.hideLoading();
       wx.showToast({ title: '加载失败', icon: 'none' });
@@ -97,6 +112,88 @@ Page({
       serviceTypeText: serviceTypeText(app.serviceType),
       statusText: statusText(app.status)
     }));
+  },
+
+  async loadProgress(showLoading = true) {
+    if (!this.data.phone) return;
+    if (showLoading) wx.showLoading({ title: '查询中' });
+    try {
+      const data = await callApi('queryAppointments', { phone: this.data.phone });
+      const appointments = Array.isArray(data && data.appointments) ? data.appointments : [];
+      const rows = [];
+      for (const app of appointments) {
+        rows.push(await this.buildProgressRow(app));
+      }
+      if (showLoading) wx.hideLoading();
+      this.setData({ progressRows: rows });
+    } catch (err) {
+      if (showLoading) wx.hideLoading();
+      wx.showToast({ title: '排队查询失败', icon: 'none' });
+    }
+  },
+
+  async buildProgressRow(app) {
+    const todayStr = ymdFromDate(new Date());
+    const now = new Date();
+    const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+    let delayLine1 = '';
+    let delayLine2 = '';
+    let numberPart = '';
+    let aheadCount = null;
+
+    if (app.date > todayStr) {
+      delayLine1 = '未到预约日';
+    } else if (app.date < todayStr) {
+      delayLine1 = '已过期';
+    } else if (app.stylistId == null) {
+      delayLine1 = '暂无排队信息';
+    } else {
+      try {
+        const queue = await callApi('getDayQueue', {
+          date: app.date,
+          stylistId: app.stylistId
+        });
+        if (Array.isArray(queue) && queue.length > 0) {
+          const myIndex = queue.findIndex(q => q.time === app.time && q.serviceType === app.serviceType);
+          aheadCount = myIndex >= 0 ? myIndex : 0;
+          const first = queue[0];
+          const endPart = first.time.split('-')[1];
+          const delayMinutes = endPart ? currentTotalMinutes - this.timeToMinutes(endPart.trim()) : 0;
+          if (aheadCount === 0) {
+            delayLine1 = '您当前是队列第一位';
+            delayLine2 = '预计准时';
+            aheadCount = null;
+          } else {
+            delayLine1 = '您前面还有X位已预约未完成的客户';
+            const wait = formatWaitTime(delayMinutes);
+            delayLine2 = wait.line2;
+            numberPart = wait.numberPart || '';
+          }
+        } else {
+          delayLine1 = '预计准时';
+        }
+      } catch (err) {
+        delayLine1 = '暂无排队信息';
+      }
+    }
+
+    return {
+      key: `${app.id || app.appId}-${app.date}-${app.time}`,
+      dateStr: formatDateText(app.date),
+      timeDisplay: timeDisplay(app),
+      serviceTypeText: serviceTypeText(app.serviceType),
+      appId: app.appId,
+      delayLine1,
+      delayLine2,
+      numberPart,
+      aheadCount,
+      hasAheadCount: aheadCount !== null
+    };
+  },
+
+  timeToMinutes(time) {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
   },
 
   cancelOne(e) {

@@ -63,6 +63,26 @@
   margin-bottom: 22rpx;
 }
 
+.section-title.compact {
+  margin-bottom: 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22rpx;
+}
+
+.mini-btn {
+  padding: 12rpx 20rpx;
+  border-radius: 999rpx;
+  background: #E8F5E9;
+  color: #2D6A4F;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
 .empty {
   color: #94a3b8;
   text-align: center;
@@ -71,7 +91,8 @@
 }
 
 .appointment-card,
-.history-row {
+.history-row,
+.progress-card {
   padding: 24rpx;
   border-radius: 20rpx;
   background: #F9FBF9;
@@ -132,4 +153,25 @@
 .status.cancelled {
   color: #ef4444;
   background: #FEF2F2;
+}
+
+.progress-line {
+  font-size: 26rpx;
+  color: #2D6A4F;
+  font-weight: 600;
+  margin-top: 12rpx;
+}
+
+.progress-line.second {
+  font-size: 25rpx;
+}
+
+.red-num {
+  font-weight: 800;
+  color: #c62828;
+  font-size: 34rpx;
+}
+
+.red-num.small {
+  font-size: 30rpx;
 }
