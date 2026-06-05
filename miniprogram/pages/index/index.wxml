@@ -21,7 +21,7 @@
     </view>
 
     <view class="booking-buttons">
-      <button class="booking-btn btn-cut {{bookingDisabled ? 'disabled' : ''}}" bindtap="openBook" data-type="cut" disabled="{{bookingDisabled}}">
+      <view class="booking-btn btn-cut {{bookingDisabled ? 'disabled' : ''}}" bindtap="openBook" data-type="cut">
         <view class="btn-icon-wrapper">
           <image src="/images/11.png" mode="aspectFit" class="btn-icon"></image>
         </view>
@@ -30,9 +30,9 @@
           <view class="btn-desc">{{bookingDisabled ? '发型师休假中' : 'Professional Haircut Service'}}</view>
         </view>
         <text class="btn-arrow">›</text>
-      </button>
+      </view>
 
-      <button class="booking-btn btn-dye {{bookingDisabled ? 'disabled' : ''}}" bindtap="openBook" data-type="dye" disabled="{{bookingDisabled}}">
+      <view class="booking-btn btn-dye {{bookingDisabled ? 'disabled' : ''}}" bindtap="openBook" data-type="dye">
         <view class="btn-icon-wrapper dye-icon">
           <image src="/images/22.png" mode="aspectFit" class="btn-icon"></image>
         </view>
@@ -41,7 +41,7 @@
           <view class="btn-desc">{{bookingDisabled ? '发型师休假中' : 'Perm & Color Artistry'}}</view>
         </view>
         <text class="btn-arrow dye-arrow">›</text>
-      </button>
+      </view>
     </view>
 
     <view class="link-row">

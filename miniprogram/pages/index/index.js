@@ -159,6 +159,8 @@ Page({
   },
 
   async openBook(e) {
+    if (this.data.bookingDisabled) return;
+
     await this.init();
     if (!this.data.stylistId) {
       wx.showToast({ title: '无法获取发型师信息', icon: 'none' });
