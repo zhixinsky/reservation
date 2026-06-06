@@ -71,20 +71,22 @@
     </view>
     <view class="action-divider"></view>
     <view class="action-item action-item-with-btn">
-      <view class="action-icon-wrap">
-        <image class="action-icon-img" src="/images/action-feedback.svg" mode="aspectFit"></image>
-      </view>
-      <view class="action-text">
-        <view class="action-title">反馈建议</view>
-        <view class="action-sub">在线客服，倾听您的意见</view>
-      </view>
-      <text class="action-arrow">›</text>
       <button
         class="action-item-cover-btn"
         open-type="contact"
         session-from="我的页-反馈建议"
-        hover-class="none"
+        hover-class="action-item-btn-hover"
       ></button>
+      <view class="action-item-content">
+        <view class="action-icon-wrap">
+          <image class="action-icon-img" src="/images/action-feedback.svg" mode="aspectFit"></image>
+        </view>
+        <view class="action-text">
+          <view class="action-title">反馈建议</view>
+          <view class="action-sub">在线客服，倾听您的意见</view>
+        </view>
+        <text class="action-arrow">›</text>
+      </view>
     </view>
   </view>
 
