@@ -52,23 +52,24 @@ function getBrandPrefix(shopInfo = SHOP_INFO) {
  * 亿美个性模板内容（变量格式 {#name#}）
  */
 function getBookingSuccessEmayTemplate(shopInfo = SHOP_INFO) {
-    const { miniProgramUrl } = shopInfo;
-    return `${getBrandPrefix(shopInfo)}您已成功预约！您的预约号：{#appId#}，发型师：{#stylistName#}，预约时间：{#date#} {#time#}。请提前5分钟到店，如需取消预约，请打开小程序 ${miniProgramUrl}`;
+    return `${getBrandPrefix(shopInfo)}您已成功预约！您的预约号：{#appId#}，发型师：{#stylistName#}，预约时间：{#date#} {#time#}。请提前5分钟到店，如需取消预约，请打开小程序 {#miniProgramUrl#}`;
 }
 
 function getCancelBookingEmayTemplate(shopInfo = SHOP_INFO) {
-    const { miniProgramUrl } = shopInfo;
-    return `${getBrandPrefix(shopInfo)}您的预约已取消。预约号：{#appId#}，发型师：{#stylistName#}，预约时间：{#date#} {#time#}。如需重新预约，请打开小程序 ${miniProgramUrl}`;
+    return `${getBrandPrefix(shopInfo)}您的预约已取消。预约号：{#appId#}，发型师：{#stylistName#}，预约时间：{#date#} {#time#}。如需重新预约，请打开小程序 {#miniProgramUrl#}`;
 }
 
 function getBookingReminderEmayTemplate(shopInfo = SHOP_INFO) {
-    const { address, miniProgramUrl } = shopInfo;
-    return `${getBrandPrefix(shopInfo)}您已预约{#stylistName#}，预约时间：{#date#} {#time#}，请提前5分钟到店。地址：${address}。打开小程序 ${miniProgramUrl}`;
+    const { address } = shopInfo;
+    return `${getBrandPrefix(shopInfo)}您已预约{#stylistName#}，预约时间：{#date#} {#time#}，请提前5分钟到店。地址：${address}。打开小程序 {#miniProgramUrl#}`;
 }
 
 function getStylistCancelEmayTemplate(shopInfo = SHOP_INFO) {
-    const { miniProgramUrl } = shopInfo;
-    return `${getBrandPrefix(shopInfo)}您的预约因门店安排已取消。预约号：{#appId#}，发型师：{#stylistName#}，预约时间：{#date#} {#time#}。如需重新预约，请打开小程序 ${miniProgramUrl}`;
+    return `${getBrandPrefix(shopInfo)}您的预约因门店安排已取消。预约号：{#appId#}，发型师：{#stylistName#}，预约时间：{#date#} {#time#}。如需重新预约，请打开小程序 {#miniProgramUrl#}`;
+}
+
+function buildMiniProgramUrl(data) {
+    return String(data.miniProgramUrl || SHOP_INFO.miniProgramUrl);
 }
 
 function buildBookingSmsVariables(data) {
@@ -76,7 +77,8 @@ function buildBookingSmsVariables(data) {
         appId: String(data.appId),
         stylistName: String(data.stylistName),
         date: formatDateDisplay(data.date),
-        time: formatTimeDisplay(data.time)
+        time: formatTimeDisplay(data.time),
+        miniProgramUrl: buildMiniProgramUrl(data)
     };
 }
 
@@ -166,6 +168,7 @@ module.exports = {
     getCancelBookingEmayTemplate,
     getBookingReminderEmayTemplate,
     getStylistCancelEmayTemplate,
+    buildMiniProgramUrl,
     buildBookingSmsVariables,
     buildCancelSmsVariables,
     buildReminderSmsVariables,
