@@ -10,6 +10,14 @@ function ymd(offset = 0) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
+/** 截止日当天仍有效，次日 0 点起视为过期不再展示 */
+function filterActiveVacationRanges(ranges) {
+  const today = ymd(0);
+  return (Array.isArray(ranges) ? ranges : []).filter(
+    r => r && r.vacationStartDate && r.vacationEndDate && r.vacationEndDate >= today
+  );
+}
+
 function dateText(ymdStr) {
   const parts = String(ymdStr || '').split('-');
   return parts.length === 3 ? `${Number(parts[1])}/${Number(parts[2])}` : ymdStr;
@@ -481,10 +489,19 @@ Page({
 
   async openVacationModal() {
     const info = await this.callApi('getStylistInfo');
+    const raw = Array.isArray(info.vacationRanges) ? info.vacationRanges : [];
+    let active = filterActiveVacationRanges(raw);
+    if (active.length !== raw.length) {
+      const data = await this.callApi('saveStylistVacation', { vacationRanges: active });
+      if (data && data.success) {
+        active = filterActiveVacationRanges(data.vacationRanges || active);
+        this.loadTimeSlots();
+      }
+    }
     this.setData({
       modalMask: true,
       vacationVisible: true,
-      vacationRanges: Array.isArray(info.vacationRanges) ? info.vacationRanges : [],
+      vacationRanges: active,
       vacationStartDate: ymd(0),
       vacationEndDate: ymd(1),
       vacationError: ''
@@ -511,7 +528,7 @@ Page({
     const data = await this.callApi('saveStylistVacation', { vacationRanges: next });
     if (data && data.success) {
       wx.showToast({ title: '已保存' });
-      this.setData({ vacationRanges: data.vacationRanges || next, vacationError: '' });
+      this.setData({ vacationRanges: filterActiveVacationRanges(data.vacationRanges || next), vacationError: '' });
       this.loadTimeSlots();
     } else {
       this.setData({ vacationError: (data && data.message) || '保存失败' });
@@ -523,7 +540,7 @@ Page({
     const next = this.data.vacationRanges.filter((_, i) => i !== index);
     const data = await this.callApi('saveStylistVacation', { vacationRanges: next });
     if (data && data.success) {
-      this.setData({ vacationRanges: data.vacationRanges || next });
+      this.setData({ vacationRanges: filterActiveVacationRanges(data.vacationRanges || next) });
       this.loadTimeSlots();
     }
   },

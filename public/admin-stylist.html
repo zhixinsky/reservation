@@ -1777,18 +1777,26 @@
             return `${m}月${d}日`;
         }
 
+        /** 截止日当天仍有效，次日 0 点起视为过期不再展示 */
+        function filterActiveVacationRangesAdmin(ranges) {
+            const today = getTodayDateStr();
+            return (Array.isArray(ranges) ? ranges : []).filter(
+                r => r && r.vacationStartDate && r.vacationEndDate && r.vacationEndDate >= today
+            );
+        }
+
         function getStylistVacationRangesAdmin(info) {
             if (!info) return [];
+            let ranges = [];
             // 只要存在 vacationRanges 数组（含空数组），以它为准，避免清除后仍被旧的 vacationStartDate/End 污染
             if (Array.isArray(info.vacationRanges)) {
-                return info.vacationRanges
+                ranges = info.vacationRanges
                     .filter(r => r && r.vacationStartDate && r.vacationEndDate)
                     .map(r => ({ vacationStartDate: r.vacationStartDate, vacationEndDate: r.vacationEndDate }));
+            } else if (info.vacationStartDate && info.vacationEndDate) {
+                ranges = [{ vacationStartDate: info.vacationStartDate, vacationEndDate: info.vacationEndDate }];
             }
-            if (info.vacationStartDate && info.vacationEndDate) {
-                return [{ vacationStartDate: info.vacationStartDate, vacationEndDate: info.vacationEndDate }];
-            }
-            return [];
+            return filterActiveVacationRangesAdmin(ranges);
         }
 
         function applyLocalStylistVacationRanges(vr) {
@@ -1827,8 +1835,35 @@
             mount.innerHTML = html;
         }
         
+        async function purgeExpiredVacationRangesIfNeeded() {
+            if (!currentStylistInfo) return;
+            const today = getTodayDateStr();
+            const raw = Array.isArray(currentStylistInfo.vacationRanges) ? currentStylistInfo.vacationRanges : [];
+            const active = filterActiveVacationRangesAdmin(raw);
+            if (active.length === raw.length) return;
+            try {
+                const res = await fetch('/api/admin/stylist/vacation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-session-id': sessionId
+                    },
+                    body: JSON.stringify({ vacationRanges: active })
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    applyLocalStylistVacationRanges(filterActiveVacationRangesAdmin(data.vacationRanges || active));
+                    updateStatusDisplay();
+                    loadTimeSlots();
+                }
+            } catch (e) {
+                console.error('清除过期休假失败:', e);
+            }
+        }
+
         // 打开休假设置弹窗
-        function openVacationModal() {
+        async function openVacationModal() {
+            await purgeExpiredVacationRangesIfNeeded();
             closeVacationModal();
             const modal = document.createElement('div');
             modal.id = 'vacationModal';
