@@ -135,10 +135,10 @@ Page({
     appointments: [],
     filteredAppointments: [],
     filters: [
-      { key: 'today', label: '今天' },
-      { key: 'tomorrow', label: '明天' },
-      { key: 'dayAfterTomorrow', label: '后天' },
-      { key: 'completed', label: '已完成' }
+      { key: 'today', label: '今天', count: 0 },
+      { key: 'tomorrow', label: '明天', count: 0 },
+      { key: 'dayAfterTomorrow', label: '后天', count: 0 },
+      { key: 'completed', label: '已完成', count: 0 }
     ],
     currentFilter: 'today',
     stats: { pending: 0, completed: 0, all: 0 },
@@ -175,7 +175,18 @@ Page({
   },
 
   onShow() {
-    if (this.data.session) this.loadAll();
+    if (this.data.session) {
+      this.loadAll({ showLoading: false });
+      this.startAutoRefresh();
+    }
+  },
+
+  onHide() {
+    this.stopAutoRefresh();
+  },
+
+  onUnload() {
+    this.stopAutoRefresh();
   },
 
   callApi(action, payload = {}) {
@@ -193,14 +204,16 @@ Page({
       return;
     }
     this.loadAll();
+    this.startAutoRefresh();
   },
 
-  loadAll() {
-    this.loadAppointments().then(() => this.loadTimeSlots());
+  loadAll(options = {}) {
+    return this.loadAppointments({ showLoading: options.showLoading !== false, refreshSlots: true });
   },
 
-  async loadAppointments() {
-    wx.showLoading({ title: '加载中' });
+  async loadAppointments(options = {}) {
+    const { showLoading = true, refreshSlots = true } = options;
+    if (showLoading) wx.showLoading({ title: '加载中' });
     try {
       const rows = await this.callApi('getAdminAppointments');
       const appointments = (Array.isArray(rows) ? rows : []).map(app => {
@@ -219,6 +232,7 @@ Page({
       this.setData({
         appointments,
         lastUpdateTime: this.currentHm(),
+        filters: this.buildFilterCounts(appointments),
         stats: {
           pending: appointments.filter(a => a.status !== 'cancelled' && a.status !== 'completed').length,
           completed: appointments.filter(a => a.status === 'completed').length,
@@ -226,9 +240,51 @@ Page({
         }
       });
       this.applyFilter();
-      return this.loadTimeSlots();
+      if (refreshSlots) {
+        await this.loadTimeSlots();
+      }
     } finally {
-      wx.hideLoading();
+      if (showLoading) wx.hideLoading();
+    }
+  },
+
+  buildFilterCounts(appointments) {
+    const list = Array.isArray(appointments) ? appointments : [];
+    const todayStr = ymd(0);
+    const tomorrowStr = ymd(1);
+    const dayAfterTomorrowStr = ymd(2);
+    const activeOnDate = date => list.filter(a => a.date === date && a.status !== 'cancelled' && a.status !== 'completed').length;
+    return [
+      { key: 'today', label: '今天', count: activeOnDate(todayStr) },
+      { key: 'tomorrow', label: '明天', count: activeOnDate(tomorrowStr) },
+      { key: 'dayAfterTomorrow', label: '后天', count: activeOnDate(dayAfterTomorrowStr) },
+      { key: 'completed', label: '已完成', count: list.filter(a => a.date === todayStr && a.status === 'completed').length }
+    ];
+  },
+
+  startAutoRefresh() {
+    this.stopAutoRefresh();
+    this._autoRefreshTimer = setInterval(() => {
+      this.autoRefresh();
+    }, 15000);
+  },
+
+  stopAutoRefresh() {
+    if (this._autoRefreshTimer) {
+      clearInterval(this._autoRefreshTimer);
+      this._autoRefreshTimer = null;
+    }
+  },
+
+  async autoRefresh() {
+    if (!this.data.session || this._autoRefreshing || this.data.modalMask) return;
+    this._autoRefreshing = true;
+    try {
+      await this.loadAll({ showLoading: false });
+    } catch (e) {
+      console.warn('后台自动刷新失败:', e && e.message);
+    } finally {
+      this._autoRefreshing = false;
     }
   },
 
@@ -250,15 +306,19 @@ Page({
     };
     let filtered = [];
     if (this.data.currentFilter === 'completed') {
-      filtered = this.data.appointments.filter(a => a.status === 'completed');
+      filtered = this.data.appointments.filter(a => a.date === ymd(0) && a.status === 'completed');
     } else {
       const targetDate = targetMap[this.data.currentFilter];
       filtered = this.data.appointments.filter(a => a.date === targetDate && a.status !== 'cancelled' && a.status !== 'completed');
     }
-    filtered.sort((a, b) => {
-      if (a.date !== b.date) return a.date.localeCompare(b.date);
-      return formatTimeDisplay(a.time).localeCompare(formatTimeDisplay(b.time));
-    });
+    if (this.data.currentFilter === 'completed') {
+      filtered.sort((a, b) => formatTimeDisplay(b.time).localeCompare(formatTimeDisplay(a.time)));
+    } else {
+      filtered.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return formatTimeDisplay(a.time).localeCompare(formatTimeDisplay(b.time));
+      });
+    }
     this.setData({ filteredAppointments: filtered });
   },
 
@@ -303,7 +363,6 @@ Page({
         wx.showToast({ title: data && data.success ? '已取消' : ((data && data.message) || '操作失败'), icon: data && data.success ? 'success' : 'none' });
         if (data && data.success) {
           this.loadAppointments();
-          this.loadTimeSlots();
         }
       }
     });

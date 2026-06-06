@@ -26,7 +26,7 @@
       <view class="refresh-btn" bindtap="loadAppointments">刷新</view>
     </view>
     <view class="tabs">
-      <view wx:for="{{filters}}" wx:key="key" class="tab {{currentFilter === item.key ? 'active' : ''}}" bindtap="setFilter" data-key="{{item.key}}">{{item.label}}</view>
+      <view wx:for="{{filters}}" wx:key="key" class="tab {{currentFilter === item.key ? 'active' : ''}}" bindtap="setFilter" data-key="{{item.key}}">{{item.label}}({{item.count}})</view>
     </view>
 
     <view wx:if="{{filteredAppointments.length === 0}}" class="empty">暂无预约</view>
@@ -37,7 +37,10 @@
         class="timeline-item {{index === filteredAppointments.length - 1 ? 'last' : ''}}"
       >
         <view class="timeline-time">{{item.timeDisplay}}</view>
-        <view class="timeline-segment"></view>
+        <view class="timeline-axis">
+          <view class="timeline-dot"></view>
+          <view class="timeline-line"></view>
+        </view>
         <view class="timeline-card {{item.serviceType === 'dye' ? 'dye-service' : 'cut-service'}}">
           <view class="timeline-card-header">
             <view class="appointment-name">{{item.phoneLast4}}</view>

@@ -208,7 +208,6 @@
 
 .timeline-container {
   position: relative;
-  padding-left: 128rpx;
 }
 
 .timeline-item {
@@ -216,6 +215,7 @@
   margin-bottom: 48rpx;
   display: flex;
   align-items: flex-start;
+  gap: 14rpx;
 }
 
 .timeline-item.last {
@@ -223,30 +223,51 @@
 }
 
 .timeline-time {
-  position: absolute;
-  left: -120rpx;
+  flex: 0 0 88rpx;
   width: 88rpx;
   text-align: right;
   font-size: 32rpx;
   color: #8A6B4D;
   font-weight: 600;
   line-height: 1.2;
-  top: 8rpx;
-  padding-right: 24rpx;
   box-sizing: border-box;
+  height: 44rpx;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-top: 8rpx;
 }
 
-.timeline-segment {
+.timeline-axis {
+  flex: 0 0 20rpx;
+  align-self: stretch;
+  min-height: 132rpx;
+  position: relative;
+}
+
+.timeline-dot {
   position: absolute;
-  left: -96rpx;
-  top: 44rpx;
+  left: 3rpx;
+  top: 24rpx;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #7FA998;
+  box-shadow: 0 0 0 6rpx #F3F5F4;
+  z-index: 2;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 9rpx;
+  top: 38rpx;
   width: 2rpx;
-  bottom: 8rpx;
-  background: #eceeec;
+  bottom: -48rpx;
+  background: #DDE9E2;
   z-index: 1;
 }
 
-.timeline-item.last .timeline-segment {
+.timeline-item.last .timeline-line {
   display: none;
 }
 
