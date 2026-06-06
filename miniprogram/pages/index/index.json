@@ -1,3 +1,12 @@
 {
-  "navigationBarTitleText": "欧诺造型"
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "",
+  "renderer": "skyline",
+  "componentFramework": "glass-easel",
+  "rendererOptions": {
+    "skyline": {
+      "defaultDisplayBlock": true,
+      "keyframeStyleIsolation": "legacy"
+    }
+  }
 }

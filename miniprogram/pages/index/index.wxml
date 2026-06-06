@@ -4,7 +4,11 @@
 
   <view class="container">
     <view class="header">
-      <view class="title">欧诺造型 <text class="title-dot">·</text> 预约服务</view>
+      <view class="title">
+        <text class="title-text">欧诺造型</text>
+        <text class="title-dot">·</text>
+        <text class="title-text">预约服务</text>
+      </view>
       <view class="subtitle">Premium Salon Selection</view>
     </view>
 
@@ -12,9 +16,9 @@
       <view class="announcement-inner">
         <image class="announcement-icon" src="/images/bell.svg" mode="aspectFit"></image>
         <view class="announcement-wrap {{announcementScrollable ? 'scrollable' : ''}}" id="announcementWrap">
-          <view class="announcement-track">
-            <view class="announcement-text" id="announcementText">{{announcementText}}</view>
-            <view class="announcement-text duplicate">{{announcementText}}</view>
+          <view class="announcement-track" id="announcementTrack">
+            <text class="announcement-text" id="announcementText">{{announcementText}}</text>
+            <text class="announcement-text duplicate">{{announcementText}}</text>
           </view>
         </view>
       </view>
@@ -46,9 +50,12 @@
 
   </view>
 
-  <view wx:if="{{maskVisible}}" class="overlay" bindtap="closeAll"></view>
+  <view
+    class="overlay booking-overlay {{!useWorkletDrawer && maskVisible ? 'show' : ''}}"
+    bindtap="closeAll"
+  ></view>
 
-  <view class="drawer {{drawerVisible ? 'show' : ''}}">
+  <view class="drawer booking-drawer {{drawerVisible ? 'active' : ''}} {{drawerVisible && !useWorkletDrawer ? 'show' : ''}}">
     <view class="close-btn" bindtap="closeDrawer">×</view>
     <view class="drawer-title">预约{{selectedServiceType === 'dye' ? '烫染' : '剪发'}} - 选择时间</view>
     <view class="date-tabs">
@@ -58,7 +65,7 @@
       </view>
     </view>
 
-    <scroll-view class="slot-scroll-area" scroll-y>
+    <scroll-view class="slot-scroll-area" scroll-y enhanced type="list" show-scrollbar="{{false}}">
       <view class="slot-grid {{slotsUpdating ? 'updating' : ''}}">
         <view wx:if="{{slotsLoading}}" class="grid-message">加载中...</view>
         <view wx:elif="{{slotItems.length === 0}}" class="grid-message">该日期暂不可预约</view>

@@ -1,4 +1,7 @@
-<view class="login-page">
+<view
+  class="login-page {{keyboardHeight ? 'keyboard-open' : ''}}"
+  style="{{keyboardHeight ? 'padding-bottom:' + (keyboardHeight + 48) + 'px;' : ''}}"
+>
   <view class="login-card">
     <view class="logo">
       <view class="brand-title">欧诺造型</view>
@@ -9,20 +12,33 @@
 
     <view class="form-group">
       <text class="label">用户名</text>
-      <input class="input" value="{{username}}" bindinput="onUsernameInput" placeholder="请输入用户名" />
+      <input
+        class="input"
+        value="{{username}}"
+        adjust-position="{{true}}"
+        cursor-spacing="180"
+        bindinput="onUsernameInput"
+        bindfocus="onFormFocus"
+        placeholder="请输入用户名"
+      />
     </view>
 
     <view class="form-group">
       <text class="label">密码</text>
-      <input class="input" value="{{password}}" password bindinput="onPasswordInput" placeholder="请输入密码" confirm-type="done" bindconfirm="login" />
+      <input
+        class="input"
+        value="{{password}}"
+        password
+        adjust-position="{{true}}"
+        cursor-spacing="220"
+        bindinput="onPasswordInput"
+        bindfocus="onFormFocus"
+        placeholder="请输入密码"
+        confirm-type="done"
+        bindconfirm="login"
+      />
     </view>
 
     <button class="login-btn" loading="{{loading}}" disabled="{{loading}}" bindtap="login">{{loading ? '登录中...' : '登录'}}</button>
-
-    <view class="tips">
-      <view class="tips-title">登录提示：</view>
-      <view>发型师使用各自的用户名和密码</view>
-      <view>账号信息请咨询系统管理员</view>
-    </view>
   </view>
 </view>

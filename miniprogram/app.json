@@ -29,5 +29,34 @@
     ]
   },
   "style": "v2",
-  "sitemapLocation": "sitemap.json"
+  "lazyCodeLoading": "requiredComponents",
+  "rendererOptions": {
+    "skyline": {
+      "defaultDisplayBlock": true,
+      "disableABTest": true
+    }
+  },
+  "sitemapLocation": "sitemap.json",
+  "subPackages": [
+    {
+      "root": "pkg/font400",
+      "name": "font400",
+      "pages": ["index/index"]
+    },
+    {
+      "root": "pkg/font700",
+      "name": "font700",
+      "pages": ["index/index"]
+    }
+  ],
+  "preloadRule": {
+    "pages/index/index": {
+      "network": "all",
+      "packages": ["font400", "font700"]
+    },
+    "pages/my/my": {
+      "network": "all",
+      "packages": ["font400", "font700"]
+    }
+  }
 }

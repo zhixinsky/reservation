@@ -5,7 +5,36 @@ Page({
     username: '',
     password: '',
     loading: false,
-    error: ''
+    error: '',
+    keyboardHeight: 0
+  },
+
+  onLoad() {
+    if (wx.onKeyboardHeightChange) {
+      this._onKeyboardHeightChange = res => {
+        this.setData({ keyboardHeight: res.height || 0 });
+      };
+      wx.onKeyboardHeightChange(this._onKeyboardHeightChange);
+    }
+  },
+
+  onUnload() {
+    if (this._onKeyboardHeightChange && wx.offKeyboardHeightChange) {
+      wx.offKeyboardHeightChange(this._onKeyboardHeightChange);
+    }
+  },
+
+  onFormFocus() {
+    this.scrollLoginButtonIntoView();
+  },
+
+  scrollLoginButtonIntoView() {
+    setTimeout(() => {
+      wx.pageScrollTo({
+        selector: '.login-btn',
+        duration: 200
+      });
+    }, 80);
   },
 
   onUsernameInput(e) {

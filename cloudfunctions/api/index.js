@@ -587,20 +587,16 @@ async function queryAppointments(payload) {
   if (!/^1[3-9]\d{9}$/.test(phone)) return { success: false, message: '请输入正确的手机号码' };
 
   const today = getTodayDate();
-  const nowMinutes = currentTotalMinutes();
   const rows = await getAll(COLLECTIONS.appointments, { phone });
   const active = rows.filter(app => app.status !== 'cancelled' && app.status !== 'completed' && app.date >= today);
   const merged = mergeDyeAppointments(active);
 
   const appointments = merged.map(app => {
-    const timeToCheck = app.originalTimeSlots && app.originalTimeSlots.length ? app.originalTimeSlots[0] : app.time;
     let canCancel = false;
     let reason = '';
     if (app.date === today) {
-      const [startTime] = timeToCheck.split('-');
-      const [startHour, startMin] = startTime.split(':').map(Number);
-      canCancel = nowMinutes <= startHour * 60 + startMin;
-      if (!canCancel) reason = '预约已开始，无法取消';
+      // 当天预约即使已经到点也允许用户取消。
+      canCancel = true;
     } else if (app.date > today) {
       canCancel = true;
     } else {
@@ -648,7 +644,6 @@ async function cancelAppointments(payload) {
   }
 
   const today = getTodayDate();
-  const nowMinutes = currentTotalMinutes();
   let cancelledCount = 0;
   const errors = [];
   const processed = new Set();
@@ -670,14 +665,7 @@ async function cancelAppointments(payload) {
       continue;
     }
 
-    if (app.date === today) {
-      const [startTime] = app.time.split('-');
-      const [startHour, startMin] = startTime.split(':').map(Number);
-      if (nowMinutes > startHour * 60 + startMin) {
-        errors.push(`预约号 ${app.appId} 已开始，无法取消`);
-        continue;
-      }
-    } else if (app.date < today) {
+    if (app.date < today) {
       errors.push(`预约号 ${app.appId} 已过期，无法取消`);
       continue;
     }

@@ -1,5 +1,6 @@
 const { callApi } = require('../../utils/api');
 const { getVerifiedPhone, setVerifiedPhone } = require('../../utils/phone-auth');
+const { syncIndexTabBar } = require('../../utils/tab-bar');
 
 const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间 11:00-22:00，请提前预约到店！';
 const EMPTY_ANNOUNCEMENT_TEXT = '暂无公告';
@@ -69,6 +70,7 @@ Page({
     currentId: null,
     drawerVisible: false,
     maskVisible: false,
+    useWorkletDrawer: false,
     selectedServiceType: 'cut',
     selectedDate: '',
     dateTabs: [],
@@ -104,26 +106,194 @@ Page({
 
   onShow() {
     this.init();
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 0 });
-    }
-    wx.nextTick(() => this.updateAnnouncementScrollable());
+    wx.nextTick(() => {
+      if (!this.data.drawerVisible) {
+        this.resetDrawerAnimationState();
+      }
+      syncIndexTabBar(this);
+      this.scheduleAnnouncementMeasure();
+    });
   },
 
   onReady() {
-    wx.nextTick(() => this.updateAnnouncementScrollable());
+    wx.nextTick(() => {
+      this.scheduleAnnouncementMeasure();
+      this.initDrawerAnimation();
+    });
   },
 
   onHide() {
     this.stopRefresh();
+    this.resetDrawerAnimationState();
+    if (this.data.drawerVisible || this.data.maskVisible) {
+      this.setData({
+        drawerVisible: false,
+        maskVisible: false,
+        phoneModalVisible: false,
+        successVisible: false,
+        cancelModalVisible: false,
+        progressModalVisible: false,
+        selectedTimeSlot: []
+      }, () => syncIndexTabBar(this));
+    }
   },
 
   onUnload() {
     this.stopRefresh();
+    this.resetDrawerAnimationState();
   },
 
   callApi(action, payload = {}) {
     return callApi(action, payload);
+  },
+
+  initDrawerAnimation() {
+    const sys = wx.getSystemInfoSync();
+    this._drawerClosedY = Math.round(sys.windowHeight * 0.8);
+
+    if (!wx.worklet || typeof this.applyAnimatedStyle !== 'function') {
+      this.setData({ useWorkletDrawer: false });
+      return;
+    }
+
+    const { shared } = wx.worklet;
+    const drawerY = shared(this._drawerClosedY);
+    const overlayOpacity = shared(0);
+    this._drawerY = drawerY;
+    this._overlayOpacity = overlayOpacity;
+
+    this.applyAnimatedStyle('.booking-drawer', () => {
+      'worklet';
+      return {
+        transform: `translateY(${drawerY.value}px)`
+      };
+    });
+
+    this.applyAnimatedStyle('.booking-overlay', () => {
+      'worklet';
+      return {
+        opacity: overlayOpacity.value,
+        pointerEvents: overlayOpacity.value > 0.05 ? 'auto' : 'none'
+      };
+    });
+
+    this.setData({ useWorkletDrawer: true });
+  },
+
+  openDrawerAnimation() {
+    if (!this._drawerY || !this._overlayOpacity) return;
+    const { timing, Easing } = wx.worklet;
+    this._drawerY.value = timing(0, {
+      duration: 320,
+      easing: Easing.out(Easing.cubic)
+    });
+    this._overlayOpacity.value = timing(1, {
+      duration: 280,
+      easing: Easing.out(Easing.quad)
+    });
+  },
+
+  resetDrawerAnimationState() {
+    if (this._drawerHideFallbackTimer) {
+      clearTimeout(this._drawerHideFallbackTimer);
+      this._drawerHideFallbackTimer = null;
+    }
+    this._drawerHideCallback = null;
+    this._drawerHideDoneCalled = true;
+    if (!this._drawerY || !this._overlayOpacity) return;
+    if (!this._drawerClosedY) {
+      const sys = wx.getSystemInfoSync();
+      this._drawerClosedY = Math.round(sys.windowHeight * 0.8);
+    }
+    this._drawerY.value = this._drawerClosedY;
+    this._overlayOpacity.value = 0;
+  },
+
+  hideDrawerAnimation(done) {
+    this._drawerHideCallback = typeof done === 'function' ? done : null;
+    this._drawerHideDoneCalled = false;
+    if (this._drawerHideFallbackTimer) {
+      clearTimeout(this._drawerHideFallbackTimer);
+      this._drawerHideFallbackTimer = null;
+    }
+    if (!this._drawerY || !this._overlayOpacity) {
+      this._invokeDrawerHideCallback();
+      return;
+    }
+    const { timing, Easing, runOnJS } = wx.worklet;
+    const onComplete = runOnJS(this._invokeDrawerHideCallback.bind(this));
+    this._drawerHideFallbackTimer = setTimeout(() => {
+      this._invokeDrawerHideCallback();
+    }, 380);
+    this._overlayOpacity.value = timing(0, {
+      duration: 240,
+      easing: Easing.in(Easing.quad)
+    });
+    this._drawerY.value = timing(this._drawerClosedY, {
+      duration: 300,
+      easing: Easing.in(Easing.cubic)
+    }, () => {
+      'worklet';
+      onComplete();
+    });
+  },
+
+  _invokeDrawerHideCallback() {
+    if (this._drawerHideDoneCalled) return;
+    this._drawerHideDoneCalled = true;
+    if (this._drawerHideFallbackTimer) {
+      clearTimeout(this._drawerHideFallbackTimer);
+      this._drawerHideFallbackTimer = null;
+    }
+    const done = this._drawerHideCallback;
+    this._drawerHideCallback = null;
+    if (done) done();
+  },
+
+  presentDrawer(onPresented) {
+    this.setData({
+      drawerVisible: true,
+      maskVisible: true
+    }, () => {
+      syncIndexTabBar(this);
+      wx.nextTick(() => {
+        syncIndexTabBar(this);
+        if (this.data.useWorkletDrawer) {
+          this.openDrawerAnimation();
+        }
+        if (onPresented) onPresented();
+      });
+    });
+  },
+
+  dismissDrawer(options = {}) {
+    const { keepMask = false, resetServiceType = true, onDone } = options;
+    this.stopRefresh();
+
+    const finish = () => {
+      const next = {
+        drawerVisible: false,
+        maskVisible: keepMask,
+        selectedTimeSlot: []
+      };
+      if (resetServiceType) {
+        next.selectedServiceType = 'cut';
+      }
+      this.setData(next, () => {
+        if (onDone) onDone();
+        syncIndexTabBar(this);
+      });
+    };
+
+    if (this.data.useWorkletDrawer && this.data.drawerVisible) {
+      this.hideDrawerAnimation(finish);
+      return;
+    }
+    if (this.data.drawerVisible) {
+      setTimeout(finish, 320);
+      return;
+    }
+    finish();
   },
 
   async getAuthorizedPhone(e, errorKey) {
@@ -149,18 +319,33 @@ Page({
   },
 
   updateAnnouncementScrollable() {
-    const query = this.createSelectorQuery();
-    query.select('#announcementWrap').boundingClientRect();
-    query.select('#announcementText').boundingClientRect();
-    query.exec((res) => {
-      const wrap = res && res[0];
-      const text = res && res[1];
-      if (!wrap || !text || !wrap.width) return;
-      const scrollable = text.width > wrap.width;
+    const content = String(this.data.announcementText || '');
+    const heuristicScrollable = content.length > 18;
+
+    const applyScrollable = scrollable => {
       if (scrollable !== this.data.announcementScrollable) {
         this.setData({ announcementScrollable: scrollable });
       }
+    };
+
+    const query = this.createSelectorQuery();
+    query.select('#announcementWrap').boundingClientRect();
+    query.select('#announcementText').boundingClientRect();
+    query.exec(res => {
+      const wrap = res && res[0];
+      const text = res && res[1];
+      if (!wrap || !text || !wrap.width) {
+        applyScrollable(heuristicScrollable);
+        return;
+      }
+      applyScrollable(text.width > wrap.width + 2 || heuristicScrollable);
     });
+  },
+
+  scheduleAnnouncementMeasure() {
+    wx.nextTick(() => this.updateAnnouncementScrollable());
+    setTimeout(() => this.updateAnnouncementScrollable(), 80);
+    setTimeout(() => this.updateAnnouncementScrollable(), 240);
   },
 
   async loadAnnouncement() {
@@ -170,16 +355,12 @@ Page({
       this.setData({
         announcementText: text,
         announcementScrollable: false
-      }, () => {
-        wx.nextTick(() => this.updateAnnouncementScrollable());
-      });
+      }, () => this.scheduleAnnouncementMeasure());
     } catch (e) {
       this.setData({
         announcementText: DEFAULT_ANNOUNCEMENT_TEXT,
         announcementScrollable: false
-      }, () => {
-        wx.nextTick(() => this.updateAnnouncementScrollable());
-      });
+      }, () => this.scheduleAnnouncementMeasure());
     }
   },
 
@@ -229,20 +410,12 @@ Page({
       selectedServiceType,
       dateTabs,
       selectedDate,
-      selectedTimeSlot: [],
-      drawerVisible: true,
-      maskVisible: true
+      selectedTimeSlot: []
     });
-    this.setTabBarVisible(false);
-
-    await this.loadSlots(selectedDate);
-    this.startRefresh();
-  },
-
-  setTabBarVisible(visible) {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ visible });
-    }
+    this.presentDrawer(async () => {
+      await this.loadSlots(selectedDate);
+      this.startRefresh();
+    });
   },
 
   async switchDate(e) {
@@ -394,7 +567,7 @@ Page({
       phoneModalVisible: true,
       maskVisible: true,
       phoneError: ''
-    });
+    }, () => syncIndexTabBar(this));
   },
 
   async checkExistingAppointmentForDate(phone, date) {
@@ -431,7 +604,7 @@ Page({
       phoneModalVisible: false,
       maskVisible: this.data.drawerVisible,
       selectedTimeSlot: []
-    });
+    }, () => syncIndexTabBar(this));
     if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
   },
 
@@ -472,16 +645,19 @@ Page({
           time,
           phone
         });
-        this.stopRefresh();
-        this.setData({
-          phoneModalVisible: false,
-          drawerVisible: false,
-          maskVisible: true,
-          successVisible: true,
-          displayId: data.appId,
-          phoneError: ''
+        this.dismissDrawer({
+          keepMask: true,
+          resetServiceType: false,
+          onDone: () => {
+            this.setData({
+              phoneModalVisible: false,
+              maskVisible: true,
+              successVisible: true,
+              displayId: data.appId,
+              phoneError: ''
+            }, () => syncIndexTabBar(this));
+          }
         });
-        this.setTabBarVisible(false);
       } else {
         this.showBookingError((data && data.message) || '预约失败，请刷新重试');
       }
@@ -503,7 +679,7 @@ Page({
       selectedAppointments: [],
       cancellableAppointments: [],
       nonCancellableAppointments: []
-    });
+    }, () => syncIndexTabBar(this));
     if (verifiedPhone) {
       this.queryAppointments(verifiedPhone);
     }
@@ -519,7 +695,7 @@ Page({
       selectedAppointments: [],
       cancellableAppointments: [],
       nonCancellableAppointments: []
-    });
+    }, () => syncIndexTabBar(this));
   },
 
   backToCancelStep1() {
@@ -625,7 +801,7 @@ Page({
       progressPhone: verifiedPhone || '',
       progressError: '',
       progressRows: []
-    });
+    }, () => syncIndexTabBar(this));
     if (verifiedPhone) {
       this.queryProgress(verifiedPhone);
     }
@@ -638,7 +814,7 @@ Page({
       progressPhone: '',
       progressError: '',
       progressRows: []
-    });
+    }, () => syncIndexTabBar(this));
   },
 
   async onProgressPhoneNumber(e) {
@@ -767,28 +943,32 @@ Page({
   },
 
   closeDrawer() {
-    this.stopRefresh();
-    this.setData({
-      drawerVisible: false,
-      maskVisible: false,
-      selectedTimeSlot: [],
-      selectedServiceType: 'cut'
-    });
-    this.setTabBarVisible(true);
+    this.dismissDrawer();
   },
 
   closeAll() {
     this.stopRefresh();
-    this.setData({
-      drawerVisible: false,
-      maskVisible: false,
-      phoneModalVisible: false,
-      successVisible: false,
-      cancelModalVisible: false,
-      progressModalVisible: false,
-      selectedTimeSlot: [],
-      selectedServiceType: 'cut'
-    });
-    this.setTabBarVisible(true);
+    const finalize = () => {
+      this.setData({
+        drawerVisible: false,
+        maskVisible: false,
+        phoneModalVisible: false,
+        successVisible: false,
+        cancelModalVisible: false,
+        progressModalVisible: false,
+        selectedTimeSlot: [],
+        selectedServiceType: 'cut'
+      }, () => syncIndexTabBar(this));
+    };
+
+    if (this.data.drawerVisible && this.data.useWorkletDrawer) {
+      this.hideDrawerAnimation(finalize);
+      return;
+    }
+    if (this.data.drawerVisible) {
+      setTimeout(finalize, 320);
+      return;
+    }
+    finalize();
   }
 });

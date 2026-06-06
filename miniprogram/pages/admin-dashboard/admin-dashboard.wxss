@@ -372,6 +372,9 @@
 
 .contact-btn {
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
   background: rgba(255, 255, 255, 0.8);
   border: 1rpx solid #E3EEE8;
   color: #2D4339;
@@ -380,6 +383,12 @@
   font-size: 22rpx;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.contact-btn-icon {
+  width: 26rpx;
+  height: 26rpx;
+  flex-shrink: 0;
 }
 
 .appointment-actions,
@@ -555,20 +564,36 @@
 }
 
 .range-row {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14rpx;
+  min-height: 64rpx;
+  padding: 14rpx 88rpx 14rpx 16rpx;
   border-radius: 14rpx;
   background: #F3F8F5;
   margin-bottom: 10rpx;
-  font-size: 24rpx;
+  box-sizing: border-box;
 }
 
-.range-row button {
+.range-date {
+  width: 100%;
+  font-size: 22rpx;
+  color: #2D4339;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.range-delete-btn {
+  position: absolute;
+  top: 50%;
+  right: 16rpx;
+  transform: translateY(-50%);
+  padding: 8rpx 0;
   color: #ef4444;
-  font-size: 23rpx;
-  padding: 4rpx 12rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .modal-error {

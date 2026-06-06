@@ -1,5 +1,7 @@
 const { callApi } = require('../../utils/api');
 const { getVerifiedPhone, setVerifiedPhone, clearVerifiedPhone } = require('../../utils/phone-auth');
+const { getCustomNavPaddingTop } = require('../../utils/custom-nav');
+const { setTabBarState, showTabBar, hideTabBar } = require('../../utils/tab-bar');
 
 const SHOP_INFO = {
   name: '欧诺造型',
@@ -70,6 +72,7 @@ const DETAIL_TITLES = {
 
 Page({
   data: {
+    pagePaddingTop: 88,
     profileBgUrl: PROFILE_BG,
     phone: '',
     maskedPhone: '',
@@ -88,13 +91,17 @@ Page({
   },
 
   onLoad() {
+    this.setData({ pagePaddingTop: getCustomNavPaddingTop(24) });
     this.restorePhoneSession(false);
   },
 
   onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 1, visible: !this.data.detailVisible });
-    }
+    wx.nextTick(() => {
+      showTabBar(this, {
+        selected: 1,
+        visible: !this.data.detailVisible
+      });
+    });
     this.restorePhoneSession(true);
   },
 
@@ -170,9 +177,7 @@ Page({
       detailTitle: DETAIL_TITLES[filter] || '预约详情',
       detailList
     });
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ visible: false });
-    }
+    hideTabBar(this);
     if (filter === 'pendingService') {
       this.loadProgress(false);
     }
@@ -185,9 +190,7 @@ Page({
       detailTitle: '',
       detailList: []
     });
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ visible: true, selected: 1 });
-    }
+    showTabBar(this, { selected: 1 });
   },
 
   openStoreNavigation() {
@@ -234,9 +237,7 @@ Page({
           historyAppointments: [],
           progressRows: []
         });
-        if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-          this.getTabBar().setData({ visible: true, selected: 1 });
-        }
+        showTabBar(this, { selected: 1 });
       }
     });
   },

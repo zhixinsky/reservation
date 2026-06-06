@@ -1,4 +1,4 @@
-<view class="my-page">
+<view class="my-page" style="padding-top: {{pagePaddingTop}}px;">
   <view class="profile-card">
     <image class="profile-bg" src="{{profileBgUrl}}" mode="aspectFill" lazy-load="{{false}}"></image>
     <view class="profile-top">
@@ -47,7 +47,7 @@
   <view class="action-card">
     <view class="action-item" bindtap="openStoreNavigation">
       <view class="action-icon-wrap">
-        <view class="action-icon icon-location"></view>
+        <image class="action-icon-img" src="/images/action-navigation.svg" mode="aspectFit"></image>
       </view>
       <view class="action-text">
         <view class="action-title">门店导航</view>
@@ -58,7 +58,7 @@
     <view class="action-divider"></view>
     <view class="action-item" bindtap="contactService">
       <view class="action-icon-wrap">
-        <view class="action-icon icon-service-phone"></view>
+        <image class="action-icon-img" src="/images/action-phone.svg" mode="aspectFit"></image>
       </view>
       <view class="action-text">
         <view class="action-title">联系客服</view>

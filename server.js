@@ -1309,26 +1309,9 @@ app.post('/api/appointments/query', (req, res) => {
         let canCancel = false;
         let reason = '';
         
-        // 对于合并后的时间段，使用第一个时间段的开始时间来判断
-        const timeToCheck = app.originalTimeSlots && app.originalTimeSlots.length > 0 
-            ? app.originalTimeSlots[0] 
-            : app.time;
-        
         if (app.date === today) {
-            const [startTime] = timeToCheck.split('-');
-            const [startHour, startMin] = startTime.split(':').map(Number);
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            const startTotalMinutes = startHour * 60 + startMin;
-            const currentTotalMinutes = currentHour * 60 + currentMinute;
-            
-            // 如果预约已经开始，不允许取消
-            if (currentTotalMinutes > startTotalMinutes) {
-                canCancel = false;
-                reason = '预约已开始，无法取消';
-            } else {
-                canCancel = true;
-            }
+            // 当天预约即使已经到点也允许用户取消。
+            canCancel = true;
         } else if (app.date > today) {
             // 未来日期的预约可以取消
             canCancel = true;
@@ -1472,7 +1455,6 @@ app.post('/api/cancel', (req, res) => {
         return res.json({ success: false, message: '请选择要取消的预约' });
     }
     
-    const now = new Date();
     const today = getTodayDate();
     let cancelledCount = 0;
     const errors = [];
@@ -1502,21 +1484,8 @@ app.post('/api/cancel', (req, res) => {
             return;
         }
         
-        // 检查是否可以取消
-        if (app.date === today) {
-            const [startTime] = app.time.split('-');
-            const [startHour, startMin] = startTime.split(':').map(Number);
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            const startTotalMinutes = startHour * 60 + startMin;
-            const currentTotalMinutes = currentHour * 60 + currentMinute;
-            
-            // 如果预约已经开始，不允许取消
-            if (currentTotalMinutes > startTotalMinutes) {
-                errors.push(`预约号 ${app.appId} 已开始，无法取消`);
-                return;
-            }
-        } else if (app.date < today) {
+        // 检查是否可以取消：当天预约允许取消，过去日期不允许取消
+        if (app.date < today) {
             errors.push(`预约号 ${app.appId} 已过期，无法取消`);
             return;
         }

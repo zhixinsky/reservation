@@ -1,9 +1,9 @@
-const { loadAppFonts } = require('./utils/load-fonts');
-
 App({
-  onLaunch() {
-    loadAppFonts();
+  globalData: {
+    tabBarHidden: false
+  },
 
+  onLaunch() {
     if (!wx.cloud) {
       wx.showModal({
         title: '初始化失败',
@@ -15,6 +15,13 @@ App({
     wx.cloud.init({
       env: 'reservation-d2gf73dgv8fd17503',
       traceUser: true
+    });
+
+    const { loadAppFonts } = require('./utils/load-fonts');
+    loadAppFonts().then(ok => {
+      if (!ok) {
+        console.warn('[fonts] Noto Serif SC failed to load, using system fallback');
+      }
     });
   }
 });

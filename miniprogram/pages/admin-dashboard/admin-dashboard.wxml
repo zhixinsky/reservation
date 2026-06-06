@@ -56,7 +56,10 @@
               <text class="service-tag {{item.serviceType === 'dye' ? 'dye' : 'cut'}}">{{item.serviceTypeText}}</text>
               <text wx:if="{{item.hasNewUserTag}}" class="user-type-badge {{item.isNewUser ? 'new-user' : 'old-user'}}">{{item.isNewUser ? '新客' : '老客'}}</text>
             </view>
-            <view wx:if="{{item.phone}}" class="contact-btn" bindtap="contactCustomer" data-phone="{{item.phone}}">联系客户</view>
+            <view wx:if="{{item.phone}}" class="contact-btn" bindtap="contactCustomer" data-phone="{{item.phone}}">
+              <image class="contact-btn-icon" src="/images/action-phone.svg" mode="aspectFit"></image>
+              <text>联系客户</text>
+            </view>
           </view>
         </view>
       </view>
@@ -100,8 +103,8 @@
     <view class="modal-title">休假设置</view>
     <view class="saved-ranges" wx:if="{{vacationRanges.length > 0}}">
       <view wx:for="{{vacationRanges}}" wx:key="index" class="range-row">
-        <text>{{item.vacationStartDate}} 至 {{item.vacationEndDate}}</text>
-        <button bindtap="removeVacationRange" data-index="{{index}}">删除</button>
+        <view class="range-date">{{item.vacationStartDate}} - {{item.vacationEndDate}}</view>
+        <view class="range-delete-btn" bindtap="removeVacationRange" data-index="{{index}}">删除</view>
       </view>
     </view>
     <view class="date-row">
