@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const axios = require('axios');
-const { sendBookingSuccessSMS, sendCancelBookingSMS } = require('./sms-service');
+const { sendBookingSuccessSMS, sendCancelBookingSMS, sendStylistCancelBookingSMS, initSmsTemplates, refreshSmsTemplateStatus, SMS_ENABLED } = require('./sms-service');
 const { ready: dbReady, appointments: dbAppointments, blockedSlots: dbBlockedSlots, sessions: dbSessions, stylistVacations: dbStylistVacations } = require('./database');
 const app = express();
 app.use(bodyParser.json());
@@ -953,7 +953,7 @@ app.post('/api/admin/cancel', requireAuth, (req, res) => {
     // 发送取消预约短信（异步，不阻塞响应）
     const cancelStylist = stylists.find(s => s.id == app.stylistId);
     if (cancelStylist && app.phone) {
-        sendCancelBookingSMS({
+        sendStylistCancelBookingSMS({
             phone: app.phone,
             appId: app.appId,
             stylistName: cancelStylist.name,
@@ -1694,13 +1694,46 @@ app.get('/api/theme', (req, res) => {
     res.json({ success: true, theme: theme });
 });
 
+// 短信模板状态（管理员可查看审核进度）
+app.get('/api/admin/sms-templates', async (req, res) => {
+    const sessionId = req.headers['x-session-id'];
+    const session = dbSessions.get(sessionId);
+    if (!session || session.role !== 'stylist') {
+        return res.status(401).json({ success: false, message: '未授权' });
+    }
+
+    if (!SMS_ENABLED) {
+        return res.json({
+            success: true,
+            enabled: false,
+            message: '短信服务未配置'
+        });
+    }
+
+    try {
+        const status = await refreshSmsTemplateStatus();
+        res.json({ success: true, ...status });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // 已移除主题设置功能（仅保留读取）
 
 // 静态文件最后挂载，保证 /api 等路由先匹配
 app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
-dbReady.then(() => {
+dbReady.then(async () => {
+    if (SMS_ENABLED) {
+        try {
+            const smsInitResult = await initSmsTemplates();
+            console.log('📱 短信模板初始化完成:', JSON.stringify(smsInitResult, null, 2));
+        } catch (error) {
+            console.warn('⚠️  短信模板初始化失败:', error.message);
+        }
+    }
+
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`✓ 服务器运行在 http://0.0.0.0:${PORT}`);
         console.log(`✓ 用户端访问: http://localhost:${PORT}`);
