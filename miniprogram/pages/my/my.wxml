@@ -61,10 +61,10 @@
     <view class="action-divider"></view>
     <view class="action-item" bindtap="contactService">
       <view class="action-icon-wrap">
-        <image class="action-icon-img" src="/images/action-phone.svg" mode="aspectFit"></image>
+        <image class="action-icon-img" src="/images/action-service.svg" mode="aspectFit"></image>
       </view>
       <view class="action-text">
-        <view class="action-title">联系客服</view>
+        <view class="action-title">联系商家</view>
         <view class="action-sub">有问题随时为您解答</view>
       </view>
       <text class="action-arrow">›</text>
@@ -108,20 +108,27 @@
 
       <view wx:if="{{detailFilter === 'pendingService' && detailList.length > 0}}" class="detail-section">
         <view class="detail-section-head">
-          <view class="detail-section-title">排队查询</view>
+          <view class="detail-section-title">排队信息</view>
           <view class="compact-btn" bindtap="loadProgress">刷新</view>
         </view>
+        <view class="progress-disclaimer">排队信息仅供参考，每单服务时长不固定，请以商家现场进度为准。</view>
         <view wx:if="{{progressRows.length === 0}}" class="empty">暂无排队信息</view>
-        <view wx:for="{{progressRows}}" wx:key="key" class="progress-card">
-          <view class="appointment-title">{{item.dateStr}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
-          <view class="appointment-sub">预约号: {{item.appId}}</view>
+        <view wx:for="{{progressRows}}" wx:key="key" class="progress-card {{item.statusLevel}}">
+          <view class="progress-card-top">
+            <view class="progress-card-main">
+              <view class="appointment-title">{{item.dateStr}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
+              <view class="appointment-sub">预约号: {{item.appId}}</view>
+            </view>
+            <view wx:if="{{item.showStatus}}" class="progress-status {{item.statusLevel}}">{{item.statusText}}</view>
+          </view>
           <view class="progress-line">
-            <block wx:if="{{item.hasAheadCount}}">您前面还有<text class="red-num"> {{item.aheadCount}} </text>位已预约未完成的客户</block>
+            <block wx:if="{{item.hasAheadCount}}">您前面约有<text class="queue-num"> {{item.aheadCount}} </text>单待完成</block>
             <block wx:else>{{item.delayLine1}}</block>
           </view>
           <view wx:if="{{item.delayLine2}}" class="progress-line second">
-            <text>{{item.delayLine2}}</text><text wx:if="{{item.numberPart}}" class="red-num small"> {{item.numberPart}}</text>
+            <text>{{item.delayLine2}}</text><text wx:if="{{item.numberPart}}" class="wait-range {{item.statusLevel}}"> {{item.numberPart}}</text>
           </view>
+          <view wx:if="{{item.showHint}}" class="progress-hint">实际等待以服务进度为准，不确定请联系商家</view>
         </view>
       </view>
     </scroll-view>

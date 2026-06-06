@@ -111,7 +111,7 @@
 
 .announcement-wrap.scrollable .announcement-track {
   animation-name: announcement-scroll;
-  animation-duration: 10s;
+  animation-duration: 4s;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }

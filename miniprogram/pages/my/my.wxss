@@ -21,7 +21,9 @@
 }
 
 .profile-card {
-  padding: 36rpx 32rpx 32rpx;
+  padding: 60rpx 32rpx 56rpx;
+  min-height: 220rpx;
+  box-sizing: border-box;
   background: #ffffff;
 }
 
@@ -81,7 +83,7 @@
 }
 
 .welcome-sub {
-  margin-top: 10rpx;
+  margin-top: 24rpx;
   font-size: 24rpx;
   color: #94A3B8;
   line-height: 1.45;
@@ -434,9 +436,56 @@
   background: #FEF2F2;
 }
 
+.progress-disclaimer {
+  margin-bottom: 16rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 16rpx;
+  background: #F3F7F5;
+  color: #7A8B83;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.progress-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.progress-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.progress-status {
+  flex-shrink: 0;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.progress-status.normal {
+  color: #2D6A4F;
+  background: #E8F5E9;
+}
+
+.progress-status.slight {
+  color: #B45309;
+  background: #FEF3C7;
+}
+
+.progress-status.contact {
+  color: #8A6B4D;
+  background: #F3EDE7;
+}
+
 .progress-line {
   font-size: 26rpx;
-  color: #2D6A4F;
+  color: #2D4339;
   font-weight: 600;
   margin-top: 12rpx;
   line-height: 1.45;
@@ -444,14 +493,35 @@
 
 .progress-line.second {
   font-size: 25rpx;
+  color: #4F6459;
+  font-weight: 500;
 }
 
-.red-num {
+.queue-num {
   font-weight: 800;
-  color: #c62828;
-  font-size: 34rpx;
+  color: #2D6A4F;
+  font-size: 32rpx;
 }
 
-.red-num.small {
-  font-size: 30rpx;
+.wait-range {
+  font-weight: 700;
+}
+
+.wait-range.normal {
+  color: #2D6A4F;
+}
+
+.wait-range.slight {
+  color: #B45309;
+}
+
+.wait-range.contact {
+  color: #8A6B4D;
+}
+
+.progress-hint {
+  margin-top: 10rpx;
+  font-size: 22rpx;
+  color: #94A3B8;
+  line-height: 1.45;
 }

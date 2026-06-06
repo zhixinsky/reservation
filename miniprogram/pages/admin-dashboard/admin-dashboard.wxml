@@ -22,7 +22,7 @@
 
   <view class="section">
     <view class="section-header">
-      <view class="section-title">预约列表 <text class="last-time">{{lastUpdateTime}}</text></view>
+      <view class="section-title">预约列表</view>
       <view class="refresh-btn" bindtap="loadAppointments">刷新</view>
     </view>
     <view class="tabs">
@@ -36,11 +36,18 @@
         wx:key="id"
         class="timeline-item {{index === filteredAppointments.length - 1 ? 'last' : ''}}"
       >
-        <view class="timeline-time">{{item.timeDisplay}}</view>
-        <view class="timeline-axis">
-          <view class="timeline-dot"></view>
-          <view class="timeline-line"></view>
+        <view class="timeline-time">
+          <text class="time-hour">{{item.timeHour}}</text>
+          <view class="time-colon-col">
+            <text class="time-colon">:</text>
+            <view class="timeline-dot"></view>
+          </view>
+          <text class="time-minute">{{item.timeMinute}}</text>
         </view>
+        <view
+          class="timeline-segment"
+          style="top: {{item.segmentTop}}px; left: {{item.segmentLeft}}px; height: {{item.segmentHeight}}px;"
+        ></view>
         <view class="timeline-card {{item.serviceType === 'dye' ? 'dye-service' : 'cut-service'}}">
           <view class="timeline-card-header">
             <view class="appointment-name">{{item.phoneLast4}}</view>

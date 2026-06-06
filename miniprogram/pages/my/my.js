@@ -2,6 +2,7 @@ const { callApi } = require('../../utils/api');
 const { getVerifiedPhone, setVerifiedPhone, clearVerifiedPhone } = require('../../utils/phone-auth');
 const { getCustomNavPaddingTop } = require('../../utils/custom-nav');
 const { setTabBarState, showTabBar, hideTabBar } = require('../../utils/tab-bar');
+const { buildProgressRow: createProgressRow } = require('../../utils/queue-progress');
 
 const SHOP_INFO = {
   name: '欧诺造型',
@@ -32,19 +33,6 @@ function statusText(status) {
   if (status === 'cancelled') return '已取消';
   if (status === 'completed') return '已完成';
   return '已预约';
-}
-
-function ymdFromDate(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function formatWaitTime(totalMinutes) {
-  if (totalMinutes <= 0) return { line2: '到店后预计准时' };
-  if (totalMinutes < 60) return { line2: '按您预约时间到店需等待 ', numberPart: `${totalMinutes} 分钟` };
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  if (m === 0) return { line2: '按您预约时间到店需等待 ', numberPart: `${h} 小时` };
-  return { line2: '按您预约时间到店需等待 ', numberPart: `${h} 小时 ${m} 分钟` };
 }
 
 function computeStats(currentList, historyList) {
@@ -260,7 +248,7 @@ Page({
       fail: () => {
         wx.setClipboardData({
           data: SHOP_INFO.phone,
-          success: () => wx.showToast({ title: '客服电话已复制', icon: 'none' })
+          success: () => wx.showToast({ title: '商家电话已复制', icon: 'none' })
         });
       }
     });
@@ -362,72 +350,16 @@ Page({
       this.setData({ progressRows: rows });
     } catch (err) {
       if (showLoading) wx.hideLoading();
-      wx.showToast({ title: '排队查询失败', icon: 'none' });
+      wx.showToast({ title: '获取排队信息失败', icon: 'none' });
     }
   },
 
-  async buildProgressRow(app) {
-    const todayStr = ymdFromDate(new Date());
-    const now = new Date();
-    const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
-    let delayLine1 = '';
-    let delayLine2 = '';
-    let numberPart = '';
-    let aheadCount = null;
-
-    if (app.date > todayStr) {
-      delayLine1 = '未到预约日';
-    } else if (app.date < todayStr) {
-      delayLine1 = '已过期';
-    } else if (app.stylistId == null) {
-      delayLine1 = '暂无排队信息';
-    } else {
-      try {
-        const queue = await callApi('getDayQueue', {
-          date: app.date,
-          stylistId: app.stylistId
-        });
-        if (Array.isArray(queue) && queue.length > 0) {
-          const myIndex = queue.findIndex(q => q.time === app.time && q.serviceType === app.serviceType);
-          aheadCount = myIndex >= 0 ? myIndex : 0;
-          const first = queue[0];
-          const endPart = first.time.split('-')[1];
-          const delayMinutes = endPart ? currentTotalMinutes - this.timeToMinutes(endPart.trim()) : 0;
-          if (aheadCount === 0) {
-            delayLine1 = '您当前是队列第一位';
-            delayLine2 = '预计准时';
-            aheadCount = null;
-          } else {
-            delayLine1 = '您前面还有X位已预约未完成的客户';
-            const wait = formatWaitTime(delayMinutes);
-            delayLine2 = wait.line2;
-            numberPart = wait.numberPart || '';
-          }
-        } else {
-          delayLine1 = '预计准时';
-        }
-      } catch (err) {
-        delayLine1 = '暂无排队信息';
-      }
-    }
-
-    return {
-      key: `${app.id || app.appId}-${app.date}-${app.time}`,
-      dateStr: formatDateText(app.date),
-      timeDisplay: timeDisplay(app),
-      serviceTypeText: serviceTypeText(app.serviceType),
-      appId: app.appId,
-      delayLine1,
-      delayLine2,
-      numberPart,
-      aheadCount,
-      hasAheadCount: aheadCount !== null
-    };
-  },
-
-  timeToMinutes(time) {
-    const [h, m] = time.split(':').map(Number);
-    return h * 60 + m;
+  buildProgressRow(app) {
+    return createProgressRow(app, callApi, {
+      formatDateText,
+      timeDisplay,
+      serviceTypeText
+    });
   },
 
   cancelOne(e) {

@@ -1,6 +1,7 @@
 const { callApi } = require('../../utils/api');
 const { getVerifiedPhone, setVerifiedPhone } = require('../../utils/phone-auth');
 const { syncIndexTabBar } = require('../../utils/tab-bar');
+const { buildProgressRow: createProgressRow } = require('../../utils/queue-progress');
 
 const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间 11:00-22:00，请提前预约到店！';
 const EMPTY_ANNOUNCEMENT_TEXT = '暂无公告';
@@ -46,15 +47,6 @@ function hasBookableDayInThreeDayWindow(stylist) {
     if (!isYmdInVacation(stylist, ymdFromDate(d))) return true;
   }
   return false;
-}
-
-function formatWaitTime(totalMinutes) {
-  if (totalMinutes <= 0) return { line2: '到店后预计准时' };
-  if (totalMinutes < 60) return { line2: '按您预约时间到店需等待 ', numberPart: `${totalMinutes} 分钟` };
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  if (m === 0) return { line2: '按您预约时间到店需等待 ', numberPart: `${h} 小时` };
-  return { line2: '按您预约时间到店需等待 ', numberPart: `${h} 小时 ${m} 分钟` };
 }
 
 function serviceTypeText(serviceType) {
@@ -856,68 +848,12 @@ Page({
     }
   },
 
-  async buildProgressRow(app) {
-    const todayStr = ymdFromDate(new Date());
-    const now = new Date();
-    const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
-    let delayLine1 = '';
-    let delayLine2 = '';
-    let numberPart = '';
-    let aheadCount = null;
-
-    if (app.date > todayStr) {
-      delayLine1 = '未到预约日';
-    } else if (app.date < todayStr) {
-      delayLine1 = '已过期';
-    } else if (app.stylistId == null) {
-      delayLine1 = '暂无排队信息';
-    } else {
-      try {
-        const queue = await this.callApi('getDayQueue', {
-          date: app.date,
-          stylistId: app.stylistId
-        });
-        if (Array.isArray(queue) && queue.length > 0) {
-          const myIndex = queue.findIndex(q => q.time === app.time && q.serviceType === app.serviceType);
-          aheadCount = myIndex >= 0 ? myIndex : 0;
-          const first = queue[0];
-          const endPart = first.time.split('-')[1];
-          const delayMinutes = endPart ? currentTotalMinutes - this.timeToMinutes(endPart.trim()) : 0;
-          if (aheadCount === 0) {
-            delayLine1 = '您当前是队列第一位';
-            delayLine2 = '预计准时';
-            aheadCount = null;
-          } else {
-            delayLine1 = '您前面还有X位已预约未完成的客户';
-            const wait = formatWaitTime(delayMinutes);
-            delayLine2 = wait.line2;
-            numberPart = wait.numberPart || '';
-          }
-        } else {
-          delayLine1 = '预计准时';
-        }
-      } catch (e) {
-        delayLine1 = '暂无排队信息';
-      }
-    }
-
-    return {
-      key: `${app.id || app.appId}-${app.date}-${app.time}`,
-      dateStr: formatDateText(app.date),
-      timeDisplay: app.serviceType === 'dye' ? app.time : String(app.time || '').split('-')[0],
-      serviceTypeText: serviceTypeText(app.serviceType),
-      appId: app.appId,
-      delayLine1,
-      delayLine2,
-      numberPart,
-      aheadCount,
-      hasAheadCount: aheadCount !== null
-    };
-  },
-
-  timeToMinutes(time) {
-    const [h, m] = time.split(':').map(Number);
-    return h * 60 + m;
+  buildProgressRow(app) {
+    return createProgressRow(app, (action, payload) => this.callApi(action, payload), {
+      formatDateText,
+      timeDisplay: item => (item.serviceType === 'dye' ? item.time : String(item.time || '').split('-')[0]),
+      serviceTypeText
+    });
   },
 
   startRefresh() {

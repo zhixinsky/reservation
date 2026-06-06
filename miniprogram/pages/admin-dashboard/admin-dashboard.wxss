@@ -172,12 +172,6 @@
   flex-shrink: 0;
 }
 
-.last-time {
-  font-size: 22rpx;
-  color: #94a3b8;
-  font-weight: 400;
-}
-
 .tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -208,14 +202,15 @@
 
 .timeline-container {
   position: relative;
+  overflow: visible;
 }
 
 .timeline-item {
   position: relative;
-  margin-bottom: 48rpx;
-  display: flex;
-  align-items: flex-start;
-  gap: 14rpx;
+  margin-bottom: 16rpx;
+  padding-left: 112rpx;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .timeline-item.last {
@@ -223,60 +218,76 @@
 }
 
 .timeline-time {
-  flex: 0 0 88rpx;
-  width: 88rpx;
-  text-align: right;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 104rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-end;
+  box-sizing: border-box;
+}
+
+.time-hour,
+.time-minute {
+  flex-shrink: 0;
+  width: 40rpx;
   font-size: 32rpx;
   color: #8A6B4D;
   font-weight: 600;
-  line-height: 1.2;
-  box-sizing: border-box;
-  height: 44rpx;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  padding-top: 8rpx;
+  line-height: 38rpx;
 }
 
-.timeline-axis {
-  flex: 0 0 20rpx;
-  align-self: stretch;
-  min-height: 132rpx;
-  position: relative;
+.time-hour {
+  text-align: right;
+}
+
+.time-minute {
+  text-align: left;
+}
+
+.time-colon {
+  font-size: 32rpx;
+  color: #8A6B4D;
+  font-weight: 600;
+  line-height: 38rpx;
+}
+
+.time-colon-col {
+  flex-shrink: 0;
+  width: 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .timeline-dot {
-  position: absolute;
-  left: 3rpx;
-  top: 24rpx;
+  flex-shrink: 0;
   width: 14rpx;
   height: 14rpx;
+  margin-top: 6rpx;
   border-radius: 50%;
-  background: #7FA998;
-  box-shadow: 0 0 0 6rpx #F3F5F4;
+  background: #5F8F7A;
+  box-shadow: 0 0 0 6rpx #E8F3EE;
   z-index: 2;
 }
 
-.timeline-line {
+.timeline-segment {
   position: absolute;
-  left: 9rpx;
-  top: 38rpx;
   width: 2rpx;
-  bottom: -48rpx;
-  background: #DDE9E2;
+  min-height: 24rpx;
+  background-color: #ECEEEC;
   z-index: 1;
-}
-
-.timeline-item.last .timeline-line {
-  display: none;
+  pointer-events: none;
 }
 
 .timeline-card {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   background: #ffffff;
   border-radius: 40rpx;
-  padding: 20rpx 32rpx;
+  padding: 16rpx 28rpx;
   border: 1rpx solid #E3EEE8;
   box-shadow: 0 8rpx 40rpx rgba(127, 169, 152, 0.08);
   box-sizing: border-box;
@@ -296,8 +307,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
-  margin-bottom: 12rpx;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
 }
 
 .appointment-name {
@@ -348,8 +359,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
-  margin-top: 20rpx;
+  gap: 12rpx;
+  margin-top: 10rpx;
 }
 
 .footer-tags {

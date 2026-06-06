@@ -20,6 +20,16 @@ function formatTimeDisplay(timeStr) {
   return String(timeStr).split(',')[0].trim().split('-')[0] || timeStr;
 }
 
+function parseTimeParts(timeStr) {
+  const display = formatTimeDisplay(timeStr);
+  const parts = display.split(':');
+  return {
+    timeDisplay: display,
+    timeHour: parts[0] || display,
+    timeMinute: parts[1] != null ? parts[1] : ''
+  };
+}
+
 function timeToMinutes(time) {
   const [h, m] = String(time || '').split(':').map(Number);
   return h * 60 + m;
@@ -142,7 +152,6 @@ Page({
     ],
     currentFilter: 'today',
     stats: { pending: 0, completed: 0, all: 0 },
-    lastUpdateTime: '',
     slotDateOptions: [
       { key: 'today', label: '今天', date: ymd(0) },
       { key: 'tomorrow', label: '明天', date: ymd(1) },
@@ -217,10 +226,13 @@ Page({
     try {
       const rows = await this.callApi('getAdminAppointments');
       const appointments = (Array.isArray(rows) ? rows : []).map(app => {
+        const timeParts = parseTimeParts(app.time);
         return {
           ...app,
           dateText: dateText(app.date),
-          timeDisplay: formatTimeDisplay(app.time),
+          timeDisplay: timeParts.timeDisplay,
+          timeHour: timeParts.timeHour,
+          timeMinute: timeParts.timeMinute,
           serviceTypeText: app.serviceType === 'dye' ? '烫染' : '剪发',
           phoneLast4: app.phone ? String(app.phone).slice(-4) : '',
           statusText: statusText(app.status),
@@ -231,7 +243,6 @@ Page({
       });
       this.setData({
         appointments,
-        lastUpdateTime: this.currentHm(),
         filters: this.buildFilterCounts(appointments),
         stats: {
           pending: appointments.filter(a => a.status !== 'cancelled' && a.status !== 'completed').length,
@@ -288,11 +299,6 @@ Page({
     }
   },
 
-  currentHm() {
-    const d = new Date();
-    return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-  },
-
   setFilter(e) {
     this.setData({ currentFilter: e.currentTarget.dataset.key });
     this.applyFilter();
@@ -319,7 +325,57 @@ Page({
         return formatTimeDisplay(a.time).localeCompare(formatTimeDisplay(b.time));
       });
     }
-    this.setData({ filteredAppointments: filtered });
+    this.setData({ filteredAppointments: filtered }, () => {
+      this.updateTimelineSegments();
+    });
+  },
+
+  updateTimelineSegments() {
+    const list = this.data.filteredAppointments || [];
+    if (!list.length) return;
+
+    wx.nextTick(() => {
+      const query = this.createSelectorQuery();
+      query.selectAll('.timeline-item').boundingClientRect();
+      query.selectAll('.timeline-dot').boundingClientRect();
+      query.exec(res => {
+        const items = (res && res[0]) || [];
+        const dots = (res && res[1]) || [];
+        if (!items.length) return;
+
+        const { windowWidth } = wx.getSystemInfoSync();
+        const lineWidthPx = Math.max(1, Math.round((2 / 750) * windowWidth));
+        const gapBelowDotPx = Math.round((4 / 750) * windowWidth);
+        const updates = {};
+
+        items.forEach((itemRect, index) => {
+          if (index >= list.length) return;
+          const dotRect = dots[index];
+          if (!dotRect) return;
+
+          const segmentTop = Math.round(dotRect.top + dotRect.height - itemRect.top + gapBelowDotPx);
+          const segmentLeft = Math.round(dotRect.left + dotRect.width / 2 - itemRect.left - lineWidthPx / 2);
+          const segmentHeight = Math.round(itemRect.height - segmentTop);
+
+          if (segmentHeight <= 0) return;
+
+          const current = list[index] || {};
+          if (current.segmentHeight !== segmentHeight) {
+            updates[`filteredAppointments[${index}].segmentHeight`] = segmentHeight;
+          }
+          if (current.segmentTop !== segmentTop) {
+            updates[`filteredAppointments[${index}].segmentTop`] = segmentTop;
+          }
+          if (current.segmentLeft !== segmentLeft) {
+            updates[`filteredAppointments[${index}].segmentLeft`] = segmentLeft;
+          }
+        });
+
+        if (Object.keys(updates).length) {
+          this.setData(updates);
+        }
+      });
+    });
   },
 
   contactCustomer(e) {
