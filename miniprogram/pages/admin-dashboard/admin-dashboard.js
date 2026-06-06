@@ -20,6 +20,17 @@ function formatTimeDisplay(timeStr) {
   return String(timeStr).split(',')[0].trim().split('-')[0] || timeStr;
 }
 
+function canCompleteAppointment(app) {
+  if (!app || app.status === 'cancelled' || app.status === 'completed') return false;
+  if (app.date !== ymd(0)) return false;
+  const [startTime] = String(app.time || '').split('-');
+  if (!startTime) return false;
+  const [startHour, startMin] = startTime.split(':').map(Number);
+  const now = new Date();
+  const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+  return currentTotalMinutes > startHour * 60 + startMin;
+}
+
 function statusText(status) {
   if (status === 'completed') return '已完成';
   if (status === 'cancelled') return '已取消';
@@ -102,16 +113,16 @@ Page({
     try {
       const rows = await this.callApi('getAdminAppointments');
       const appointments = (Array.isArray(rows) ? rows : []).map(app => {
-        const canOperate = app.status !== 'cancelled' && app.status !== 'completed';
         return {
           ...app,
           dateText: dateText(app.date),
-          timeDisplay: app.serviceType === 'dye' ? app.time : formatTimeDisplay(app.time),
+          timeDisplay: formatTimeDisplay(app.time),
           serviceTypeText: app.serviceType === 'dye' ? '烫染' : '剪发',
           phoneLast4: app.phone ? String(app.phone).slice(-4) : '',
           statusText: statusText(app.status),
-          canOperate,
-          canComplete: canOperate && app.date === ymd(0)
+          canOperate: app.status !== 'cancelled' && app.status !== 'completed',
+          canComplete: canCompleteAppointment(app),
+          hasNewUserTag: app.isNewUser !== undefined && app.isNewUser !== null
         };
       });
       this.setData({
@@ -152,14 +163,41 @@ Page({
       const targetDate = targetMap[this.data.currentFilter];
       filtered = this.data.appointments.filter(a => a.date === targetDate && a.status !== 'cancelled' && a.status !== 'completed');
     }
+    filtered.sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return formatTimeDisplay(a.time).localeCompare(formatTimeDisplay(b.time));
+    });
     this.setData({ filteredAppointments: filtered });
   },
 
+  contactCustomer(e) {
+    const phone = e.currentTarget.dataset.phone;
+    if (!phone) return;
+    wx.makePhoneCall({
+      phoneNumber: String(phone),
+      fail: () => {
+        wx.setClipboardData({
+          data: String(phone),
+          success: () => wx.showToast({ title: '电话已复制', icon: 'none' })
+        });
+      }
+    });
+  },
+
   async completeAppointment(e) {
+    const enabled = e.currentTarget.dataset.enabled === true || e.currentTarget.dataset.enabled === 'true';
+    if (!enabled) return;
     const appointmentId = e.currentTarget.dataset.id;
-    const data = await this.callApi('completeAppointment', { appointmentId });
-    wx.showToast({ title: data && data.success ? '已完成' : ((data && data.message) || '操作失败'), icon: data && data.success ? 'success' : 'none' });
-    if (data && data.success) this.loadAppointments();
+    wx.showModal({
+      title: '确认完成',
+      content: '确认已完成该预约服务？',
+      success: async res => {
+        if (!res.confirm) return;
+        const data = await this.callApi('completeAppointment', { appointmentId });
+        wx.showToast({ title: data && data.success ? '已完成' : ((data && data.message) || '操作失败'), icon: data && data.success ? 'success' : 'none' });
+        if (data && data.success) this.loadAppointments();
+      }
+    });
   },
 
   adminCancel(e) {

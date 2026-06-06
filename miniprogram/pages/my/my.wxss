@@ -107,11 +107,6 @@
   color: #1F2937;
 }
 
-.stats-more {
-  font-size: 24rpx;
-  color: #94A3B8;
-}
-
 .stats-grid {
   display: flex;
   align-items: stretch;

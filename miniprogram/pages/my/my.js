@@ -63,7 +63,6 @@ function buildDetailList(filter, currentList, historyList) {
 }
 
 const DETAIL_TITLES = {
-  all: '我的预约',
   pendingService: '待服务',
   completed: '已完成',
   cancelled: '已取消'
@@ -75,8 +74,8 @@ Page({
     phone: '',
     maskedPhone: '',
     detailVisible: false,
-    detailFilter: 'all',
-    detailTitle: '我的预约',
+    detailFilter: '',
+    detailTitle: '',
     detailList: [],
     stats: {
       pendingService: 0,
@@ -144,7 +143,7 @@ Page({
 
   refreshDetailListIfOpen() {
     const { detailVisible, detailFilter, currentAppointments, historyAppointments } = this.data;
-    if (!detailVisible || detailFilter === 'all') return;
+    if (!detailVisible || !detailFilter) return;
     this.setData({
       detailList: buildDetailList(detailFilter, currentAppointments, historyAppointments)
     });
@@ -154,10 +153,6 @@ Page({
     const type = e.currentTarget.dataset.type;
     if (!type) return;
     this.openDetailPanel(type);
-  },
-
-  async openAllAppointments() {
-    await this.openDetailPanel('all');
   },
 
   async openDetailPanel(filter) {
@@ -172,7 +167,7 @@ Page({
     this.setData({
       detailVisible: true,
       detailFilter: filter,
-      detailTitle: DETAIL_TITLES[filter] || '我的预约',
+      detailTitle: DETAIL_TITLES[filter] || '预约详情',
       detailList
     });
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -186,8 +181,8 @@ Page({
   closeAllAppointments() {
     this.setData({
       detailVisible: false,
-      detailFilter: 'all',
-      detailTitle: '我的预约',
+      detailFilter: '',
+      detailTitle: '',
       detailList: []
     });
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -231,8 +226,8 @@ Page({
           phone: '',
           maskedPhone: '',
           detailVisible: false,
-          detailFilter: 'all',
-          detailTitle: '我的预约',
+          detailFilter: '',
+          detailTitle: '',
           detailList: [],
           stats: computeStats([], []),
           currentAppointments: [],

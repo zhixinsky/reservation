@@ -30,20 +30,35 @@
     </view>
 
     <view wx:if="{{filteredAppointments.length === 0}}" class="empty">暂无预约</view>
-    <view wx:for="{{filteredAppointments}}" wx:key="id" class="appointment-card {{item.serviceType}}">
-      <view class="appointment-top">
-        <view>
-          <view class="appointment-title">{{item.dateText}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
-          <view class="appointment-sub">预约号: {{item.appId}} · 尾号 {{item.phoneLast4}}</view>
+    <view wx:else class="timeline-container">
+      <view
+        wx:for="{{filteredAppointments}}"
+        wx:key="id"
+        class="timeline-item {{index === filteredAppointments.length - 1 ? 'last' : ''}}"
+      >
+        <view class="timeline-time">{{item.timeDisplay}}</view>
+        <view class="timeline-segment"></view>
+        <view class="timeline-card {{item.serviceType === 'dye' ? 'dye-service' : 'cut-service'}}">
+          <view class="timeline-card-header">
+            <view class="appointment-name">{{item.phoneLast4}}</view>
+            <view class="timeline-card-actions" wx:if="{{item.canOperate}}">
+              <view class="btn-cancel" bindtap="adminCancel" data-id="{{item.id}}">取消</view>
+              <view
+                class="btn-complete {{item.canComplete ? '' : 'disabled'}}"
+                bindtap="completeAppointment"
+                data-id="{{item.id}}"
+                data-enabled="{{item.canComplete}}"
+              >完成</view>
+            </view>
+          </view>
+          <view class="timeline-card-footer">
+            <view class="footer-tags">
+              <text class="service-tag {{item.serviceType === 'dye' ? 'dye' : 'cut'}}">{{item.serviceTypeText}}</text>
+              <text wx:if="{{item.hasNewUserTag}}" class="user-type-badge {{item.isNewUser ? 'new-user' : 'old-user'}}">{{item.isNewUser ? '新客' : '老客'}}</text>
+            </view>
+            <view wx:if="{{item.phone}}" class="contact-btn" bindtap="contactCustomer" data-phone="{{item.phone}}">联系客户</view>
+          </view>
         </view>
-        <view class="badges">
-          <text class="badge {{item.isNewUser ? 'new' : 'old'}}">{{item.isNewUser ? '新客' : '老客'}}</text>
-          <text class="badge status">{{item.statusText}}</text>
-        </view>
-      </view>
-      <view class="appointment-actions" wx:if="{{item.canOperate}}">
-        <button class="small-btn muted" bindtap="adminCancel" data-id="{{item.id}}">取消</button>
-        <button class="small-btn" bindtap="completeAppointment" data-id="{{item.id}}" disabled="{{!item.canComplete}}">完成</button>
       </view>
     </view>
   </view>
@@ -81,7 +96,7 @@
 
   <view wx:if="{{modalMask}}" class="modal-mask" bindtap="closeModals"></view>
 
-  <view class="modal {{vacationVisible ? 'show' : ''}}">
+  <view wx:if="{{vacationVisible}}" class="modal show">
     <view class="modal-title">休假设置</view>
     <view class="saved-ranges" wx:if="{{vacationRanges.length > 0}}">
       <view wx:for="{{vacationRanges}}" wx:key="index" class="range-row">
@@ -104,7 +119,7 @@
     </view>
   </view>
 
-  <view class="modal {{announcementVisible ? 'show' : ''}}">
+  <view wx:if="{{announcementVisible}}" class="modal show">
     <view class="modal-title">公告设置</view>
     <textarea class="textarea" value="{{announcementText}}" bindinput="onAnnouncementInput" placeholder="例如：欢迎光临欧诺造型 · 营业时间 11:00-22:00"></textarea>
     <view wx:if="{{announcementError}}" class="modal-error">{{announcementError}}</view>

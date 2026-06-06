@@ -16,7 +16,6 @@
   <view class="stats-card">
     <view class="stats-header">
       <view class="stats-title">我的预约</view>
-      <view class="stats-more" bindtap="openAllAppointments">查看全部 ></view>
     </view>
     <view class="stats-grid">
       <view class="stats-item" bindtap="openStatsDetail" data-type="pendingService">
@@ -71,104 +70,51 @@
     </view>
 
     <scroll-view class="detail-scroll" scroll-y>
-      <block wx:if="{{detailFilter === 'all'}}">
-        <view class="detail-section">
-          <view class="detail-section-title">当前预约</view>
-          <view wx:if="{{!phone}}" class="empty">请先手机号快速登录</view>
-          <view wx:elif="{{currentAppointments.length === 0}}" class="empty">暂无当前预约</view>
-          <view wx:for="{{currentAppointments}}" wx:key="id" class="appointment-card">
+      <view class="detail-section">
+        <view wx:if="{{!phone}}" class="empty">请先手机号快速登录</view>
+        <view wx:elif="{{detailList.length === 0}}" class="empty">暂无{{detailTitle}}记录</view>
+        <block wx:elif="{{detailFilter === 'pendingService'}}">
+          <view wx:for="{{detailList}}" wx:key="id" class="appointment-card">
             <view class="appointment-card-row">
               <view class="appointment-main">
                 <view class="appointment-title">{{item.dateText}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
                 <view class="appointment-sub">预约号: {{item.appId}}</view>
+                <view class="appointment-sub">状态: {{item.statusText}}</view>
               </view>
               <view wx:if="{{item.canCancel}}" class="compact-btn danger" bindtap="cancelOne" data-id="{{item.id}}">取消预约</view>
             </view>
             <view wx:if="{{item.reason}}" class="appointment-reason">{{item.reason}}</view>
           </view>
-        </view>
-
-        <view class="detail-section">
-          <view class="detail-section-head">
-            <view class="detail-section-title">排队查询</view>
-            <view wx:if="{{phone}}" class="compact-btn" bindtap="loadProgress">刷新</view>
-          </view>
-          <view wx:if="{{!phone}}" class="empty">请先手机号快速登录</view>
-          <view wx:elif="{{progressRows.length === 0}}" class="empty">暂无排队信息</view>
-          <view wx:for="{{progressRows}}" wx:key="key" class="progress-card">
-            <view class="appointment-title">{{item.dateStr}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
-            <view class="appointment-sub">预约号: {{item.appId}}</view>
-            <view class="progress-line">
-              <block wx:if="{{item.hasAheadCount}}">您前面还有<text class="red-num"> {{item.aheadCount}} </text>位已预约未完成的客户</block>
-              <block wx:else>{{item.delayLine1}}</block>
-            </view>
-            <view wx:if="{{item.delayLine2}}" class="progress-line second">
-              <text>{{item.delayLine2}}</text><text wx:if="{{item.numberPart}}" class="red-num small"> {{item.numberPart}}</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="detail-section">
-          <view class="detail-section-title">预约记录</view>
-          <view wx:if="{{!phone}}" class="empty">请先手机号快速登录</view>
-          <view wx:elif="{{historyAppointments.length === 0}}" class="empty">暂无预约记录</view>
-          <view wx:for="{{historyAppointments}}" wx:key="id" class="history-row">
+        </block>
+        <block wx:else>
+          <view wx:for="{{detailList}}" wx:key="id" class="history-row">
             <view>
               <view class="appointment-title">{{item.dateText}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
               <view class="appointment-sub">预约号: {{item.appId}}</view>
             </view>
             <text class="status {{item.status}}">{{item.statusText}}</text>
           </view>
-        </view>
-      </block>
+        </block>
+      </view>
 
-      <block wx:else>
-        <view class="detail-section">
-          <view wx:if="{{!phone}}" class="empty">请先手机号快速登录</view>
-          <view wx:elif="{{detailList.length === 0}}" class="empty">暂无{{detailTitle}}记录</view>
-          <block wx:elif="{{detailFilter === 'pendingService'}}">
-            <view wx:for="{{detailList}}" wx:key="id" class="appointment-card">
-              <view class="appointment-card-row">
-                <view class="appointment-main">
-                  <view class="appointment-title">{{item.dateText}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
-                  <view class="appointment-sub">预约号: {{item.appId}}</view>
-                  <view class="appointment-sub">状态: {{item.statusText}}</view>
-                </view>
-                <view wx:if="{{item.canCancel}}" class="compact-btn danger" bindtap="cancelOne" data-id="{{item.id}}">取消预约</view>
-              </view>
-              <view wx:if="{{item.reason}}" class="appointment-reason">{{item.reason}}</view>
-            </view>
-          </block>
-          <block wx:else>
-            <view wx:for="{{detailList}}" wx:key="id" class="history-row">
-              <view>
-                <view class="appointment-title">{{item.dateText}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
-                <view class="appointment-sub">预约号: {{item.appId}}</view>
-              </view>
-              <text class="status {{item.status}}">{{item.statusText}}</text>
-            </view>
-          </block>
+      <view wx:if="{{detailFilter === 'pendingService' && detailList.length > 0}}" class="detail-section">
+        <view class="detail-section-head">
+          <view class="detail-section-title">排队查询</view>
+          <view class="compact-btn" bindtap="loadProgress">刷新</view>
         </view>
-
-        <view wx:if="{{detailFilter === 'pendingService' && detailList.length > 0}}" class="detail-section">
-          <view class="detail-section-head">
-            <view class="detail-section-title">排队查询</view>
-            <view class="compact-btn" bindtap="loadProgress">刷新</view>
+        <view wx:if="{{progressRows.length === 0}}" class="empty">暂无排队信息</view>
+        <view wx:for="{{progressRows}}" wx:key="key" class="progress-card">
+          <view class="appointment-title">{{item.dateStr}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
+          <view class="appointment-sub">预约号: {{item.appId}}</view>
+          <view class="progress-line">
+            <block wx:if="{{item.hasAheadCount}}">您前面还有<text class="red-num"> {{item.aheadCount}} </text>位已预约未完成的客户</block>
+            <block wx:else>{{item.delayLine1}}</block>
           </view>
-          <view wx:if="{{progressRows.length === 0}}" class="empty">暂无排队信息</view>
-          <view wx:for="{{progressRows}}" wx:key="key" class="progress-card">
-            <view class="appointment-title">{{item.dateStr}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
-            <view class="appointment-sub">预约号: {{item.appId}}</view>
-            <view class="progress-line">
-              <block wx:if="{{item.hasAheadCount}}">您前面还有<text class="red-num"> {{item.aheadCount}} </text>位已预约未完成的客户</block>
-              <block wx:else>{{item.delayLine1}}</block>
-            </view>
-            <view wx:if="{{item.delayLine2}}" class="progress-line second">
-              <text>{{item.delayLine2}}</text><text wx:if="{{item.numberPart}}" class="red-num small"> {{item.numberPart}}</text>
-            </view>
+          <view wx:if="{{item.delayLine2}}" class="progress-line second">
+            <text>{{item.delayLine2}}</text><text wx:if="{{item.numberPart}}" class="red-num small"> {{item.numberPart}}</text>
           </view>
         </view>
-      </block>
+      </view>
     </scroll-view>
   </view>
 </view>
