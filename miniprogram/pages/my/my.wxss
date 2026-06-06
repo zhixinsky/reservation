@@ -256,6 +256,35 @@
   background: #EEF2F0;
 }
 
+.action-item-with-btn {
+  position: relative;
+}
+
+.action-item-with-btn:active {
+  opacity: 0.72;
+}
+
+.action-item-cover-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  opacity: 0;
+}
+
+.action-item-cover-btn::after {
+  border: none;
+}
+
 .detail-mask {
   position: fixed;
   inset: 0;
