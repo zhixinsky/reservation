@@ -88,8 +88,8 @@
     <view wx:if="{{slotDateMenuVisible}}" class="slot-date-mask" bindtap="closeSlotDateMenu"></view>
     <view class="slots-grid">
       <view wx:for="{{slotItems}}" wx:key="time" class="slot {{item.adminClass}}" bindtap="toggleSlot" data-time="{{item.time}}" data-can-toggle="{{item.canToggle}}">
-        <view>{{item.displayTime}}</view>
-        <text>{{item.adminText}}</text>
+        <view class="slot-time">{{item.displayTime}}</view>
+        <text class="slot-status {{item.adminClass}}">{{item.adminText}}</text>
       </view>
     </view>
   </view>

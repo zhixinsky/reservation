@@ -414,6 +414,7 @@ async function getAdminAppointments(payload) {
       serviceType: app.serviceType || 'cut',
       createdAt: app.createdAt,
       originalIds,
+      originalTimeSlots: app.originalTimeSlots,
       isNewUser: !completedBefore
     };
   }).sort((a, b) => {

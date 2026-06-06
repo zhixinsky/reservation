@@ -20,6 +20,98 @@ function formatTimeDisplay(timeStr) {
   return String(timeStr).split(',')[0].trim().split('-')[0] || timeStr;
 }
 
+function timeToMinutes(time) {
+  const [h, m] = String(time || '').split(':').map(Number);
+  return h * 60 + m;
+}
+
+function findSlotAppointment(appointments, selectedDate, slotTime) {
+  const list = Array.isArray(appointments) ? appointments : [];
+  return list.find(app => {
+    if (app.date !== selectedDate || app.status === 'cancelled') return false;
+    if (app.time === slotTime) return true;
+    if (Array.isArray(app.originalTimeSlots) && app.originalTimeSlots.includes(slotTime)) return true;
+    if (Array.isArray(app.originalTimeSlots)) return false;
+    try {
+      const [appStart, appEnd] = String(app.time || '').split('-');
+      const [slotStart, slotEnd] = String(slotTime || '').split('-');
+      if (!appStart || !appEnd || !slotStart || !slotEnd) return false;
+      const appStartMin = timeToMinutes(appStart);
+      const appEndMin = timeToMinutes(appEnd);
+      const slotStartMin = timeToMinutes(slotStart);
+      const slotEndMin = timeToMinutes(slotEnd);
+      return slotStartMin >= appStartMin && slotEndMin <= appEndMin;
+    } catch (e) {
+      return false;
+    }
+  });
+}
+
+function buildAdminSlotItem(slot, selectedDate, blockedList, appointments) {
+  if (!slot || !slot.time) return null;
+
+  const [startTime, endTime] = slot.time.split('-');
+  const startTotalMinutes = timeToMinutes(startTime);
+  const endTotalMinutes = timeToMinutes(endTime);
+  const todayStr = ymd(0);
+  const isToday = selectedDate === todayStr;
+  const now = new Date();
+  const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+  const blocked = Array.isArray(blockedList) ? blockedList : [];
+  const appointment = findSlotAppointment(appointments, selectedDate, slot.time);
+  const isBlocked = blocked.some(item => item.time === slot.time);
+  const isDefaultMealTime = slot.time === '12:00-12:30' || slot.time === '18:00-18:30';
+  const isUnlocked = blocked.some(item => item.time === `${slot.time}_UNLOCKED`);
+  const isDefaultBlocked = isDefaultMealTime && !appointment && !isBlocked && !isUnlocked;
+
+  let adminText = '';
+  let adminClass = 'default';
+  let canToggle = false;
+
+  if (appointment && appointment.status === 'completed') {
+    adminText = '已完成';
+    adminClass = 'completed';
+  } else if (appointment && appointment.status === 'booked') {
+    adminText = '已预约';
+    adminClass = 'booked';
+  } else if (isBlocked || isDefaultBlocked) {
+    adminText = '已锁定';
+    adminClass = 'blocked';
+    canToggle = true;
+  } else if (isToday) {
+    const isCurrentTimeInSlot = currentTotalMinutes >= startTotalMinutes && currentTotalMinutes <= endTotalMinutes;
+    if (isCurrentTimeInSlot) {
+      if (currentTotalMinutes - startTotalMinutes <= 10) {
+        adminText = '可预约';
+        adminClass = 'available';
+        canToggle = true;
+      } else {
+        adminText = 'Expired';
+        adminClass = 'expired';
+      }
+    } else if (currentTotalMinutes > endTotalMinutes) {
+      adminText = 'Expired';
+      adminClass = 'expired';
+    } else {
+      adminText = '可预约';
+      adminClass = 'available';
+      canToggle = true;
+    }
+  } else {
+    adminText = '可预约';
+    adminClass = 'available';
+    canToggle = true;
+  }
+
+  return {
+    ...slot,
+    displayTime: formatTimeDisplay(slot.time),
+    adminText,
+    adminClass,
+    canToggle
+  };
+}
+
 function canCompleteAppointment(app) {
   if (!app || app.status === 'cancelled' || app.status === 'completed') return false;
   if (app.date !== ymd(0)) return false;
@@ -104,8 +196,7 @@ Page({
   },
 
   loadAll() {
-    this.loadAppointments();
-    this.loadTimeSlots();
+    this.loadAppointments().then(() => this.loadTimeSlots());
   },
 
   async loadAppointments() {
@@ -135,6 +226,7 @@ Page({
         }
       });
       this.applyFilter();
+      return this.loadTimeSlots();
     } finally {
       wx.hideLoading();
     }
@@ -247,21 +339,9 @@ Page({
     const slots = await this.callApi('getSlots', { stylistId: session.stylistId, date });
     const blocked = await this.callApi('getAdminBlockedSlots', { stylistId: session.stylistId, date });
     const blockedList = Array.isArray(blocked) ? blocked : [];
-    const slotItems = (Array.isArray(slots) ? slots : []).map(slot => {
-      const isDefaultMeal = slot.time === '12:00-12:30' || slot.time === '18:00-18:30';
-      const isUnlocked = blockedList.some(b => b.time === `${slot.time}_UNLOCKED`);
-      const isExplicitBlocked = blockedList.some(b => b.time === slot.time);
-      const blockedNow = isExplicitBlocked || (isDefaultMeal && !isUnlocked);
-      const adminClass = slot.status === 'booked' ? 'booked' : slot.status === 'past' ? 'past' : blockedNow ? 'blocked' : 'available';
-      const adminText = slot.status === 'booked' ? '已约' : slot.status === 'past' ? '过期' : blockedNow ? '锁定' : '可约';
-      return {
-        ...slot,
-        displayTime: formatTimeDisplay(slot.time),
-        adminClass,
-        adminText,
-        canToggle: slot.status !== 'booked' && slot.status !== 'past'
-      };
-    });
+    const slotItems = (Array.isArray(slots) ? slots : [])
+      .map(slot => buildAdminSlotItem(slot, date, blockedList, this.data.appointments))
+      .filter(Boolean);
     this.setData({ slotItems });
   },
 
@@ -271,7 +351,8 @@ Page({
     const time = e.currentTarget.dataset.time;
     const option = this.data.slotDateOptions[this.data.slotDateIndex];
     const item = this.data.slotItems.find(s => s.time === time);
-    const action = item && item.adminClass === 'blocked' ? 'adminUnblockSlot' : 'adminBlockSlot';
+    if (!item || !item.canToggle) return;
+    const action = item.adminClass === 'blocked' ? 'adminUnblockSlot' : 'adminBlockSlot';
     const data = await this.callApi(action, {
       stylistId: this.data.session.stylistId,
       date: option.date,
