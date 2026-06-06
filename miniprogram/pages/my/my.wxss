@@ -208,6 +208,14 @@
   font-size: 26rpx;
 }
 
+.booking-list-scroll {
+  width: 100%;
+}
+
+.booking-list-scroll.scrollable {
+  box-sizing: border-box;
+}
+
 .booking-list {
   display: flex;
   flex-direction: column;

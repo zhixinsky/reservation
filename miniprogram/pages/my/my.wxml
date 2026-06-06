@@ -53,8 +53,16 @@
 
     <view wx:if="{{!phone}}" class="booking-empty">请先手机号快速登录</view>
     <view wx:elif="{{displayList.length === 0}}" class="booking-empty">暂无{{tabLabel}}记录</view>
-    <view wx:else class="booking-list">
-      <view wx:for="{{displayList}}" wx:key="id" class="appt-card">
+    <scroll-view
+      wx:else
+      class="booking-list-scroll {{bookingListScrollable ? 'scrollable' : ''}}"
+      scroll-y="{{bookingListScrollable}}"
+      enhanced
+      show-scrollbar="{{false}}"
+      style="{{bookingListMaxHeight ? 'max-height:' + bookingListMaxHeight + 'px' : ''}}"
+    >
+      <view class="booking-list">
+      <view wx:for="{{displayList}}" wx:key="id" id="{{index === 0 ? 'bookingApptCard' : ''}}" class="appt-card">
         <image class="appt-card-bg" src="{{item.cardBgUrl}}" mode="widthFix"></image>
         <view class="appt-card-body">
           <view class="appt-card-main">
@@ -82,7 +90,8 @@
           >查看详情 ›</view>
         </view>
       </view>
-    </view>
+      </view>
+    </scroll-view>
 
     <view class="booking-footer">
       <view class="booking-footer-left">{{displayList.length > 0 ? '没有更多预约了' : '暂无预约记录'}}</view>

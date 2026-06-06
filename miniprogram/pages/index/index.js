@@ -60,6 +60,7 @@ Page({
     pageBgUrl: PAGE_BG,
     announcementText: DEFAULT_ANNOUNCEMENT_TEXT,
     announcementScrollable: false,
+    announcementTrackStyle: '',
     bookingDisabled: false,
     stylistId: null,
     currentId: null,
@@ -316,10 +317,18 @@ Page({
   updateAnnouncementScrollable() {
     const content = String(this.data.announcementText || '');
     const heuristicScrollable = content.length > 18;
+    const gapPx = (wx.getSystemInfoSync().windowWidth / 750) * 48;
 
-    const applyScrollable = scrollable => {
-      if (scrollable !== this.data.announcementScrollable) {
-        this.setData({ announcementScrollable: scrollable });
+    const applyScrollable = (scrollable, trackStyle = '') => {
+      const next = {
+        announcementScrollable: scrollable,
+        announcementTrackStyle: trackStyle
+      };
+      if (
+        scrollable !== this.data.announcementScrollable ||
+        trackStyle !== this.data.announcementTrackStyle
+      ) {
+        this.setData(next);
       }
     };
 
@@ -330,10 +339,17 @@ Page({
       const wrap = res && res[0];
       const text = res && res[1];
       if (!wrap || !text || !wrap.width) {
-        applyScrollable(heuristicScrollable);
+        applyScrollable(heuristicScrollable, heuristicScrollable ? 'animation-duration: 12s;' : '');
         return;
       }
-      applyScrollable(text.width > wrap.width + 2 || heuristicScrollable);
+      const scrollable = text.width > wrap.width + 2 || heuristicScrollable;
+      if (!scrollable) {
+        applyScrollable(false, '');
+        return;
+      }
+      const segmentWidth = text.width + gapPx;
+      const duration = Math.min(36, Math.max(8, segmentWidth / 32));
+      applyScrollable(true, `animation-duration: ${duration}s;`);
     });
   },
 
@@ -349,12 +365,14 @@ Page({
       const text = data && data.text && data.text.trim() ? data.text.trim() : EMPTY_ANNOUNCEMENT_TEXT;
       this.setData({
         announcementText: text,
-        announcementScrollable: false
+        announcementScrollable: false,
+        announcementTrackStyle: ''
       }, () => this.scheduleAnnouncementMeasure());
     } catch (e) {
       this.setData({
         announcementText: DEFAULT_ANNOUNCEMENT_TEXT,
-        announcementScrollable: false
+        announcementScrollable: false,
+        announcementTrackStyle: ''
       }, () => this.scheduleAnnouncementMeasure());
     }
   },

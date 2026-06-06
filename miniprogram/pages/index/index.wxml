@@ -16,9 +16,13 @@
       <view class="announcement-inner">
         <image class="announcement-icon" src="/images/bell.svg" mode="aspectFit"></image>
         <view class="announcement-wrap {{announcementScrollable ? 'scrollable' : ''}}" id="announcementWrap">
-          <view class="announcement-track" id="announcementTrack">
-            <text class="announcement-text" id="announcementText">{{announcementText}}</text>
-            <text class="announcement-text duplicate">{{announcementText}}</text>
+          <view class="announcement-track" id="announcementTrack" style="{{announcementTrackStyle}}">
+            <view class="announcement-segment">
+              <text class="announcement-text" id="announcementText">{{announcementText}}</text>
+            </view>
+            <view class="announcement-segment">
+              <text class="announcement-text">{{announcementText}}</text>
+            </view>
           </view>
         </view>
       </view>

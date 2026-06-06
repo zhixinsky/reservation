@@ -32,6 +32,8 @@ const TAB_LABELS = {
   cancelled: '已取消'
 };
 
+const BOOKING_LIST_MAX_VISIBLE = 3;
+
 function formatDateText(ymd) {
   const parts = String(ymd || '').split('-');
   if (parts.length < 3) return ymd || '';
@@ -104,6 +106,8 @@ Page({
     appointmentTab: 'pendingService',
     tabLabel: '待服务',
     displayList: [],
+    bookingListScrollable: false,
+    bookingListMaxHeight: 0,
     stats: {
       pendingService: 0,
       completed: 0,
@@ -215,7 +219,39 @@ Page({
     const rawList = buildDisplayList(appointmentTab, currentAppointments, historyAppointments);
     this.setData({
       displayList: this.decorateList(rawList, stylistMap)
-    });
+    }, () => this.scheduleBookingListMeasure());
+  },
+
+  scheduleBookingListMeasure() {
+    const count = this.data.displayList.length;
+    if (count <= BOOKING_LIST_MAX_VISIBLE) {
+      if (this.data.bookingListScrollable || this.data.bookingListMaxHeight) {
+        this.setData({ bookingListScrollable: false, bookingListMaxHeight: 0 });
+      }
+      return;
+    }
+
+    const measure = () => {
+      this.createSelectorQuery()
+        .select('#bookingApptCard')
+        .boundingClientRect()
+        .exec(res => {
+          const card = res && res[0];
+          if (!card || !card.height) return;
+          const gapPx = (wx.getSystemInfoSync().windowWidth / 750) * 20;
+          const maxHeight = Math.ceil(
+            card.height * BOOKING_LIST_MAX_VISIBLE + gapPx * (BOOKING_LIST_MAX_VISIBLE - 1)
+          );
+          this.setData({
+            bookingListScrollable: true,
+            bookingListMaxHeight: maxHeight
+          });
+        });
+    };
+
+    wx.nextTick(measure);
+    setTimeout(measure, 120);
+    setTimeout(measure, 400);
   },
 
   updateStats(currentList, historyList) {

@@ -109,24 +109,31 @@
 }
 
 .announcement-track {
-  display: flex;
+  display: inline-flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
   white-space: nowrap;
 }
 
+.announcement-segment {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding-right: 48rpx;
+  box-sizing: border-box;
+}
+
 .announcement-wrap.scrollable .announcement-track {
   animation-name: announcement-scroll;
-  animation-duration: 4s;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+  will-change: transform;
 }
 
 .announcement-text {
   flex-shrink: 0;
   white-space: nowrap;
-  padding-right: 3em;
   color: rgba(45, 67, 57, 0.58);
   font-size: 28rpx;
   font-weight: 500;
@@ -134,13 +141,17 @@
   line-height: 1.4;
 }
 
-.announcement-wrap:not(.scrollable) .announcement-text.duplicate {
+.announcement-wrap:not(.scrollable) .announcement-segment + .announcement-segment {
   display: none;
 }
 
 @keyframes announcement-scroll {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
 
 .booking-buttons {
