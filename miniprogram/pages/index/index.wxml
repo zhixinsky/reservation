@@ -1,6 +1,7 @@
 <view class="page-shell">
-  <view class="page-bg"></view>
+  <image class="page-bg" src="{{pageBgUrl}}" mode="aspectFill" lazy-load="{{false}}"></image>
 
+  <view class="page-foreground">
   <view class="container">
     <view class="header">
       <view class="title">
@@ -97,4 +98,5 @@
     <button class="confirm-btn single" bindtap="closeAll">确 认</button>
   </view>
 
+  </view>
 </view>

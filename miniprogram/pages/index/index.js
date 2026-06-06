@@ -5,6 +5,8 @@ const { buildProgressRow: createProgressRow } = require('../../utils/queue-progr
 
 const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间 11:00-22:00，请提前预约到店！';
 const EMPTY_ANNOUNCEMENT_TEXT = '暂无公告';
+const PAGE_BG =
+  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/background.png';
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -55,6 +57,7 @@ function serviceTypeText(serviceType) {
 
 Page({
   data: {
+    pageBgUrl: PAGE_BG,
     announcementText: DEFAULT_ANNOUNCEMENT_TEXT,
     announcementScrollable: false,
     bookingDisabled: false,

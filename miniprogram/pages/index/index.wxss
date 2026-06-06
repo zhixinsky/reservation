@@ -1,6 +1,24 @@
 .page-shell {
   min-height: 100vh;
   position: relative;
+  overflow: hidden;
+}
+
+.page-bg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.page-foreground {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -12,17 +30,6 @@
   padding-bottom: calc(150rpx + env(safe-area-inset-bottom));
   padding-left: 40rpx;
   box-sizing: border-box;
-  overflow: hidden;
-}
-
-.page-bg {
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(circle at 20% 50%, rgba(167, 196, 160, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(232, 213, 196, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 40% 20%, rgba(167, 196, 160, 0.05) 0%, transparent 50%);
-  z-index: 0;
 }
 
 .container {
@@ -142,6 +149,7 @@
   display: flex;
   flex-direction: column;
   gap: 40rpx;
+  margin-top: -20px;
 }
 
 .booking-btn {
