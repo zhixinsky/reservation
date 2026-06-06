@@ -19,19 +19,25 @@
     </view>
     <view class="stats-grid">
       <view class="stats-item" bindtap="openStatsDetail" data-type="pendingService">
-        <view class="stats-icon icon-service"></view>
+        <view class="stats-icon-wrap">
+          <image class="stats-icon-img" src="/images/stats-pending.svg" mode="aspectFit"></image>
+        </view>
         <view class="stats-label">待服务</view>
         <view class="stats-num">{{stats.pendingService}}</view>
       </view>
       <view class="stats-divider"></view>
       <view class="stats-item" bindtap="openStatsDetail" data-type="completed">
-        <view class="stats-icon icon-done"></view>
+        <view class="stats-icon-wrap">
+          <image class="stats-icon-img" src="/images/stats-completed.svg" mode="aspectFit"></image>
+        </view>
         <view class="stats-label">已完成</view>
         <view class="stats-num">{{stats.completed}}</view>
       </view>
       <view class="stats-divider"></view>
       <view class="stats-item" bindtap="openStatsDetail" data-type="cancelled">
-        <view class="stats-icon icon-cancel"></view>
+        <view class="stats-icon-wrap">
+          <image class="stats-icon-img" src="/images/stats-cancelled.svg" mode="aspectFit"></image>
+        </view>
         <view class="stats-label">已取消</view>
         <view class="stats-num">{{stats.cancelled}}</view>
       </view>

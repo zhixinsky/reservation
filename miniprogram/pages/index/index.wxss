@@ -48,7 +48,6 @@
 }
 
 .title {
-  font-family: "Songti SC", "STSong", serif;
   font-size: 56rpx;
   font-weight: 700;
   letter-spacing: 8rpx;
@@ -191,7 +190,6 @@
 }
 
 .btn-title {
-  font-family: "Songti SC", "STSong", serif;
   font-size: 38rpx;
   font-weight: 700;
   color: #111827;
@@ -308,7 +306,6 @@
 
 .drawer-title,
 .modal-title {
-  font-family: "Songti SC", "STSong", serif;
   text-align: center;
   color: #2D4339;
   font-weight: 700;

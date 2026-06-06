@@ -1,5 +1,9 @@
+const { loadAppFonts } = require('./utils/load-fonts');
+
 App({
   onLaunch() {
+    loadAppFonts();
+
     if (!wx.cloud) {
       wx.showModal({
         title: '初始化失败',
