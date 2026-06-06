@@ -25,16 +25,6 @@
   z-index: 0;
 }
 
-.admin-hotspot {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 160rpx;
-  height: 160rpx;
-  z-index: 100;
-  background: transparent;
-}
-
 .container {
   width: 670rpx;
   max-width: 670rpx;

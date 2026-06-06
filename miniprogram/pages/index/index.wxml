@@ -1,6 +1,5 @@
 <view class="page-shell">
   <view class="page-bg"></view>
-  <view class="admin-hotspot" bindtap="openAdminLogin"></view>
 
   <view class="container">
     <view class="header">

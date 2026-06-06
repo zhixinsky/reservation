@@ -920,10 +920,6 @@ Page({
     return h * 60 + m;
   },
 
-  openAdminLogin() {
-    wx.navigateTo({ url: '/pages/admin-login/admin-login' });
-  },
-
   startRefresh() {
     this.stopRefresh();
     this.refreshTimer = setInterval(() => {
