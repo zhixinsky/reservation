@@ -247,12 +247,12 @@ Page({
         stats: {
           pending: appointments.filter(a => a.status !== 'cancelled' && a.status !== 'completed').length,
           completed: appointments.filter(a => a.status === 'completed').length,
-          all: appointments.length
+          all: appointments.filter(a => a.status !== 'cancelled').length
         }
       });
       this.applyFilter();
       if (refreshSlots) {
-        await this.loadTimeSlots();
+        await this.loadTimeSlots(appointments);
       }
     } finally {
       if (showLoading) wx.hideLoading();
@@ -446,16 +446,18 @@ Page({
     this.loadTimeSlots();
   },
 
-  async loadTimeSlots() {
+  async loadTimeSlots(appointmentsOverride) {
     const session = this.data.session;
     if (!session) return;
     const option = this.data.slotDateOptions[this.data.slotDateIndex];
+    if (!option) return;
     const date = option.date;
+    const appointments = Array.isArray(appointmentsOverride) ? appointmentsOverride : this.data.appointments;
     const slots = await this.callApi('getSlots', { stylistId: session.stylistId, date });
     const blocked = await this.callApi('getAdminBlockedSlots', { stylistId: session.stylistId, date });
     const blockedList = Array.isArray(blocked) ? blocked : [];
     const slotItems = (Array.isArray(slots) ? slots : [])
-      .map(slot => buildAdminSlotItem(slot, date, blockedList, this.data.appointments))
+      .map(slot => buildAdminSlotItem(slot, date, blockedList, appointments))
       .filter(Boolean);
     this.setData({ slotItems });
   },

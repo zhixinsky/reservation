@@ -25,8 +25,18 @@
       <view class="section-title">预约列表</view>
       <view class="refresh-btn" bindtap="loadAppointments">刷新</view>
     </view>
-    <view class="tabs">
-      <view wx:for="{{filters}}" wx:key="key" class="tab {{currentFilter === item.key ? 'active' : ''}}" bindtap="setFilter" data-key="{{item.key}}">{{item.label}}({{item.count}})</view>
+    <view class="booking-tabs">
+      <view
+        wx:for="{{filters}}"
+        wx:key="key"
+        class="booking-tab {{currentFilter === item.key ? 'active' : ''}}"
+        bindtap="setFilter"
+        data-key="{{item.key}}"
+      >
+        <text class="tab-label">{{item.label}}</text>
+        <text class="tab-count">{{item.count}}</text>
+        <view wx:if="{{currentFilter === item.key}}" class="tab-indicator"></view>
+      </view>
     </view>
 
     <view wx:if="{{filteredAppointments.length === 0}}" class="empty">暂无预约</view>
@@ -96,7 +106,6 @@
           </view>
         </view>
       </view>
-      <view class="refresh-btn" bindtap="loadTimeSlots">刷新</view>
     </view>
     <view wx:if="{{slotDateMenuVisible}}" class="slot-date-mask" bindtap="closeSlotDateMenu"></view>
     <view class="slots-grid">

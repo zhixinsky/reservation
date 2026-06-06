@@ -1,7 +1,7 @@
 const { callApi } = require('../../utils/api');
 const { getVerifiedPhone, setVerifiedPhone, clearVerifiedPhone } = require('../../utils/phone-auth');
 const { getCustomNavPaddingTop } = require('../../utils/custom-nav');
-const { setTabBarState, showTabBar, hideTabBar } = require('../../utils/tab-bar');
+const { showTabBar, hideTabBar } = require('../../utils/tab-bar');
 const { buildProgressRow: createProgressRow } = require('../../utils/queue-progress');
 
 const SHOP_INFO = {
@@ -15,10 +15,40 @@ const SHOP_INFO = {
 const PROFILE_BG =
   'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/bg.png';
 
+const HAIRCUT_BG =
+  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/haircut.png';
+
+const PERM_BG =
+  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/perm.png';
+
+const STYLIST_AVATAR_CUT = '/images/11.png';
+const STYLIST_AVATAR_DYE = '/images/22.png';
+
+const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+const TAB_LABELS = {
+  pendingService: '待服务',
+  completed: '已完成',
+  cancelled: '已取消'
+};
+
 function formatDateText(ymd) {
   const parts = String(ymd || '').split('-');
   if (parts.length < 3) return ymd || '';
   return `${parts[1]}/${parts[2]}`;
+}
+
+function formatDateCard(ymd) {
+  const parts = String(ymd || '').split('-');
+  if (parts.length < 3) return ymd || '';
+  return `${Number(parts[1])}月${Number(parts[2])}日`;
+}
+
+function weekdayText(ymd) {
+  const parts = String(ymd || '').split('-').map(Number);
+  if (parts.length < 3) return '';
+  const date = new Date(parts[0], parts[1] - 1, parts[2]);
+  return WEEKDAYS[date.getDay()] || '';
 }
 
 function timeDisplay(app) {
@@ -29,10 +59,20 @@ function serviceTypeText(serviceType) {
   return serviceType === 'dye' ? '烫染' : '剪发';
 }
 
+function serviceDesc(serviceType) {
+  return serviceType === 'dye' ? '专业烫发·染发服务' : '精致剪发·洗发造型';
+}
+
 function statusText(status) {
   if (status === 'cancelled') return '已取消';
   if (status === 'completed') return '已完成';
-  return '已预约';
+  return '待服务';
+}
+
+function statusClass(status) {
+  if (status === 'cancelled') return 'cancelled';
+  if (status === 'completed') return 'completed';
+  return 'pending';
 }
 
 function computeStats(currentList, historyList) {
@@ -45,7 +85,7 @@ function computeStats(currentList, historyList) {
   };
 }
 
-function buildDetailList(filter, currentList, historyList) {
+function buildDisplayList(filter, currentList, historyList) {
   const current = Array.isArray(currentList) ? currentList : [];
   const history = Array.isArray(historyList) ? historyList : [];
   if (filter === 'pendingService') return current;
@@ -54,12 +94,6 @@ function buildDetailList(filter, currentList, historyList) {
   return [];
 }
 
-const DETAIL_TITLES = {
-  pendingService: '待服务',
-  completed: '已完成',
-  cancelled: '已取消'
-};
-
 Page({
   data: {
     pagePaddingTop: 88,
@@ -67,10 +101,9 @@ Page({
     phone: '',
     maskedPhone: '',
     isAdmin: false,
-    detailVisible: false,
-    detailFilter: '',
-    detailTitle: '',
-    detailList: [],
+    appointmentTab: 'pendingService',
+    tabLabel: '待服务',
+    displayList: [],
     stats: {
       pendingService: 0,
       completed: 0,
@@ -78,7 +111,12 @@ Page({
     },
     currentAppointments: [],
     historyAppointments: [],
-    progressRows: []
+    stylistMap: {},
+    detailVisible: false,
+    detailAppointment: null,
+    detailProgress: null,
+    detailLoading: false,
+    cancelConfirmVisible: false
   },
 
   onLoad() {
@@ -98,7 +136,7 @@ Page({
 
   onHide() {
     if (this.data.detailVisible) {
-      this.setData({ detailVisible: false });
+      this.setData({ detailVisible: false, cancelConfirmVisible: false });
     }
   },
 
@@ -113,7 +151,7 @@ Page({
           stats: computeStats([], []),
           currentAppointments: [],
           historyAppointments: [],
-          progressRows: []
+          displayList: []
         });
       }
       return;
@@ -162,56 +200,111 @@ Page({
     wx.navigateTo({ url: '/pages/admin-dashboard/admin-dashboard' });
   },
 
+  switchAppointmentTab(e) {
+    const tab = e.currentTarget.dataset.tab;
+    if (!tab || tab === this.data.appointmentTab) return;
+    this.setData({
+      appointmentTab: tab,
+      tabLabel: TAB_LABELS[tab] || '预约'
+    });
+    this.updateDisplayList();
+  },
+
+  updateDisplayList() {
+    const { appointmentTab, currentAppointments, historyAppointments, stylistMap } = this.data;
+    const rawList = buildDisplayList(appointmentTab, currentAppointments, historyAppointments);
+    this.setData({
+      displayList: this.decorateList(rawList, stylistMap)
+    });
+  },
+
   updateStats(currentList, historyList) {
     this.setData({
       stats: computeStats(currentList, historyList)
     });
-    this.refreshDetailListIfOpen();
+    this.updateDisplayList();
   },
 
-  refreshDetailListIfOpen() {
-    const { detailVisible, detailFilter, currentAppointments, historyAppointments } = this.data;
-    if (!detailVisible || !detailFilter) return;
-    this.setData({
-      detailList: buildDetailList(detailFilter, currentAppointments, historyAppointments)
-    });
+  goToBooking() {
+    wx.switchTab({ url: '/pages/index/index' });
   },
 
-  openStatsDetail(e) {
-    const type = e.currentTarget.dataset.type;
-    if (!type) return;
-    this.openDetailPanel(type);
-  },
+  async viewAppointmentDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    const app = this.data.displayList.find(item => String(item.id) === String(id));
+    if (!app) return;
 
-  async openDetailPanel(filter) {
-    if (!this.data.phone) {
-      wx.showToast({ title: '请先手机号快速登录', icon: 'none' });
-      return;
-    }
-    if (!this.data.currentAppointments.length && !this.data.historyAppointments.length) {
-      await this.loadData();
-    }
-    const detailList = buildDetailList(filter, this.data.currentAppointments, this.data.historyAppointments);
     this.setData({
       detailVisible: true,
-      detailFilter: filter,
-      detailTitle: DETAIL_TITLES[filter] || '预约详情',
-      detailList
+      detailAppointment: app,
+      detailProgress: null,
+      detailLoading: true,
+      cancelConfirmVisible: false
     });
     hideTabBar(this);
-    if (filter === 'pendingService') {
-      this.loadProgress(false);
+
+    try {
+      const progress = await createProgressRow(app, callApi, {
+        formatDateText,
+        timeDisplay,
+        serviceTypeText
+      });
+      this.setData({ detailProgress: progress, detailLoading: false });
+    } catch (err) {
+      this.setData({
+        detailLoading: false,
+        detailProgress: {
+          delayLine1: '暂无法获取排队信息',
+          delayLine2: '请联系商家确认进度',
+          statusLevel: 'contact',
+          statusText: '建议联系商家',
+          showStatus: true,
+          showHint: false,
+          hasAheadCount: false
+        }
+      });
     }
   },
 
-  closeAllAppointments() {
+  closeDetail() {
     this.setData({
       detailVisible: false,
-      detailFilter: '',
-      detailTitle: '',
-      detailList: []
+      detailAppointment: null,
+      detailProgress: null,
+      detailLoading: false,
+      cancelConfirmVisible: false
     });
     showTabBar(this, { selected: 1 });
+  },
+
+  refreshDetailProgress() {
+    const app = this.data.detailAppointment;
+    if (!app) return;
+    this.setData({ detailLoading: true });
+    createProgressRow(app, callApi, {
+      formatDateText,
+      timeDisplay,
+      serviceTypeText
+    }).then(progress => {
+      this.setData({ detailProgress: progress, detailLoading: false });
+    }).catch(() => {
+      this.setData({ detailLoading: false });
+      wx.showToast({ title: '刷新失败', icon: 'none' });
+    });
+  },
+
+  showCancelConfirm() {
+    this.setData({ cancelConfirmVisible: true });
+  },
+
+  hideCancelConfirm() {
+    this.setData({ cancelConfirmVisible: false });
+  },
+
+  confirmDetailCancel() {
+    const app = this.data.detailAppointment;
+    if (!app || !app.canCancel) return;
+    this.doCancel(app.id, true);
   },
 
   openStoreNavigation() {
@@ -258,7 +351,7 @@ Page({
     wx.showModal({
       title: '退出登录',
       content: '确定退出当前手机号登录吗？',
-      success: (res) => {
+      success: res => {
         if (!res.confirm) return;
         clearVerifiedPhone();
         wx.removeStorageSync('admin_session');
@@ -266,14 +359,12 @@ Page({
           phone: '',
           maskedPhone: '',
           isAdmin: false,
-          detailVisible: false,
-          detailFilter: '',
-          detailTitle: '',
-          detailList: [],
+          appointmentTab: 'pendingService',
+          tabLabel: '待服务',
+          displayList: [],
           stats: computeStats([], []),
           currentAppointments: [],
-          historyAppointments: [],
-          progressRows: []
+          historyAppointments: []
         });
         showTabBar(this, { selected: 1 });
       }
@@ -305,84 +396,75 @@ Page({
     }
   },
 
+  buildStylistMap(stylists) {
+    const map = {};
+    (Array.isArray(stylists) ? stylists : []).forEach(stylist => {
+      map[stylist.id] = stylist;
+    });
+    return map;
+  },
+
   async loadData(options = {}) {
     if (!this.data.phone) return;
     const { showLoading = true } = options;
     if (showLoading) wx.showLoading({ title: '加载中' });
     try {
-      const [current, history] = await Promise.all([
+      const [current, history, stylists] = await Promise.all([
         callApi('queryAppointments', { phone: this.data.phone }),
-        callApi('queryAppointmentHistory', { phone: this.data.phone })
+        callApi('queryAppointmentHistory', { phone: this.data.phone }),
+        callApi('getStylists')
       ]);
-      const currentAppointments = this.decorateList(current && current.appointments);
-      const historyAppointments = this.decorateList(history && history.appointments);
+      const stylistMap = this.buildStylistMap(stylists);
+      const currentAppointments = this.decorateList(current && current.appointments, stylistMap);
+      const historyAppointments = this.decorateList(history && history.appointments, stylistMap);
       if (showLoading) wx.hideLoading();
-      this.setData({ currentAppointments, historyAppointments });
+      this.setData({ currentAppointments, historyAppointments, stylistMap });
       this.updateStats(currentAppointments, historyAppointments);
-      await this.loadProgress(false);
     } catch (err) {
       if (showLoading) wx.hideLoading();
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
   },
 
-  decorateList(list) {
-    return (Array.isArray(list) ? list : []).map(app => ({
-      ...app,
-      dateText: formatDateText(app.date),
-      timeDisplay: timeDisplay(app),
-      serviceTypeText: serviceTypeText(app.serviceType),
-      statusText: statusText(app.status)
-    }));
+  decorateList(list, stylistMap = {}) {
+    return (Array.isArray(list) ? list : []).map(app => {
+      const stylist = stylistMap[app.stylistId] || {};
+      const cardStatusText = statusText(app.status);
+      return {
+        ...app,
+        dateText: formatDateText(app.date),
+        dateCardText: formatDateCard(app.date),
+        weekdayText: weekdayText(app.date),
+        timeDisplay: timeDisplay(app),
+        serviceTypeText: serviceTypeText(app.serviceType),
+        serviceDesc: serviceDesc(app.serviceType),
+        statusText: cardStatusText,
+        cardStatusText,
+        statusClass: statusClass(app.status),
+        cardBgUrl: app.serviceType === 'dye' ? PERM_BG : HAIRCUT_BG,
+        stylistName: stylist.name || '店长',
+        stylistRank: stylist.rank || '',
+        stylistAvatar: app.serviceType === 'dye' ? STYLIST_AVATAR_DYE : STYLIST_AVATAR_CUT
+      };
+    });
   },
 
-  async loadProgress(showLoading = true) {
-    if (!this.data.phone) return;
-    if (showLoading) wx.showLoading({ title: '查询中' });
+  async doCancel(id, closeDetailAfterSuccess = false) {
+    wx.showLoading({ title: '取消中' });
     try {
-      const data = await callApi('queryAppointments', { phone: this.data.phone });
-      const appointments = Array.isArray(data && data.appointments) ? data.appointments : [];
-      const rows = [];
-      for (const app of appointments) {
-        rows.push(await this.buildProgressRow(app));
+      const data = await callApi('cancelAppointments', { appointmentIds: [id] });
+      wx.hideLoading();
+      wx.showToast({
+        title: data && data.success ? '已取消' : ((data && data.message) || '取消失败'),
+        icon: data && data.success ? 'success' : 'none'
+      });
+      if (data && data.success) {
+        if (closeDetailAfterSuccess) this.closeDetail();
+        this.loadData({ showLoading: false });
       }
-      if (showLoading) wx.hideLoading();
-      this.setData({ progressRows: rows });
     } catch (err) {
-      if (showLoading) wx.hideLoading();
-      wx.showToast({ title: '获取排队信息失败', icon: 'none' });
+      wx.hideLoading();
+      wx.showToast({ title: '取消失败', icon: 'none' });
     }
-  },
-
-  buildProgressRow(app) {
-    return createProgressRow(app, callApi, {
-      formatDateText,
-      timeDisplay,
-      serviceTypeText
-    });
-  },
-
-  cancelOne(e) {
-    const id = e.currentTarget.dataset.id;
-    wx.showModal({
-      title: '取消预约',
-      content: '确定取消该预约吗？',
-      success: async res => {
-        if (!res.confirm) return;
-        wx.showLoading({ title: '取消中' });
-        try {
-          const data = await callApi('cancelAppointments', { appointmentIds: [id] });
-          wx.hideLoading();
-          wx.showToast({
-            title: data && data.success ? '已取消' : ((data && data.message) || '取消失败'),
-            icon: data && data.success ? 'success' : 'none'
-          });
-          if (data && data.success) this.loadData({ showLoading: false });
-        } catch (err) {
-          wx.hideLoading();
-          wx.showToast({ title: '取消失败', icon: 'none' });
-        }
-      }
-    });
   }
 });

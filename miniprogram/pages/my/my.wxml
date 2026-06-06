@@ -16,34 +16,131 @@
     </view>
   </view>
 
-  <view class="stats-card">
-    <view class="stats-header">
-      <view class="stats-title">我的预约</view>
+  <view class="booking-card-wrap">
+    <view class="booking-header">
+      <view class="booking-title">我的预约</view>
     </view>
-    <view class="stats-grid">
-      <view class="stats-item" bindtap="openStatsDetail" data-type="pendingService">
-        <view class="stats-icon-wrap">
-          <image class="stats-icon-img" src="/images/stats-pending.svg" mode="aspectFit"></image>
-        </view>
-        <view class="stats-label">待服务</view>
-        <view class="stats-num">{{stats.pendingService}}</view>
+
+    <view class="booking-tabs">
+      <view
+        class="booking-tab {{appointmentTab === 'pendingService' ? 'active' : ''}}"
+        bindtap="switchAppointmentTab"
+        data-tab="pendingService"
+      >
+        <text class="tab-label">待服务</text>
+        <text class="tab-count">{{stats.pendingService}}</text>
+        <view wx:if="{{appointmentTab === 'pendingService'}}" class="tab-indicator"></view>
       </view>
-      <view class="stats-divider"></view>
-      <view class="stats-item" bindtap="openStatsDetail" data-type="completed">
-        <view class="stats-icon-wrap">
-          <image class="stats-icon-img" src="/images/stats-completed.svg" mode="aspectFit"></image>
-        </view>
-        <view class="stats-label">已完成</view>
-        <view class="stats-num">{{stats.completed}}</view>
+      <view
+        class="booking-tab {{appointmentTab === 'completed' ? 'active' : ''}}"
+        bindtap="switchAppointmentTab"
+        data-tab="completed"
+      >
+        <text class="tab-label">已完成</text>
+        <text class="tab-count">{{stats.completed}}</text>
+        <view wx:if="{{appointmentTab === 'completed'}}" class="tab-indicator"></view>
       </view>
-      <view class="stats-divider"></view>
-      <view class="stats-item" bindtap="openStatsDetail" data-type="cancelled">
-        <view class="stats-icon-wrap">
-          <image class="stats-icon-img" src="/images/stats-cancelled.svg" mode="aspectFit"></image>
-        </view>
-        <view class="stats-label">已取消</view>
-        <view class="stats-num">{{stats.cancelled}}</view>
+      <view
+        class="booking-tab {{appointmentTab === 'cancelled' ? 'active' : ''}}"
+        bindtap="switchAppointmentTab"
+        data-tab="cancelled"
+      >
+        <text class="tab-label">已取消</text>
+        <text class="tab-count">{{stats.cancelled}}</text>
+        <view wx:if="{{appointmentTab === 'cancelled'}}" class="tab-indicator"></view>
       </view>
+    </view>
+
+    <view wx:if="{{!phone}}" class="booking-empty">请先手机号快速登录</view>
+    <view wx:elif="{{displayList.length === 0}}" class="booking-empty">暂无{{tabLabel}}记录</view>
+    <view wx:else class="booking-list">
+      <view wx:for="{{displayList}}" wx:key="id" class="appt-card">
+        <image class="appt-card-bg" src="{{item.cardBgUrl}}" mode="widthFix"></image>
+        <view class="appt-card-body">
+          <view class="appt-card-main">
+            <view class="appt-status {{item.statusClass}}">{{item.cardStatusText}}</view>
+            <view class="appt-datetime">{{item.dateCardText}} {{item.weekdayText}} {{item.timeDisplay}}</view>
+            <view class="appt-meta">
+              <text class="appt-appid">预约号：{{item.appId}}</text>
+              <text class="appt-service">{{item.serviceDesc}}</text>
+            </view>
+            <view class="appt-stylist">
+              <view class="appt-avatar">
+                <image class="appt-avatar-img" src="{{item.stylistAvatar}}" mode="aspectFill"></image>
+              </view>
+              <view class="appt-stylist-info">
+                <view class="appt-stylist-name">{{item.stylistName}}</view>
+                <view wx:if="{{item.stylistRank}}" class="appt-stylist-rank">{{item.stylistRank}}</view>
+              </view>
+            </view>
+          </view>
+          <view
+            wx:if="{{appointmentTab === 'pendingService'}}"
+            class="appt-detail-btn"
+            bindtap="viewAppointmentDetail"
+            data-id="{{item.id}}"
+          >查看详情 ›</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="booking-footer">
+      <view class="booking-footer-left">{{displayList.length > 0 ? '没有更多预约了' : '暂无预约记录'}}</view>
+      <view class="booking-footer-link" bindtap="goToBooking">去预约 ›</view>
+    </view>
+  </view>
+
+  <view wx:if="{{detailVisible}}" class="detail-mask" bindtap="closeDetail"></view>
+  <view class="detail-modal {{detailVisible ? 'show' : ''}}">
+    <view class="detail-modal-header">
+      <view class="detail-modal-title">预约详情</view>
+      <view class="detail-modal-close" bindtap="closeDetail">×</view>
+    </view>
+
+    <view wx:if="{{detailAppointment}}" class="detail-summary">
+      <view class="detail-summary-top">
+        <view class="detail-status pending">待服务</view>
+        <view class="detail-datetime">{{detailAppointment.dateCardText}} {{detailAppointment.weekdayText}} {{detailAppointment.timeDisplay}}</view>
+      </view>
+      <view class="detail-meta-row">
+        <text>预约号 {{detailAppointment.appId}}</text>
+        <text class="detail-meta-dot">·</text>
+        <text>{{detailAppointment.serviceDesc}}</text>
+      </view>
+    </view>
+
+    <view class="detail-progress-card {{detailProgress.statusLevel || ''}}">
+      <view class="detail-progress-head">
+        <view class="detail-progress-label">排队进度</view>
+        <view class="detail-progress-refresh" bindtap="refreshDetailProgress">刷新</view>
+      </view>
+      <view wx:if="{{detailLoading}}" class="detail-progress-loading">正在获取排队信息...</view>
+      <block wx:elif="{{detailProgress}}">
+        <view wx:if="{{detailProgress.showStatus}}" class="detail-progress-status {{detailProgress.statusLevel}}">{{detailProgress.statusText}}</view>
+        <view class="detail-progress-line">
+          <block wx:if="{{detailProgress.hasAheadCount}}">您前面约有<text class="detail-queue-num">{{detailProgress.aheadCount}}</text>单待完成</block>
+          <block wx:else>{{detailProgress.delayLine1}}</block>
+        </view>
+        <view wx:if="{{detailProgress.delayLine2}}" class="detail-progress-line second">
+          <text>{{detailProgress.delayLine2}}</text><text wx:if="{{detailProgress.numberPart}}" class="detail-wait-range {{detailProgress.statusLevel}}">{{detailProgress.numberPart}}</text>
+        </view>
+        <view wx:if="{{detailProgress.showHint}}" class="detail-progress-hint">排队信息仅供参考，请以商家现场进度为准</view>
+      </block>
+    </view>
+
+    <view wx:if="{{detailAppointment && detailAppointment.reason}}" class="detail-reason">{{detailAppointment.reason}}</view>
+
+    <view wx:if="{{detailAppointment && detailAppointment.canCancel}}" class="detail-actions">
+      <block wx:if="{{!cancelConfirmVisible}}">
+        <view class="detail-cancel-btn" bindtap="showCancelConfirm">取消预约</view>
+      </block>
+      <block wx:else>
+        <view class="detail-cancel-confirm">确定取消该预约吗？取消后名额将释放给其他顾客。</view>
+        <view class="detail-actions-row">
+          <view class="detail-action-btn muted" bindtap="hideCancelConfirm">再想想</view>
+          <view class="detail-action-btn danger" bindtap="confirmDetailCancel">确认取消</view>
+        </view>
+      </block>
     </view>
   </view>
 
@@ -88,68 +185,5 @@
         <text class="action-arrow">›</text>
       </view>
     </view>
-  </view>
-
-  <view wx:if="{{detailVisible}}" class="detail-mask" bindtap="closeAllAppointments"></view>
-  <view class="detail-panel {{detailVisible ? 'show' : ''}}">
-    <view class="detail-header">
-      <view class="detail-title">{{detailTitle}}</view>
-      <view class="detail-close" bindtap="closeAllAppointments">×</view>
-    </view>
-
-    <scroll-view class="detail-scroll" scroll-y>
-      <view class="detail-section">
-        <view wx:if="{{!phone}}" class="empty">请先手机号快速登录</view>
-        <view wx:elif="{{detailList.length === 0}}" class="empty">暂无{{detailTitle}}记录</view>
-        <block wx:elif="{{detailFilter === 'pendingService'}}">
-          <view wx:for="{{detailList}}" wx:key="id" class="appointment-card">
-            <view class="appointment-card-row">
-              <view class="appointment-main">
-                <view class="appointment-title">{{item.dateText}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
-                <view class="appointment-sub">预约号: {{item.appId}}</view>
-                <view class="appointment-sub">状态: {{item.statusText}}</view>
-              </view>
-              <view wx:if="{{item.canCancel}}" class="compact-btn danger" bindtap="cancelOne" data-id="{{item.id}}">取消预约</view>
-            </view>
-            <view wx:if="{{item.reason}}" class="appointment-reason">{{item.reason}}</view>
-          </view>
-        </block>
-        <block wx:else>
-          <view wx:for="{{detailList}}" wx:key="id" class="history-row">
-            <view>
-              <view class="appointment-title">{{item.dateText}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
-              <view class="appointment-sub">预约号: {{item.appId}}</view>
-            </view>
-            <text class="status {{item.status}}">{{item.statusText}}</text>
-          </view>
-        </block>
-      </view>
-
-      <view wx:if="{{detailFilter === 'pendingService' && detailList.length > 0}}" class="detail-section">
-        <view class="detail-section-head">
-          <view class="detail-section-title">排队信息</view>
-          <view class="compact-btn" bindtap="loadProgress">刷新</view>
-        </view>
-        <view class="progress-disclaimer">排队信息仅供参考，每单服务时长不固定，请以商家现场进度为准。</view>
-        <view wx:if="{{progressRows.length === 0}}" class="empty">暂无排队信息</view>
-        <view wx:for="{{progressRows}}" wx:key="key" class="progress-card {{item.statusLevel}}">
-          <view class="progress-card-top">
-            <view class="progress-card-main">
-              <view class="appointment-title">{{item.dateStr}} {{item.timeDisplay}} - {{item.serviceTypeText}}</view>
-              <view class="appointment-sub">预约号: {{item.appId}}</view>
-            </view>
-            <view wx:if="{{item.showStatus}}" class="progress-status {{item.statusLevel}}">{{item.statusText}}</view>
-          </view>
-          <view class="progress-line">
-            <block wx:if="{{item.hasAheadCount}}">您前面约有<text class="queue-num"> {{item.aheadCount}} </text>单待完成</block>
-            <block wx:else>{{item.delayLine1}}</block>
-          </view>
-          <view wx:if="{{item.delayLine2}}" class="progress-line second">
-            <text>{{item.delayLine2}}</text><text wx:if="{{item.numberPart}}" class="wait-range {{item.statusLevel}}"> {{item.numberPart}}</text>
-          </view>
-          <view wx:if="{{item.showHint}}" class="progress-hint">实际等待以服务进度为准，不确定请联系商家</view>
-        </view>
-      </view>
-    </scroll-view>
   </view>
 </view>
