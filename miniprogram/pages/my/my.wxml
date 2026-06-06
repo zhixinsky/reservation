@@ -83,7 +83,7 @@
         </view>
         <view class="action-text">
           <view class="action-title">反馈建议</view>
-          <view class="action-sub">在线客服，倾听您的意见</view>
+          <view class="action-sub">直接向开发者反馈问题与建议</view>
         </view>
         <text class="action-arrow">›</text>
       </view>
