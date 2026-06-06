@@ -6,7 +6,9 @@ const { setTabBarState, showTabBar, hideTabBar } = require('../../utils/tab-bar'
 const SHOP_INFO = {
   name: '欧诺造型',
   phone: '17675610733',
-  address: '广州市白云区白灰场南路2号'
+  address: '广州市白云区白灰场南路2号',
+  latitude: 23.186084,
+  longitude: 113.322553
 };
 
 const PROFILE_BG =
@@ -130,7 +132,7 @@ Page({
       this.setPhone(phone);
     }
     if (shouldLoadData) {
-      this.loadData();
+      this.loadData({ showLoading: false });
     }
   },
 
@@ -194,6 +196,21 @@ Page({
   },
 
   openStoreNavigation() {
+    if (wx.openLocation && SHOP_INFO.latitude && SHOP_INFO.longitude) {
+      wx.openLocation({
+        latitude: SHOP_INFO.latitude,
+        longitude: SHOP_INFO.longitude,
+        scale: 18,
+        name: SHOP_INFO.name,
+        address: SHOP_INFO.address,
+        fail: () => this.copyStoreAddress()
+      });
+      return;
+    }
+    this.copyStoreAddress();
+  },
+
+  copyStoreAddress() {
     wx.setClipboardData({
       data: SHOP_INFO.address,
       success: () => {
@@ -257,16 +274,17 @@ Page({
       }
       setVerifiedPhone(data.phone);
       this.setPhone(data.phone);
-      this.loadData();
+      this.loadData({ showLoading: true });
     } catch (err) {
       wx.hideLoading();
       wx.showToast({ title: '手机号登录失败', icon: 'none' });
     }
   },
 
-  async loadData() {
+  async loadData(options = {}) {
     if (!this.data.phone) return;
-    wx.showLoading({ title: '加载中' });
+    const { showLoading = true } = options;
+    if (showLoading) wx.showLoading({ title: '加载中' });
     try {
       const [current, history] = await Promise.all([
         callApi('queryAppointments', { phone: this.data.phone }),
@@ -274,12 +292,12 @@ Page({
       ]);
       const currentAppointments = this.decorateList(current && current.appointments);
       const historyAppointments = this.decorateList(history && history.appointments);
-      wx.hideLoading();
+      if (showLoading) wx.hideLoading();
       this.setData({ currentAppointments, historyAppointments });
       this.updateStats(currentAppointments, historyAppointments);
       await this.loadProgress(false);
     } catch (err) {
-      wx.hideLoading();
+      if (showLoading) wx.hideLoading();
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
   },
@@ -391,7 +409,7 @@ Page({
             title: data && data.success ? '已取消' : ((data && data.message) || '取消失败'),
             icon: data && data.success ? 'success' : 'none'
           });
-          if (data && data.success) this.loadData();
+          if (data && data.success) this.loadData({ showLoading: false });
         } catch (err) {
           wx.hideLoading();
           wx.showToast({ title: '取消失败', icon: 'none' });
