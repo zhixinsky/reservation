@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "我的预约"
+  "navigationBarTitleText": "我的",
+  "navigationBarBackgroundColor": "#F3F5F4",
+  "backgroundColor": "#F3F5F4"
 }

@@ -40,7 +40,7 @@ WX_APPSECRET=你的小程序 AppSecret
 
 如果未填写 `MYSQL_DATABASE`，后端默认使用并自动创建 `reservation_system` 数据库。
 
-手机号快速验证：小程序前端只拿手机号授权 `code`，后端调用微信 `getuserphonenumber` 接口换取手机号。
+手机号快速登录：小程序前端只拿手机号授权 `code`，后端调用微信 `getuserphonenumber` 接口换取手机号。
 
 ### 云托管手机号接口问题
 

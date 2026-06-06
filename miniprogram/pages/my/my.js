@@ -1,4 +1,14 @@
 const { callApi } = require('../../utils/api');
+const { getVerifiedPhone, setVerifiedPhone, clearVerifiedPhone } = require('../../utils/phone-auth');
+
+const SHOP_INFO = {
+  name: '欧诺造型',
+  phone: '17675610733',
+  address: '广州市白云区白灰场南路2号'
+};
+
+const PROFILE_BG =
+  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/bg.png';
 
 function formatDateText(ymd) {
   const parts = String(ymd || '').split('-');
@@ -33,23 +43,87 @@ function formatWaitTime(totalMinutes) {
   return { line2: '按您预约时间到店需等待 ', numberPart: `${h} 小时 ${m} 分钟` };
 }
 
+function computeStats(currentList, historyList) {
+  const current = Array.isArray(currentList) ? currentList : [];
+  const history = Array.isArray(historyList) ? historyList : [];
+  return {
+    pendingService: current.length,
+    completed: history.filter(item => item.status === 'completed').length,
+    cancelled: history.filter(item => item.status === 'cancelled').length
+  };
+}
+
+function buildDetailList(filter, currentList, historyList) {
+  const current = Array.isArray(currentList) ? currentList : [];
+  const history = Array.isArray(historyList) ? historyList : [];
+  if (filter === 'pendingService') return current;
+  if (filter === 'completed') return history.filter(item => item.status === 'completed');
+  if (filter === 'cancelled') return history.filter(item => item.status === 'cancelled');
+  return [];
+}
+
+const DETAIL_TITLES = {
+  all: '我的预约',
+  pendingService: '待服务',
+  completed: '已完成',
+  cancelled: '已取消'
+};
+
 Page({
   data: {
+    profileBgUrl: PROFILE_BG,
     phone: '',
     maskedPhone: '',
-    subtitleText: '授权手机号后查看预约记录',
+    detailVisible: false,
+    detailFilter: 'all',
+    detailTitle: '我的预约',
+    detailList: [],
+    stats: {
+      pendingService: 0,
+      completed: 0,
+      cancelled: 0
+    },
     currentAppointments: [],
     historyAppointments: [],
     progressRows: []
   },
 
+  onLoad() {
+    this.restorePhoneSession(false);
+  },
+
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 1 });
+      this.getTabBar().setData({ selected: 1, visible: !this.data.detailVisible });
     }
-    const phone = wx.getStorageSync('verified_phone') || '';
-    if (phone && phone !== this.data.phone) {
+    this.restorePhoneSession(true);
+  },
+
+  onHide() {
+    if (this.data.detailVisible) {
+      this.setData({ detailVisible: false });
+    }
+  },
+
+  restorePhoneSession(shouldLoadData) {
+    const phone = getVerifiedPhone();
+    if (!phone) {
+      if (this.data.phone) {
+        this.setData({
+          phone: '',
+          maskedPhone: '',
+          stats: computeStats([], []),
+          currentAppointments: [],
+          historyAppointments: [],
+          progressRows: []
+        });
+      }
+      return;
+    }
+    if (phone !== this.data.phone) {
       this.setPhone(phone);
+    }
+    if (shouldLoadData) {
       this.loadData();
     }
   },
@@ -57,30 +131,140 @@ Page({
   setPhone(phone) {
     this.setData({
       phone,
-      maskedPhone: phone ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : '',
-      subtitleText: phone ? `手机号 ${phone.slice(0, 3)}****${phone.slice(-4)}` : '授权手机号后查看预约记录'
+      maskedPhone: phone ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : ''
+    });
+  },
+
+  updateStats(currentList, historyList) {
+    this.setData({
+      stats: computeStats(currentList, historyList)
+    });
+    this.refreshDetailListIfOpen();
+  },
+
+  refreshDetailListIfOpen() {
+    const { detailVisible, detailFilter, currentAppointments, historyAppointments } = this.data;
+    if (!detailVisible || detailFilter === 'all') return;
+    this.setData({
+      detailList: buildDetailList(detailFilter, currentAppointments, historyAppointments)
+    });
+  },
+
+  openStatsDetail(e) {
+    const type = e.currentTarget.dataset.type;
+    if (!type) return;
+    this.openDetailPanel(type);
+  },
+
+  async openAllAppointments() {
+    await this.openDetailPanel('all');
+  },
+
+  async openDetailPanel(filter) {
+    if (!this.data.phone) {
+      wx.showToast({ title: '请先手机号快速登录', icon: 'none' });
+      return;
+    }
+    if (!this.data.currentAppointments.length && !this.data.historyAppointments.length) {
+      await this.loadData();
+    }
+    const detailList = buildDetailList(filter, this.data.currentAppointments, this.data.historyAppointments);
+    this.setData({
+      detailVisible: true,
+      detailFilter: filter,
+      detailTitle: DETAIL_TITLES[filter] || '我的预约',
+      detailList
+    });
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ visible: false });
+    }
+    if (filter === 'pendingService') {
+      this.loadProgress(false);
+    }
+  },
+
+  closeAllAppointments() {
+    this.setData({
+      detailVisible: false,
+      detailFilter: 'all',
+      detailTitle: '我的预约',
+      detailList: []
+    });
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ visible: true, selected: 1 });
+    }
+  },
+
+  openStoreNavigation() {
+    wx.setClipboardData({
+      data: SHOP_INFO.address,
+      success: () => {
+        wx.showModal({
+          title: '门店地址',
+          content: `${SHOP_INFO.address}\n\n地址已复制，可在地图中搜索导航。`,
+          showCancel: false
+        });
+      }
+    });
+  },
+
+  contactService() {
+    wx.makePhoneCall({
+      phoneNumber: SHOP_INFO.phone,
+      fail: () => {
+        wx.setClipboardData({
+          data: SHOP_INFO.phone,
+          success: () => wx.showToast({ title: '客服电话已复制', icon: 'none' })
+        });
+      }
+    });
+  },
+
+  logout() {
+    wx.showModal({
+      title: '退出登录',
+      content: '确定退出当前手机号登录吗？',
+      success: (res) => {
+        if (!res.confirm) return;
+        clearVerifiedPhone();
+        this.setData({
+          phone: '',
+          maskedPhone: '',
+          detailVisible: false,
+          detailFilter: 'all',
+          detailTitle: '我的预约',
+          detailList: [],
+          stats: computeStats([], []),
+          currentAppointments: [],
+          historyAppointments: [],
+          progressRows: []
+        });
+        if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+          this.getTabBar().setData({ visible: true, selected: 1 });
+        }
+      }
     });
   },
 
   async onPhoneNumber(e) {
     if (!e.detail || !e.detail.code) {
-      wx.showToast({ title: '需要授权手机号', icon: 'none' });
+      wx.showToast({ title: '需要手机号快速登录', icon: 'none' });
       return;
     }
-    wx.showLoading({ title: '验证中' });
+    wx.showLoading({ title: '登录中' });
     try {
       const data = await callApi('getPhoneNumber', { code: e.detail.code });
       wx.hideLoading();
       if (!data || !data.success || !data.phone) {
-        wx.showToast({ title: (data && data.message) || '手机号验证失败', icon: 'none' });
+        wx.showToast({ title: (data && data.message) || '手机号登录失败', icon: 'none' });
         return;
       }
-      wx.setStorageSync('verified_phone', data.phone);
+      setVerifiedPhone(data.phone);
       this.setPhone(data.phone);
       this.loadData();
     } catch (err) {
       wx.hideLoading();
-      wx.showToast({ title: '手机号验证失败', icon: 'none' });
+      wx.showToast({ title: '手机号登录失败', icon: 'none' });
     }
   },
 
@@ -92,11 +276,11 @@ Page({
         callApi('queryAppointments', { phone: this.data.phone }),
         callApi('queryAppointmentHistory', { phone: this.data.phone })
       ]);
+      const currentAppointments = this.decorateList(current && current.appointments);
+      const historyAppointments = this.decorateList(history && history.appointments);
       wx.hideLoading();
-      this.setData({
-        currentAppointments: this.decorateList(current && current.appointments),
-        historyAppointments: this.decorateList(history && history.appointments)
-      });
+      this.setData({ currentAppointments, historyAppointments });
+      this.updateStats(currentAppointments, historyAppointments);
       await this.loadProgress(false);
     } catch (err) {
       wx.hideLoading();
@@ -207,7 +391,10 @@ Page({
         try {
           const data = await callApi('cancelAppointments', { appointmentIds: [id] });
           wx.hideLoading();
-          wx.showToast({ title: data && data.success ? '已取消' : ((data && data.message) || '取消失败'), icon: data && data.success ? 'success' : 'none' });
+          wx.showToast({
+            title: data && data.success ? '已取消' : ((data && data.message) || '取消失败'),
+            icon: data && data.success ? 'success' : 'none'
+          });
           if (data && data.success) this.loadData();
         } catch (err) {
           wx.hideLoading();

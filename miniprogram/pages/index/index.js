@@ -1,4 +1,5 @@
 const { callApi } = require('../../utils/api');
+const { getVerifiedPhone, setVerifiedPhone } = require('../../utils/phone-auth');
 
 const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间 11:00-22:00，请提前预约到店！';
 const EMPTY_ANNOUNCEMENT_TEXT = '暂无公告';
@@ -127,7 +128,7 @@ Page({
 
   async getAuthorizedPhone(e, errorKey) {
     if (!e.detail || !e.detail.code) {
-      this.setData({ [errorKey]: '需要授权手机号后继续操作' });
+      this.setData({ [errorKey]: '需要手机号快速登录后继续操作' });
       return '';
     }
     wx.showLoading({ title: '验证中' });
@@ -138,7 +139,7 @@ Page({
         this.setData({ [errorKey]: (data && data.message) || '手机号验证失败' });
         return '';
       }
-      wx.setStorageSync('verified_phone', data.phone);
+      setVerifiedPhone(data.phone);
       return data.phone;
     } catch (err) {
       wx.hideLoading();
@@ -372,12 +373,57 @@ Page({
     this.openPhoneModal();
   },
 
-  openPhoneModal() {
+  async openPhoneModal() {
+    const verifiedPhone = getVerifiedPhone();
+    if (verifiedPhone) {
+      const blocked = await this.checkExistingAppointmentForDate(verifiedPhone, this.data.selectedDate);
+      if (blocked) {
+        wx.showModal({
+          title: '无法预约',
+          content: blocked,
+          showCancel: false
+        });
+        this.setData({ selectedTimeSlot: [] });
+        if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
+        return;
+      }
+      this.confirmBooking(verifiedPhone);
+      return;
+    }
     this.setData({
       phoneModalVisible: true,
       maskVisible: true,
       phoneError: ''
     });
+  },
+
+  async checkExistingAppointmentForDate(phone, date) {
+    if (!phone || !date) return '';
+    try {
+      const data = await this.callApi('queryAppointments', { phone });
+      if (!data || !data.success) return '';
+      const appointments = Array.isArray(data.appointments) ? data.appointments : [];
+      const existing = appointments.find(app => app.date === date);
+      if (!existing) return '';
+      return `您在该日期已有预约（预约号：${existing.appId}），一个手机号一天内只能预约一次`;
+    } catch (e) {
+      return '';
+    }
+  },
+
+  showBookingError(message) {
+    const text = message || '预约失败，请刷新重试';
+    if (this.data.phoneModalVisible) {
+      this.setData({ phoneError: text });
+      return;
+    }
+    wx.showModal({
+      title: '预约失败',
+      content: text,
+      showCancel: false
+    });
+    this.setData({ selectedTimeSlot: [] });
+    if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
   },
 
   closePhoneModal() {
@@ -397,11 +443,11 @@ Page({
 
   async confirmBooking(phone) {
     if (this.data.selectedServiceType === 'dye' && this.data.selectedTimeSlot.length !== 4) {
-      this.setData({ phoneError: '预约失败，请重新选择时间段' });
+      this.showBookingError('预约失败，请重新选择时间段');
       return;
     }
     if (this.data.selectedServiceType !== 'dye' && this.data.selectedTimeSlot.length !== 1) {
-      this.setData({ phoneError: '请选择一个时间段' });
+      this.showBookingError('请选择一个时间段');
       return;
     }
 
@@ -432,30 +478,35 @@ Page({
           drawerVisible: false,
           maskVisible: true,
           successVisible: true,
-          displayId: data.appId
+          displayId: data.appId,
+          phoneError: ''
         });
         this.setTabBarVisible(false);
       } else {
-        this.setData({ phoneError: (data && data.message) || '预约失败，请刷新重试' });
+        this.showBookingError((data && data.message) || '预约失败，请刷新重试');
       }
     } catch (e) {
       wx.hideLoading();
-      this.setData({ phoneError: '网络错误，请稍后重试' });
+      this.showBookingError('网络错误，请稍后重试');
     }
   },
 
   openCancelModal() {
+    const verifiedPhone = getVerifiedPhone();
     this.setData({
       cancelModalVisible: true,
       maskVisible: true,
-      cancelStep: 1,
-      cancelPhone: '',
+      cancelStep: verifiedPhone ? 2 : 1,
+      cancelPhone: verifiedPhone || '',
       cancelError: '',
       cancelError2: '',
       selectedAppointments: [],
       cancellableAppointments: [],
       nonCancellableAppointments: []
     });
+    if (verifiedPhone) {
+      this.queryAppointments(verifiedPhone);
+    }
   },
 
   closeCancelModal() {
@@ -566,14 +617,18 @@ Page({
   },
 
   openProgressModal() {
+    const verifiedPhone = getVerifiedPhone();
     this.setData({
       progressModalVisible: true,
       maskVisible: true,
-      progressStep: 1,
-      progressPhone: '',
+      progressStep: verifiedPhone ? 2 : 1,
+      progressPhone: verifiedPhone || '',
       progressError: '',
       progressRows: []
     });
+    if (verifiedPhone) {
+      this.queryProgress(verifiedPhone);
+    }
   },
 
   closeProgressModal() {

@@ -70,11 +70,11 @@
   </view>
 
   <view class="phone-modal {{phoneModalVisible ? 'show' : ''}}">
-    <view class="modal-title">授权手机号</view>
+    <view class="modal-title">手机号快速登录</view>
     <view class="modal-hint">用于生成预约号并接收预约提醒</view>
     <view class="error-msg {{phoneError ? 'show' : ''}}">{{phoneError}}</view>
     <view class="btn-group">
-      <button class="confirm-btn" open-type="getPhoneNumber" bindgetphonenumber="onBookingPhoneNumber">手机号快速验证</button>
+      <button class="confirm-btn" open-type="getPhoneNumber" bindgetphonenumber="onBookingPhoneNumber">手机号快速登录</button>
       <button class="confirm-btn secondary" bindtap="closePhoneModal">取 消</button>
     </view>
   </view>
