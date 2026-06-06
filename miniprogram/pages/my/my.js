@@ -78,6 +78,7 @@ Page({
     profileBgUrl: PROFILE_BG,
     phone: '',
     maskedPhone: '',
+    isAdmin: false,
     detailVisible: false,
     detailFilter: '',
     detailTitle: '',
@@ -120,6 +121,7 @@ Page({
         this.setData({
           phone: '',
           maskedPhone: '',
+          isAdmin: false,
           stats: computeStats([], []),
           currentAppointments: [],
           historyAppointments: [],
@@ -130,6 +132,8 @@ Page({
     }
     if (phone !== this.data.phone) {
       this.setPhone(phone);
+    } else {
+      this.setData({ isAdmin: this.hasAdminSession() });
     }
     if (shouldLoadData) {
       this.loadData({ showLoading: false });
@@ -139,8 +143,35 @@ Page({
   setPhone(phone) {
     this.setData({
       phone,
-      maskedPhone: phone ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : ''
+      maskedPhone: phone ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : '',
+      isAdmin: this.hasAdminSession()
     });
+  },
+
+  hasAdminSession() {
+    const session = wx.getStorageSync('admin_session');
+    return !!(session && session.sessionId && session.role === 'stylist');
+  },
+
+  saveAdminSession(session) {
+    if (!session || !session.sessionId || session.role !== 'stylist') return false;
+    wx.setStorageSync('admin_session', {
+      sessionId: session.sessionId,
+      role: session.role,
+      stylistId: session.stylistId,
+      stylistName: session.stylistName,
+      loginTime: Date.now()
+    });
+    this.setData({ isAdmin: true });
+    return true;
+  },
+
+  openAdminDashboard() {
+    if (!this.hasAdminSession()) {
+      wx.showToast({ title: '请先使用管理员手机号登录', icon: 'none' });
+      return;
+    }
+    wx.navigateTo({ url: '/pages/admin-dashboard/admin-dashboard' });
   },
 
   updateStats(currentList, historyList) {
@@ -242,9 +273,11 @@ Page({
       success: (res) => {
         if (!res.confirm) return;
         clearVerifiedPhone();
+        wx.removeStorageSync('admin_session');
         this.setData({
           phone: '',
           maskedPhone: '',
+          isAdmin: false,
           detailVisible: false,
           detailFilter: '',
           detailTitle: '',
@@ -274,6 +307,9 @@ Page({
       }
       setVerifiedPhone(data.phone);
       this.setPhone(data.phone);
+      if (data.isAdmin) {
+        this.saveAdminSession(data.adminSession);
+      }
       this.loadData({ showLoading: true });
     } catch (err) {
       wx.hideLoading();

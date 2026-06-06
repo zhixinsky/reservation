@@ -56,6 +56,50 @@ function formatWechatApiError(e) {
     return '获取手机号失败，请稍后重试';
 }
 
+function normalizePhone(phone) {
+    return String(phone || '').replace(/\D/g, '');
+}
+
+function getAdminPhoneSet() {
+    return new Set(String(process.env.ADMIN_PHONES || '')
+        .split(',')
+        .map(normalizePhone)
+        .filter(Boolean));
+}
+
+function isAdminPhone(phone) {
+    return getAdminPhoneSet().has(normalizePhone(phone));
+}
+
+function findAdminStylistForPhone() {
+    const configuredId = process.env.ADMIN_STYLIST_ID;
+    if (configuredId) {
+        const configuredStylist = stylists.find(s => String(s.id) === String(configuredId));
+        if (configuredStylist) return configuredStylist;
+    }
+    return stylists[0] || null;
+}
+
+function createAdminSessionForPhone(phone) {
+    if (!isAdminPhone(phone)) return null;
+    const stylist = findAdminStylistForPhone();
+    if (!stylist) return null;
+
+    const sessionId = 'stylist_' + stylist.id + '_' + Date.now() + '_phone';
+    dbSessions.create(sessionId, {
+        role: 'stylist',
+        stylistId: stylist.id,
+        username: stylist.name,
+        phone: normalizePhone(phone)
+    });
+    return {
+        sessionId,
+        role: 'stylist',
+        stylistId: stylist.id,
+        stylistName: stylist.name
+    };
+}
+
 async function getWechatAccessToken() {
     if (useWechatCloudOpenApi()) {
         return null;
@@ -106,7 +150,13 @@ app.post('/api/wechat/phone-number', async (req, res) => {
         if (!phoneNumber) {
             return res.json({ success: false, message: (data && data.errmsg) || '获取手机号失败' });
         }
-        res.json({ success: true, phone: phoneNumber });
+        const adminSession = createAdminSessionForPhone(phoneNumber);
+        res.json({
+            success: true,
+            phone: phoneNumber,
+            isAdmin: !!adminSession,
+            adminSession
+        });
     } catch (e) {
         console.error('获取微信手机号失败:', {
             message: e.message,

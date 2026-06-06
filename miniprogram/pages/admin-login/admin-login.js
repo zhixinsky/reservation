@@ -6,16 +6,27 @@ Page({
     password: '',
     loading: false,
     error: '',
-    keyboardHeight: 0
+    keyboardHeight: 0,
+    cardTop: 0,
+    cardPositionReady: false
   },
 
   onLoad() {
     if (wx.onKeyboardHeightChange) {
       this._onKeyboardHeightChange = res => {
-        this.setData({ keyboardHeight: res.height || 0 });
+        const keyboardHeight = res.height || 0;
+        if (keyboardHeight) {
+          this.placeCardAboveKeyboard(keyboardHeight);
+        } else {
+          this.setData({ keyboardHeight: 0 }, () => this.placeCardAtRest());
+        }
       };
       wx.onKeyboardHeightChange(this._onKeyboardHeightChange);
     }
+  },
+
+  onReady() {
+    this.placeCardAtRest();
   },
 
   onUnload() {
@@ -24,17 +35,36 @@ Page({
     }
   },
 
-  onFormFocus() {
-    this.scrollLoginButtonIntoView();
+  noop() {},
+
+  placeCardAtRest() {
+    wx.nextTick(() => {
+      const query = this.createSelectorQuery();
+      query.select('.login-card').boundingClientRect();
+      query.exec(res => {
+        const card = res && res[0];
+        if (!card) return;
+        const sys = wx.getSystemInfoSync();
+        const cardTop = Math.max(16, Math.floor((sys.windowHeight - card.height) / 2));
+        this.setData({ cardTop, cardPositionReady: true });
+      });
+    });
   },
 
-  scrollLoginButtonIntoView() {
-    setTimeout(() => {
-      wx.pageScrollTo({
-        selector: '.login-btn',
-        duration: 200
+  placeCardAboveKeyboard(keyboardHeight) {
+    wx.nextTick(() => {
+      const query = this.createSelectorQuery();
+      query.select('.login-card').boundingClientRect();
+      query.exec(res => {
+        const card = res && res[0];
+        if (!card) return;
+        const sys = wx.getSystemInfoSync();
+        const visibleBottom = sys.windowHeight - keyboardHeight - 16;
+        const minTop = 16;
+        const cardTop = Math.max(minTop, Math.floor(visibleBottom - card.height));
+        this.setData({ keyboardHeight, cardTop });
       });
-    }, 80);
+    });
   },
 
   onUsernameInput(e) {

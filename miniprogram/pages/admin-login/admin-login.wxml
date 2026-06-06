@@ -1,8 +1,5 @@
-<view
-  class="login-page {{keyboardHeight ? 'keyboard-open' : ''}}"
-  style="{{keyboardHeight ? 'padding-bottom:' + (keyboardHeight + 48) + 'px;' : ''}}"
->
-  <view class="login-card">
+<view class="login-page {{keyboardHeight ? 'keyboard-open' : ''}}" catchtouchmove="noop">
+  <view class="login-card {{cardPositionReady ? 'position-ready' : ''}}" style="{{cardPositionReady ? 'top:' + cardTop + 'px;' : ''}}">
     <view class="logo">
       <view class="brand-title">欧诺造型</view>
       <view class="brand-subtitle">智慧管理控制台</view>
@@ -15,10 +12,9 @@
       <input
         class="input"
         value="{{username}}"
-        adjust-position="{{true}}"
-        cursor-spacing="180"
+        adjust-position="{{false}}"
+        cursor-spacing="24"
         bindinput="onUsernameInput"
-        bindfocus="onFormFocus"
         placeholder="请输入用户名"
       />
     </view>
@@ -29,10 +25,9 @@
         class="input"
         value="{{password}}"
         password
-        adjust-position="{{true}}"
-        cursor-spacing="220"
+        adjust-position="{{false}}"
+        cursor-spacing="24"
         bindinput="onPasswordInput"
-        bindfocus="onFormFocus"
         placeholder="请输入密码"
         confirm-type="done"
         bindconfirm="login"

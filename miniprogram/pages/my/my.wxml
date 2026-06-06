@@ -3,7 +3,10 @@
     <image class="profile-bg" src="{{profileBgUrl}}" mode="aspectFill" lazy-load="{{false}}"></image>
     <view class="profile-top">
       <view class="profile-info">
-        <view class="welcome-title">{{phone ? '欢迎回来' : '欢迎来到欧诺造型'}}</view>
+        <view class="welcome-row">
+          <view class="welcome-title">{{phone ? '欢迎回来' : '欢迎来到欧诺造型'}}</view>
+          <view wx:if="{{phone && isAdmin}}" class="admin-entry" bindtap="openAdminDashboard">管理</view>
+        </view>
         <view class="welcome-sub">{{phone ? ('已登录 ' + maskedPhone) : '登录后享受更便捷的预约服务'}}</view>
       </view>
       <view wx:if="{{!phone}}" class="login-btn-wrap">
