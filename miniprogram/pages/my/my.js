@@ -7,8 +7,8 @@ const SHOP_INFO = {
   name: '欧诺造型',
   phone: '17675610733',
   address: '广州市白云区白灰场南路2号',
-  latitude: 23.186084,
-  longitude: 113.322553
+  latitude: 23.185396,
+  longitude: 113.323372
 };
 
 const PROFILE_BG =
