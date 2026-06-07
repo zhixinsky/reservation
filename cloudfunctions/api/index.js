@@ -65,6 +65,11 @@ function isYmdInVacation(stylist, ymd) {
   return ranges.some(r => r.vacationStartDate && r.vacationEndDate && ymd >= r.vacationStartDate && ymd <= r.vacationEndDate);
 }
 
+function resolveStylistStoreId(stylistId, stylists) {
+  const stylist = stylists.find(s => String(s.id) === String(stylistId));
+  return stylist && stylist.storeId != null ? Number(stylist.storeId) : 1;
+}
+
 function publicStylist(stylist) {
   const { password, ...pub } = stylist;
   return pub;
@@ -310,11 +315,15 @@ async function bookAppointment(payload) {
 
   const timeSlots = String(time).includes(',') ? String(time).split(',').map(t => t.trim()).filter(Boolean) : [String(time)];
   const existingForDay = await getAll(COLLECTIONS.appointments, { phone, date: targetDate });
-  const validExisting = existingForDay.filter(app => app.status !== 'cancelled' && app.status !== 'completed');
+  const validExisting = existingForDay.filter(app =>
+    app.status !== 'cancelled' &&
+    app.status !== 'completed' &&
+    resolveStylistStoreId(app.stylistId, stylists) === Number(storeId)
+  );
   if (validExisting.length > 0) {
     return {
       success: false,
-      message: `您在该日期已有预约（预约号：${validExisting[0].appId}），一个手机号一天内只能预约一次`
+      message: `您在该门店当日已有预约（预约号：${validExisting[0].appId}），同一门店一天内只能预约一次`
     };
   }
 

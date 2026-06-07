@@ -324,6 +324,11 @@ function getStoreForStylist(stylist) {
     return dbStores.getById(storeId) || dbStores.getById(1) || dbStores.getAll()[0] || null;
 }
 
+function resolveStylistStoreId(stylistId) {
+    const stylist = stylists.find(s => s.id == stylistId);
+    return stylist && stylist.storeId != null ? Number(stylist.storeId) : 1;
+}
+
 function smsPayloadForStylist(stylist, payload) {
     const store = getStoreForStylist(stylist);
     if (!store) return payload;
@@ -604,17 +609,21 @@ app.post('/api/book', (req, res) => {
         });
     }
     
-    // 检查该手机号在目标日期是否已有有效预约（一个手机号一天内只能预约一次）
-    // 只检查未取消和未完成的预约
+    // 同一手机号在同一门店、同一日期只能预约一次（不同门店互不影响）
+    const targetStoreId = store ? Number(store.id) : resolveStylistStoreId(stylistId);
     const existingAppointments = dbAppointments.find({
         phone: phone,
         date: targetDate
-    }).filter(app => app.status !== 'cancelled' && app.status !== 'completed');
-    
+    }).filter(app =>
+        app.status !== 'cancelled' &&
+        app.status !== 'completed' &&
+        resolveStylistStoreId(app.stylistId) === targetStoreId
+    );
+
     if (existingAppointments.length > 0) {
-        return res.json({ 
-            success: false, 
-            message: `您在该日期已有预约（预约号：${existingAppointments[0].appId}），一个手机号一天内只能预约一次` 
+        return res.json({
+            success: false,
+            message: `您在该门店当日已有预约（预约号：${existingAppointments[0].appId}），同一门店一天内只能预约一次`
         });
     }
     

@@ -814,13 +814,6 @@ Page({
   async proceedToBooking() {
     const verifiedPhone = getVerifiedPhone();
     if (verifiedPhone) {
-      const blocked = await this.checkExistingAppointmentForDate(verifiedPhone, this.data.selectedDate);
-      if (blocked) {
-        this.showBlockedBookingModal(blocked);
-        this.setData({ selectedTimeSlot: [] });
-        if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
-        return;
-      }
       this.confirmBooking(verifiedPhone);
       return;
     }
@@ -831,17 +824,29 @@ Page({
     }, () => syncIndexTabBar(this));
   },
 
-  async checkExistingAppointmentForDate(phone, date) {
+  async checkExistingAppointmentForDate(phone, date, storeId) {
     if (!phone || !date) return null;
+    const targetStoreId = Number(storeId || this.data.selectedStoreId || 1);
     try {
-      const data = await this.callApi('queryAppointments', { phone });
+      const [data, stylists] = await Promise.all([
+        this.callApi('queryAppointments', { phone }),
+        this.callApi('getStylists', {})
+      ]);
       if (!data || !data.success) return null;
+      const stylistStoreMap = {};
+      (Array.isArray(stylists) ? stylists : []).forEach((stylist) => {
+        stylistStoreMap[stylist.id] = stylist.storeId != null ? Number(stylist.storeId) : 1;
+      });
       const appointments = Array.isArray(data.appointments) ? data.appointments : [];
-      const existing = appointments.find(app => app.date === date);
+      const existing = appointments.find((app) => {
+        if (app.date !== date) return false;
+        const appStoreId = stylistStoreMap[app.stylistId] != null ? stylistStoreMap[app.stylistId] : 1;
+        return appStoreId === targetStoreId;
+      });
       if (!existing) return null;
       return {
         appId: existing.appId,
-        message: '一个手机号一天内只能预约一次'
+        message: '同一门店一天内只能预约一次'
       };
     } catch (e) {
       return null;
@@ -929,6 +934,19 @@ Page({
     }
     if (this.data.selectedServiceType !== 'dye' && this.data.selectedTimeSlot.length !== 1) {
       this.showBookingError('请选择一个时间段');
+      return;
+    }
+
+    const blocked = await this.checkExistingAppointmentForDate(
+      phone,
+      this.data.selectedDate,
+      this.data.selectedStoreId
+    );
+    if (blocked) {
+      this.setData({ phoneModalVisible: false });
+      this.showBlockedBookingModal(blocked);
+      this.setData({ selectedTimeSlot: [] });
+      if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
       return;
     }
 
