@@ -65,34 +65,36 @@
       <view wx:for="{{displayList}}" wx:key="id" id="{{index === 0 ? 'bookingApptCard' : ''}}" class="appt-card">
         <image class="appt-card-bg" src="{{item.cardBgUrl}}" mode="widthFix"></image>
         <view class="appt-card-body">
-          <view class="appt-card-main">
-            <view class="appt-card-header">
-              <view class="appt-status {{item.statusClass}}">{{item.cardStatusText}}</view>
-              <view wx:if="{{item.storeName}}" class="appt-store-capsule">
-                <text class="appt-store-capsule-name">{{item.storeName}}</text>
-              </view>
-            </view>
-            <view class="appt-datetime">{{item.dateCardText}} {{item.weekdayText}} {{item.timeDisplay}}</view>
-            <view class="appt-meta">
-              <text class="appt-appid">预约号：{{item.appId}}</text>
-              <text class="appt-service">{{item.serviceDesc}}</text>
-            </view>
-            <view class="appt-stylist">
-              <view class="appt-avatar">
-                <image class="appt-avatar-img" src="{{item.stylistAvatar}}" mode="aspectFill"></image>
-              </view>
-              <view class="appt-stylist-info">
-                <view class="appt-stylist-name">{{item.stylistName}}</view>
-                <view wx:if="{{item.stylistRank}}" class="appt-stylist-rank">{{item.stylistRank}}</view>
-              </view>
+          <view class="appt-card-header">
+            <view class="appt-status {{item.statusClass}}">{{item.cardStatusText}}</view>
+            <view wx:if="{{item.storeName}}" class="appt-store-capsule">
+              <text class="appt-store-capsule-name">{{item.storeName}}</text>
             </view>
           </view>
-          <view
-            wx:if="{{appointmentTab === 'pendingService'}}"
-            class="appt-detail-btn"
-            bindtap="viewAppointmentDetail"
-            data-id="{{item.id}}"
-          >查看详情 ›</view>
+          <view class="appt-card-content">
+            <view class="appt-card-main">
+              <view class="appt-datetime">{{item.dateCardText}} {{item.weekdayText}} {{item.timeDisplay}}</view>
+              <view class="appt-meta">
+                <text class="appt-appid">预约号：{{item.appId}}</text>
+                <text class="appt-service">{{item.serviceDesc}}</text>
+              </view>
+              <view class="appt-stylist">
+                <view class="appt-avatar">
+                  <image class="appt-avatar-img" src="{{item.stylistAvatar}}" mode="aspectFill"></image>
+                </view>
+                <view class="appt-stylist-info">
+                  <view class="appt-stylist-name">{{item.stylistName}}</view>
+                  <view wx:if="{{item.stylistRank}}" class="appt-stylist-rank">{{item.stylistRank}}</view>
+                </view>
+              </view>
+            </view>
+            <view
+              wx:if="{{appointmentTab === 'pendingService'}}"
+              class="appt-detail-btn"
+              bindtap="viewAppointmentDetail"
+              data-id="{{item.id}}"
+            >查看详情 ›</view>
+          </view>
         </view>
       </view>
       </view>
