@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>平台管理 · 预约系统</title>
   <link rel="stylesheet" href="/platform/vendor/cropperjs/cropper.min.css">
-  <link rel="stylesheet" href="/platform/app.css?v=9">
+  <link rel="stylesheet" href="/platform/app.css?v=11">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -144,6 +144,21 @@
               </fieldset>
               <fieldset class="form-section">
                 <legend>展示与通知</legend>
+                <div class="field field-full store-bg-field">
+                  <span>预约页背景图</span>
+                  <div class="store-bg-row">
+                    <div class="store-bg-preview-wrap">
+                      <img id="storeBgPreview" class="store-bg-preview" alt="门店背景预览" hidden>
+                      <div id="storeBgPlaceholder" class="store-bg-placeholder">默认背景</div>
+                    </div>
+                    <div class="store-bg-actions">
+                      <button type="button" class="btn btn-secondary" id="btnPickStoreBg">上传背景图</button>
+                      <p class="field-hint">推荐尺寸 750 × 1624 px，裁剪比例 9:19.5。重要内容请放在画面中央。未上传时使用默认 img/background.png。</p>
+                      <p id="storeBgHint" class="field-hint" hidden>请先保存门店，再上传背景图。</p>
+                    </div>
+                    <input type="file" id="storeBgInput" accept="image/jpeg,image/png,image/webp" hidden>
+                  </div>
+                </div>
                 <label class="field field-full"><span>首页公告</span><textarea id="storeAnnouncement" rows="3"></textarea></label>
                 <label class="field field-full"><span>小程序链接</span><input id="storeMiniUrl"></label>
               </fieldset>
@@ -358,21 +373,41 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <div id="avatarCropModal" class="avatar-crop-modal" hidden>
-    <div class="avatar-crop-backdrop" id="avatarCropBackdrop"></div>
-    <div class="avatar-crop-dialog glass">
-      <div class="avatar-crop-head">
+  <div id="storeBgCropModal" class="image-crop-modal" hidden>
+    <div class="image-crop-backdrop" id="storeBgCropBackdrop"></div>
+    <div class="image-crop-dialog glass">
+      <div class="image-crop-head">
+        <h3>裁剪背景图</h3>
+        <button type="button" class="image-crop-close" id="storeBgCropClose" aria-label="关闭">×</button>
+      </div>
+      <div class="store-bg-crop-stage">
+        <div class="image-crop-image-box">
+          <img id="storeBgCropImage" alt="背景裁剪预览">
+        </div>
+      </div>
+      <p class="image-crop-tip">比例 9:19.5，推荐导出 750 × 1624 px。拖动图片、滚轮缩放，框内区域为预约页全屏背景。</p>
+      <div class="image-crop-actions">
+        <button type="button" class="btn btn-ghost" id="storeBgCropCancel">取消</button>
+        <button type="button" class="btn btn-primary" id="storeBgCropConfirm">确认上传</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="avatarCropModal" class="image-crop-modal" hidden>
+    <div class="image-crop-backdrop" id="avatarCropBackdrop"></div>
+    <div class="image-crop-dialog glass">
+      <div class="image-crop-head">
         <h3>裁剪头像</h3>
-        <button type="button" class="avatar-crop-close" id="avatarCropClose" aria-label="关闭">×</button>
+        <button type="button" class="image-crop-close" id="avatarCropClose" aria-label="关闭">×</button>
       </div>
       <div class="avatar-crop-stage">
-        <div class="avatar-crop-image-box">
+        <div class="image-crop-image-box">
           <img id="avatarCropImage" alt="裁剪预览">
         </div>
         <div class="avatar-crop-circle-mask" aria-hidden="true"></div>
       </div>
-      <p class="avatar-crop-tip">拖动图片调整位置，滚轮缩放，圆形区域内为最终头像</p>
-      <div class="avatar-crop-actions">
+      <p class="image-crop-tip">拖动图片调整位置，滚轮缩放，圆形区域内为最终头像</p>
+      <div class="image-crop-actions">
         <button type="button" class="btn btn-ghost" id="avatarCropCancel">取消</button>
         <button type="button" class="btn btn-primary" id="avatarCropConfirm">确认上传</button>
       </div>
@@ -380,6 +415,6 @@
   </div>
 
   <script src="/platform/vendor/cropperjs/cropper.min.js"></script>
-  <script src="/platform/app.js?v=13"></script>
+  <script src="/platform/app.js?v=15"></script>
 </body>
 </html>

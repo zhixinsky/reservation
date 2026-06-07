@@ -178,6 +178,7 @@ async function ensureDatabase() {
             defaultBlockedSlots JSON NULL,
             dyeSlotCount INT NOT NULL DEFAULT 4,
             announcementText TEXT NULL,
+            backgroundImage VARCHAR(512) DEFAULT '',
             smsCompanyName VARCHAR(64) DEFAULT '',
             miniProgramUrl VARCHAR(255) DEFAULT '',
             createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -241,6 +242,11 @@ async function ensureDatabase() {
     if (!phoneCol.length) {
         await pool.query(`ALTER TABLE stylists ADD COLUMN phone VARCHAR(32) NOT NULL DEFAULT '' AFTER username`);
         await pool.query(`CREATE INDEX idx_stylists_phone ON stylists (phone)`);
+    }
+
+    const [bgCol] = await pool.query(`SHOW COLUMNS FROM stores LIKE 'backgroundImage'`);
+    if (!bgCol.length) {
+        await pool.query(`ALTER TABLE stores ADD COLUMN backgroundImage VARCHAR(512) NOT NULL DEFAULT '' AFTER announcementText`);
     }
 
     await seedDefaultStoreIfEmpty();
@@ -324,6 +330,7 @@ function normalizeStoreRow(row) {
         defaultBlockedSlots: parseJsonArray(row.defaultBlockedSlots, ['12:00-12:30', '18:00-18:30']),
         dyeSlotCount: Number(row.dyeSlotCount) || 4,
         announcementText: row.announcementText || '',
+        backgroundImage: row.backgroundImage || '',
         smsCompanyName: row.smsCompanyName || '',
         miniProgramUrl: row.miniProgramUrl || '',
         createdAt: row.createdAt,
@@ -747,14 +754,14 @@ const stores = {
             INSERT INTO stores (
                 name, code, status, address, phone, latitude, longitude,
                 workStart, workEnd, slotIntervalMinutes, bookAheadDays,
-                defaultBlockedSlots, dyeSlotCount, announcementText, smsCompanyName, miniProgramUrl
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                defaultBlockedSlots, dyeSlotCount, announcementText, backgroundImage, smsCompanyName, miniProgramUrl
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             row.name, row.code, row.status, row.address, row.phone,
             row.latitude, row.longitude, row.workStart, row.workEnd,
             row.slotIntervalMinutes, row.bookAheadDays,
             JSON.stringify(row.defaultBlockedSlots), row.dyeSlotCount,
-            row.announcementText, row.smsCompanyName, row.miniProgramUrl
+            row.announcementText, row.backgroundImage, row.smsCompanyName, row.miniProgramUrl
         ]));
         return row;
     },
@@ -769,14 +776,14 @@ const stores = {
                 name = ?, code = ?, status = ?, address = ?, phone = ?,
                 latitude = ?, longitude = ?, workStart = ?, workEnd = ?,
                 slotIntervalMinutes = ?, bookAheadDays = ?, defaultBlockedSlots = ?,
-                dyeSlotCount = ?, announcementText = ?, smsCompanyName = ?, miniProgramUrl = ?
+                dyeSlotCount = ?, announcementText = ?, backgroundImage = ?, smsCompanyName = ?, miniProgramUrl = ?
             WHERE id = ?
         `, [
             merged.name, merged.code, merged.status, merged.address, merged.phone,
             merged.latitude, merged.longitude, merged.workStart, merged.workEnd,
             merged.slotIntervalMinutes, merged.bookAheadDays,
             JSON.stringify(merged.defaultBlockedSlots), merged.dyeSlotCount,
-            merged.announcementText, merged.smsCompanyName, merged.miniProgramUrl,
+            merged.announcementText, merged.backgroundImage, merged.smsCompanyName, merged.miniProgramUrl,
             merged.id
         ]));
         return merged;

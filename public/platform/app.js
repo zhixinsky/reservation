@@ -9,6 +9,12 @@
   let storeQrcodeObjectUrl = '';
   let avatarCropper = null;
   let avatarCropObjectUrl = '';
+  let storeBgCropper = null;
+  let storeBgCropObjectUrl = '';
+
+  const STORE_BG_ASPECT_RATIO = 9 / 19.5;
+  const STORE_BG_EXPORT_WIDTH = 750;
+  const STORE_BG_EXPORT_HEIGHT = 1624;
 
   const AUDIT_ACTION_LABELS = {
     'auth.login': '平台登录',
@@ -444,6 +450,142 @@
     preview.src = appendCacheBust(value);
   }
 
+  function resetStoreBgPreview() {
+    const preview = $('#storeBgPreview');
+    const placeholder = $('#storeBgPlaceholder');
+    if (preview) {
+      preview.removeAttribute('src');
+      preview.hidden = true;
+    }
+    if (placeholder) placeholder.hidden = false;
+  }
+
+  function setStoreBgPreview(url) {
+    const preview = $('#storeBgPreview');
+    const placeholder = $('#storeBgPlaceholder');
+    const value = String(url || '').trim();
+    if (!preview || !placeholder) return;
+    if (!isBrowserDisplayablePhoto(value)) {
+      if (!value) resetStoreBgPreview();
+      return;
+    }
+    preview.hidden = false;
+    placeholder.hidden = true;
+    preview.src = appendCacheBust(value);
+  }
+
+  function updateStoreBgControls() {
+    const id = $('#storeId').value;
+    const hasId = !!id;
+    const pickBtn = $('#btnPickStoreBg');
+    const hint = $('#storeBgHint');
+    if (pickBtn) pickBtn.disabled = !hasId;
+    if (hint) hint.hidden = hasId;
+  }
+
+  async function refreshStoreBgPreview(storeId, fallbackUrl) {
+    if (!storeId) return;
+    try {
+      const data = await api(`/stores/${storeId}`);
+      if (!data.success || !data.store) return;
+      const remote = data.store.backgroundImagePreviewUrl || data.store.backgroundImage || '';
+      if (isBrowserDisplayablePhoto(remote)) {
+        setStoreBgPreview(remote);
+        return;
+      }
+    } catch (_) { /* ignore */ }
+    if (isBrowserDisplayablePhoto(fallbackUrl)) {
+      setStoreBgPreview(fallbackUrl);
+    }
+  }
+
+  async function uploadStoreBackgroundImage(storeId, imageBase64) {
+    return api(`/stores/${storeId}/background`, { method: 'POST', json: { imageBase64 } });
+  }
+
+  function destroyStoreBgCropper() {
+    if (storeBgCropper) {
+      storeBgCropper.destroy();
+      storeBgCropper = null;
+    }
+    if (storeBgCropObjectUrl) {
+      URL.revokeObjectURL(storeBgCropObjectUrl);
+      storeBgCropObjectUrl = '';
+    }
+  }
+
+  function closeStoreBgCropModal() {
+    destroyStoreBgCropper();
+    const modal = $('#storeBgCropModal');
+    const image = $('#storeBgCropImage');
+    if (image) {
+      image.onload = null;
+      image.onerror = null;
+      image.removeAttribute('src');
+    }
+    if (modal) modal.hidden = true;
+  }
+
+  function initStoreBgCropper(image) {
+    if (!image || !window.Cropper) return;
+    if (storeBgCropper) {
+      storeBgCropper.destroy();
+      storeBgCropper = null;
+    }
+    storeBgCropper = new window.Cropper(image, {
+      aspectRatio: STORE_BG_ASPECT_RATIO,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 1,
+      background: false,
+      responsive: true,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: true,
+      cropBoxMovable: false,
+      cropBoxResizable: false,
+      toggleDragModeOnDblclick: false,
+      zoomable: true,
+      zoomOnWheel: true,
+      wheelZoomRatio: 0.08,
+      scalable: false,
+      ready() {
+        this.cropper.crop();
+      }
+    });
+  }
+
+  function openStoreBgCropModal(file) {
+    if (!file) return;
+    if (!window.Cropper) return toast('裁剪组件未加载，请刷新页面重试');
+    destroyStoreBgCropper();
+    const modal = $('#storeBgCropModal');
+    const image = $('#storeBgCropImage');
+    if (!modal || !image) return;
+
+    modal.hidden = false;
+    image.onload = () => {
+      window.requestAnimationFrame(() => initStoreBgCropper(image));
+    };
+    image.onerror = () => toast('图片加载失败，请换一张重试');
+    image.removeAttribute('src');
+    storeBgCropObjectUrl = URL.createObjectURL(file);
+    image.src = storeBgCropObjectUrl;
+  }
+
+  function getStoreBgCroppedBase64(cropper) {
+    if (!cropper) throw new Error('裁剪器未就绪');
+    const canvas = cropper.getCroppedCanvas({
+      width: STORE_BG_EXPORT_WIDTH,
+      height: STORE_BG_EXPORT_HEIGHT,
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: 'high'
+    });
+    if (!canvas || !canvas.width) throw new Error('裁剪失败，请重试');
+    return canvas.toDataURL('image/jpeg', 0.9);
+  }
+
   async function refreshStylistAvatarPreview(stylistId, fallbackUrl) {
     if (!stylistId) return;
     try {
@@ -726,6 +868,12 @@
     $('#storeBlocked').value = (s.defaultBlockedSlots || []).join('\n');
     $('#storeAnnouncement').value = s.announcementText || '';
     $('#storeMiniUrl').value = s.miniProgramUrl || '';
+    if (s.backgroundImage || s.backgroundImagePreviewUrl) {
+      setStoreBgPreview(s.backgroundImagePreviewUrl || s.backgroundImage || '');
+    } else {
+      resetStoreBgPreview();
+    }
+    updateStoreBgControls();
     setRoute('store-edit');
     $('#panel-store-edit').hidden = false;
     $('#pageTitle').textContent = `编辑 · ${s.name}`;
@@ -736,6 +884,8 @@
     clearStoreQrcode();
     $('#storeId').value = '';
     $('#storeForm').reset();
+    resetStoreBgPreview();
+    updateStoreBgControls();
     $('#storeWorkStart').value = '11:00';
     $('#storeWorkEnd').value = '22:30';
     $('#storeInterval').value = 30;
@@ -1019,6 +1169,59 @@
           toast('上传失败');
         } finally {
           avatarCropConfirm.disabled = false;
+        }
+      });
+    }
+
+    const btnPickStoreBg = $('#btnPickStoreBg');
+    const storeBgInput = $('#storeBgInput');
+    if (btnPickStoreBg && storeBgInput) {
+      btnPickStoreBg.addEventListener('click', () => {
+        if (!$('#storeId').value) return toast('请先保存门店后再上传背景图');
+        storeBgInput.click();
+      });
+      storeBgInput.addEventListener('change', () => {
+        const file = storeBgInput.files && storeBgInput.files[0];
+        storeBgInput.value = '';
+        if (!file) return;
+        if (!$('#storeId').value) return toast('请先保存门店后再上传背景图');
+        if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) {
+          return toast('请选择 JPG、PNG 或 WebP 图片');
+        }
+        if (file.size > 5 * 1024 * 1024) return toast('图片不能超过 5MB');
+        openStoreBgCropModal(file);
+      });
+    }
+    const storeBgCropClose = $('#storeBgCropClose');
+    const storeBgCropCancel = $('#storeBgCropCancel');
+    const storeBgCropBackdrop = $('#storeBgCropBackdrop');
+    const storeBgCropConfirm = $('#storeBgCropConfirm');
+    [storeBgCropClose, storeBgCropCancel, storeBgCropBackdrop].forEach((el) => {
+      if (el) el.addEventListener('click', closeStoreBgCropModal);
+    });
+    if (storeBgCropConfirm) {
+      storeBgCropConfirm.addEventListener('click', async () => {
+        const storeId = $('#storeId').value;
+        if (!storeId) return toast('请先保存门店后再上传背景图');
+        if (!storeBgCropper) return toast('请先选择图片');
+        let imageBase64 = '';
+        try {
+          imageBase64 = getStoreBgCroppedBase64(storeBgCropper);
+        } catch (err) {
+          return toast((err && err.message) || '裁剪失败，请重试');
+        }
+        storeBgCropConfirm.disabled = true;
+        try {
+          const data = await uploadStoreBackgroundImage(storeId, imageBase64);
+          if (!data.success) return toast(data.message || '上传失败');
+          closeStoreBgCropModal();
+          setStoreBgPreview(imageBase64);
+          toast('背景图已上传');
+          refreshStoreBgPreview(storeId, imageBase64);
+        } catch (_) {
+          toast('上传失败');
+        } finally {
+          storeBgCropConfirm.disabled = false;
         }
       });
     }

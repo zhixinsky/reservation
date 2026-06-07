@@ -3,7 +3,11 @@
  */
 const express = require('express');
 const { clampBookAheadDays } = require('./slot-config');
-const { uploadStylistAvatar, resolvePhotoPreviewUrl } = require('./avatar-upload');
+const {
+    uploadStylistAvatar,
+    uploadStoreBackground,
+    resolveImagePreviewUrl
+} = require('./image-upload');
 
 const STORE_NAME_MAX_LEN = 6;
 
@@ -428,13 +432,50 @@ function createPlatformRouter(deps) {
         }
     });
 
-    router.get('/stores/:id', requirePlatformAdmin, (req, res) => {
+    router.get('/stores/:id', requirePlatformAdmin, async (req, res) => {
         const store = dbStores.getById(req.params.id);
         if (!store) return res.status(404).json({ success: false, message: '门店不存在' });
+        const backgroundImagePreviewUrl = await resolveImagePreviewUrl(store.backgroundImage, wechatApi);
         const storeStylists = stylists
             .filter(s => stylistStoreId(s) === Number(store.id))
             .map(s => ({ id: s.id, name: s.name, rank: s.rank || '', username: s.username }));
-        res.json({ success: true, store, stylists: storeStylists });
+        res.json({
+            success: true,
+            store: {
+                ...store,
+                backgroundImagePreviewUrl: backgroundImagePreviewUrl || store.backgroundImage || ''
+            },
+            stylists: storeStylists
+        });
+    });
+
+    router.post('/stores/:id/background', requirePlatformAdmin, async (req, res) => {
+        try {
+            const store = dbStores.getById(req.params.id);
+            if (!store) return res.status(404).json({ success: false, message: '门店不存在' });
+            const upload = await uploadStoreBackground(
+                req.params.id,
+                req.body && req.body.imageBase64,
+                wechatApi
+            );
+            if (!upload.ok) return res.json({ success: false, message: upload.message || '上传失败' });
+            const row = dbStores.update(req.params.id, { backgroundImage: upload.photo });
+            if (!row) return res.status(404).json({ success: false, message: '门店不存在' });
+            writeAudit(req, 'store.update', {
+                targetType: 'store',
+                targetId: row.id,
+                storeId: row.id,
+                detail: { name: row.name, fields: ['backgroundImage'] }
+            });
+            res.json({
+                success: true,
+                backgroundImage: upload.photo,
+                previewUrl: upload.previewUrl || upload.photo,
+                store: row
+            });
+        } catch (e) {
+            res.json({ success: false, message: e.message || '上传失败' });
+        }
     });
 
     router.post('/stores', requirePlatformAdmin, (req, res) => {
@@ -709,7 +750,7 @@ function createPlatformRouter(deps) {
     router.get('/stylists/:id', requirePlatformAdmin, async (req, res) => {
         const stylist = dbStylistAccounts.getById(req.params.id);
         if (!stylist) return res.status(404).json({ success: false, message: '发型师不存在' });
-        const photoPreviewUrl = await resolvePhotoPreviewUrl(stylist.photo, wechatApi);
+        const photoPreviewUrl = await resolveImagePreviewUrl(stylist.photo, wechatApi);
         res.json({
             success: true,
             stylist: { ...stylist, photoPreviewUrl: photoPreviewUrl || stylist.photo || '' }

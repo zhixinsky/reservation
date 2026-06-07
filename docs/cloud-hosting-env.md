@@ -81,6 +81,8 @@
 
 上传成功后，可在对象存储控制台看到 `avatar/stylist-{id}.jpg`。
 
+门店预约页背景图同样走 `tcb/uploadfile`，路径为 `img/store-{id}-background.jpg`；平台裁剪比例 **9:19.5**，推荐导出 **750×1624 px**；未上传时小程序使用默认 `img/background.png`。
+
 ---
 
 ## 六、首次启动默认门店种子（可选）

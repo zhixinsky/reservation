@@ -433,12 +433,56 @@ button, input, select, textarea {
   min-width: 220px;
 }
 
-#btnPickStylistAvatar:disabled {
+#btnPickStylistAvatar:disabled,
+#btnPickStoreBg:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.avatar-crop-modal {
+.store-bg-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.store-bg-preview-wrap {
+  width: 108px;
+  height: 234px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f2f2f7;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.store-bg-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.store-bg-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 10px;
+}
+
+.store-bg-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 240px;
+}
+
+.image-crop-modal {
   position: fixed;
   inset: 0;
   z-index: 2000;
@@ -448,32 +492,32 @@ button, input, select, textarea {
   padding: 24px;
 }
 
-.avatar-crop-backdrop {
+.image-crop-backdrop {
   position: absolute;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
 }
 
-.avatar-crop-dialog {
+.image-crop-dialog {
   position: relative;
   width: min(560px, 100%);
   border-radius: var(--radius-lg);
   padding: 20px;
 }
 
-.avatar-crop-head {
+.image-crop-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
 }
 
-.avatar-crop-head h3 {
+.image-crop-head h3 {
   font-size: 18px;
   font-weight: 700;
 }
 
-.avatar-crop-close {
+.image-crop-close {
   width: 36px;
   height: 36px;
   border: none;
@@ -485,6 +529,16 @@ button, input, select, textarea {
   cursor: pointer;
 }
 
+.image-crop-image-box {
+  width: 100%;
+  height: 100%;
+}
+
+.image-crop-image-box > img {
+  display: block;
+  max-width: 100%;
+}
+
 .avatar-crop-stage {
   position: relative;
   width: 100%;
@@ -492,16 +546,6 @@ button, input, select, textarea {
   overflow: hidden;
   border-radius: 12px;
   background: #111827;
-}
-
-.avatar-crop-image-box {
-  width: 100%;
-  height: 100%;
-}
-
-.avatar-crop-image-box > img {
-  display: block;
-  max-width: 100%;
 }
 
 .avatar-crop-stage .cropper-container {
@@ -520,6 +564,21 @@ button, input, select, textarea {
   background-color: transparent;
 }
 
+.store-bg-crop-stage {
+  position: relative;
+  width: min(280px, 100%);
+  margin: 0 auto;
+  aspect-ratio: 9 / 19.5;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #111827;
+}
+
+.store-bg-crop-stage .cropper-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .avatar-crop-circle-mask {
   position: absolute;
   inset: 0;
@@ -528,13 +587,14 @@ button, input, select, textarea {
   background: radial-gradient(circle at center, transparent 140px, rgba(15, 23, 42, 0.55) 141px);
 }
 
-.avatar-crop-tip {
+.image-crop-tip {
   margin-top: 12px;
   font-size: 13px;
   color: var(--text-secondary);
+  line-height: 1.45;
 }
 
-.avatar-crop-actions {
+.image-crop-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;

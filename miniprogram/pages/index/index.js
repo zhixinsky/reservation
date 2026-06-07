@@ -8,11 +8,10 @@ const {
   parseLaunchStoreId,
   formatStoreName
 } = require('../../utils/store-context');
+const { DEFAULT_PAGE_BG, resolveStorePageBg } = require('../../utils/store-background');
 
 const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间 11:00-22:00，请提前预约到店！';
 const EMPTY_ANNOUNCEMENT_TEXT = '暂无公告';
-const PAGE_BG =
-  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/background.png';
 const { resolveStylistAvatar } = require('../../utils/stylist-avatar');
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
@@ -106,7 +105,7 @@ function serviceTypeText(serviceType) {
 
 Page({
   data: {
-    pageBgUrl: PAGE_BG,
+    pageBgUrl: DEFAULT_PAGE_BG,
     announcementText: DEFAULT_ANNOUNCEMENT_TEXT,
     announcementScrollable: false,
     announcementTrackStyle: '',
@@ -503,7 +502,8 @@ Page({
         selectedStoreName,
         storeCapsuleWidth: estimateStoreCapsuleWidthRpx(selectedStoreName),
         bookAheadDays: clampBookAheadDays(selectedStore.bookAheadDays),
-        storeMenuVisible: false
+        storeMenuVisible: false,
+        pageBgUrl: resolveStorePageBg(selectedStore)
       }, () => this.refineStoreCapsuleWidth());
       if (ctx.fromScan && ctx.selectedStore && ctx.selectedStore.name) {
         wx.showToast({ title: `已进入${ctx.selectedStore.name}`, icon: 'none', duration: 2000 });
@@ -585,7 +585,8 @@ Page({
       selectedStoreName,
       storeCapsuleWidth: estimateStoreCapsuleWidthRpx(selectedStoreName),
       bookAheadDays: clampBookAheadDays(store.bookAheadDays),
-      storeMenuVisible: false
+      storeMenuVisible: false,
+      pageBgUrl: resolveStorePageBg(store)
     }, () => this.refineStoreCapsuleWidth());
     await this.initStylists(id);
     this.loadAnnouncement();

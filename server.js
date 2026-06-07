@@ -28,7 +28,7 @@ const {
     isDateWithinBookAhead
 } = require('./slot-config');
 const { createPlatformRouter } = require('./platform-routes');
-const { ensureAvatarDir } = require('./avatar-upload');
+const { ensureAvatarDir, ensureImgDir } = require('./image-upload');
 const app = express();
 app.use(bodyParser.json({ limit: '5mb' }));
 // 静态文件延后挂载，确保 /api 等路由优先匹配（见文件末尾）
@@ -429,7 +429,8 @@ app.get('/api/stores', (req, res) => {
             latitude: s.latitude != null ? Number(s.latitude) : null,
             longitude: s.longitude != null ? Number(s.longitude) : null,
             bookAheadDays: clampBookAheadDays(s.bookAheadDays),
-            status: s.status
+            status: s.status,
+            backgroundImage: s.backgroundImage || ''
         }));
     res.set('Cache-Control', 'no-store');
     res.json(list);
@@ -1733,6 +1734,7 @@ const PORT = process.env.PORT || 3000;
 dbReady.then(async () => {
     try {
         ensureAvatarDir();
+        ensureImgDir();
         await dbStylistAccounts.seedFromConfigIfEmpty(getBootstrapStylists());
         dbStylistAccounts.syncToArray(stylists);
         applyPersistedVacationsToStylists(stylists);
