@@ -78,6 +78,10 @@ Page({
     refreshTimer: null,
     phoneModalVisible: false,
     phoneError: '',
+    confirmModalVisible: false,
+    confirmServiceLabel: '',
+    confirmDateLabel: '',
+    confirmTimeLabel: '',
     successVisible: false,
     displayId: '',
     cancelModalVisible: false,
@@ -126,6 +130,7 @@ Page({
         drawerVisible: false,
         maskVisible: false,
         phoneModalVisible: false,
+        confirmModalVisible: false,
         successVisible: false,
         cancelModalVisible: false,
         progressModalVisible: false,
@@ -551,15 +556,54 @@ Page({
         return;
       }
       this.setData({ selectedTimeSlot: selectedSlots });
-      setTimeout(() => this.openPhoneModal(), 100);
+      setTimeout(() => this.openConfirmModal(), 100);
       return;
     }
 
     this.setData({ selectedTimeSlot: [time] });
-    this.openPhoneModal();
+    this.openConfirmModal();
   },
 
-  async openPhoneModal() {
+  buildConfirmSummary() {
+    const tab = this.data.dateTabs.find(t => t.date === this.data.selectedDate);
+    const dateLabel = tab ? `${tab.day} ${tab.label}` : formatDateText(this.data.selectedDate);
+    const slots = this.data.selectedTimeSlot;
+    let timeLabel = '';
+    if (this.data.selectedServiceType === 'dye' && slots.length > 1) {
+      timeLabel = `${formatTimeDisplay(slots[0])} - ${formatTimeDisplay(slots[slots.length - 1])}`;
+    } else if (slots.length) {
+      timeLabel = formatTimeDisplay(slots[0]);
+    }
+    return {
+      confirmServiceLabel: serviceTypeText(this.data.selectedServiceType),
+      confirmDateLabel: dateLabel,
+      confirmTimeLabel: timeLabel
+    };
+  },
+
+  openConfirmModal() {
+    this.setData({
+      confirmModalVisible: true,
+      maskVisible: true,
+      ...this.buildConfirmSummary()
+    }, () => syncIndexTabBar(this));
+  },
+
+  closeConfirmModal() {
+    this.setData({
+      confirmModalVisible: false,
+      maskVisible: this.data.drawerVisible,
+      selectedTimeSlot: []
+    }, () => syncIndexTabBar(this));
+    if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
+  },
+
+  async onConfirmBooking() {
+    this.setData({ confirmModalVisible: false }, () => syncIndexTabBar(this));
+    await this.proceedToBooking();
+  },
+
+  async proceedToBooking() {
     const verifiedPhone = getVerifiedPhone();
     if (verifiedPhone) {
       const blocked = await this.checkExistingAppointmentForDate(verifiedPhone, this.data.selectedDate);
@@ -906,6 +950,7 @@ Page({
         drawerVisible: false,
         maskVisible: false,
         phoneModalVisible: false,
+        confirmModalVisible: false,
         successVisible: false,
         cancelModalVisible: false,
         progressModalVisible: false,

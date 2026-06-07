@@ -80,6 +80,28 @@
     </scroll-view>
   </view>
 
+  <view class="phone-modal confirm-modal {{confirmModalVisible ? 'show' : ''}}">
+    <view class="modal-title">确认预约信息</view>
+    <view class="confirm-info">
+      <view class="confirm-row">
+        <text class="confirm-label">服务项目</text>
+        <text class="confirm-value">{{confirmServiceLabel}}</text>
+      </view>
+      <view class="confirm-row">
+        <text class="confirm-label">预约日期</text>
+        <text class="confirm-value">{{confirmDateLabel}}</text>
+      </view>
+      <view class="confirm-row">
+        <text class="confirm-label">预约时间</text>
+        <text class="confirm-value">{{confirmTimeLabel}}</text>
+      </view>
+    </view>
+    <view class="btn-group">
+      <button class="confirm-btn" bindtap="onConfirmBooking">确认预约</button>
+      <button class="confirm-btn secondary" bindtap="closeConfirmModal">取 消</button>
+    </view>
+  </view>
+
   <view class="phone-modal {{phoneModalVisible ? 'show' : ''}}">
     <view class="modal-title">手机号快速登录</view>
     <view class="modal-hint">用于生成预约号并接收预约提醒</view>
