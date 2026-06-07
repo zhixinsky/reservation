@@ -1,5 +1,5 @@
 const { callApi } = require('../../utils/api');
-const { getCachedStore, formatStoreName } = require('../../utils/store-context');
+const { getCachedStore, formatStoreName, saveStoreSelection } = require('../../utils/store-context');
 const { getVerifiedPhone, setVerifiedPhone, clearVerifiedPhone } = require('../../utils/phone-auth');
 const { getCustomNavPaddingTop } = require('../../utils/custom-nav');
 const { showTabBar, hideTabBar } = require('../../utils/tab-bar');
@@ -133,6 +133,7 @@ Page({
 
   onShow() {
     this.syncStoreDisplay();
+    this.refreshCachedStoreInfo();
     wx.nextTick(() => {
       showTabBar(this, {
         selected: 1,
@@ -148,6 +149,17 @@ Page({
     if (storeName !== this.data.storeName) {
       this.setData({ storeName });
     }
+  },
+
+  async refreshCachedStoreInfo() {
+    const cached = getCachedStore();
+    if (!cached || cached.id == null) return;
+    try {
+      const stores = await callApi('getStores');
+      const list = Array.isArray(stores) ? stores : [];
+      const store = list.find((item) => Number(item.id) === Number(cached.id));
+      if (store) saveStoreSelection(store);
+    } catch (_) { /* ignore */ }
   },
 
   onHide() {
@@ -357,19 +369,20 @@ Page({
 
   getShopInfo() {
     const cached = getCachedStore();
-    if (cached && cached.latitude != null && cached.longitude != null) {
+    if (cached) {
       return {
         name: cached.name || SHOP_INFO.name,
         phone: cached.phone || SHOP_INFO.phone,
-        address: SHOP_INFO.address,
-        latitude: Number(cached.latitude),
-        longitude: Number(cached.longitude)
+        address: cached.address || SHOP_INFO.address,
+        latitude: cached.latitude != null ? Number(cached.latitude) : SHOP_INFO.latitude,
+        longitude: cached.longitude != null ? Number(cached.longitude) : SHOP_INFO.longitude
       };
     }
     return SHOP_INFO;
   },
 
-  openStoreNavigation() {
+  async openStoreNavigation() {
+    await this.refreshCachedStoreInfo();
     const shop = this.getShopInfo();
     if (wx.openLocation && shop.latitude && shop.longitude) {
       wx.openLocation({

@@ -95,6 +95,7 @@ function saveStoreSelection(store) {
   wx.setStorageSync(STORAGE_INFO_KEY, {
     id: Number(store.id),
     name: formatStoreName(store.name),
+    address: String(store.address || '').trim(),
     phone: store.phone || '',
     latitude: store.latitude != null ? Number(store.latitude) : null,
     longitude: store.longitude != null ? Number(store.longitude) : null,

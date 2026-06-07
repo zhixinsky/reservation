@@ -130,6 +130,7 @@ async function getActiveStores() {
     return stores.map(s => ({
       id: s.id,
       name: s.name,
+      address: s.address || '',
       phone: s.phone || '',
       latitude: s.latitude,
       longitude: s.longitude,

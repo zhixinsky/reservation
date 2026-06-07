@@ -430,6 +430,7 @@ app.get('/api/stores', (req, res) => {
         .map(s => ({
             id: s.id,
             name: String(s.name || '').trim().slice(0, 6),
+            address: s.address || '',
             phone: s.phone || '',
             latitude: s.latitude != null ? Number(s.latitude) : null,
             longitude: s.longitude != null ? Number(s.longitude) : null,
