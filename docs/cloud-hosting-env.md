@@ -62,13 +62,24 @@
 
 ---
 
-## 五、仅云函数用户需要（纯云托管可忽略）
+## 五、云开发同步与对象存储（按需）
 
 | 变量名 | 说明 |
 |--------|------|
-| `TCB_ENV_ID` | 云开发环境 ID |
+| `TCB_ENV_ID` | 云托管/云开发环境 ID（如 `reservation-d2gf73dgv8fd17503`）。**发型师头像**上传到对象存储 `avatar/` 目录时也使用此环境 ID |
 | `CLOUD_FUNCTION_NAME` | 云函数名，默认 `api` |
-| `PLATFORM_SYNC_SECRET` | 平台「同步到云开发」密钥 |
+| `PLATFORM_SYNC_SECRET` | 平台「同步到云开发」密钥（与云函数环境变量一致） |
+
+### 发型师头像上传（平台 PC）
+
+头像由**云托管 Express 服务**直接调用微信 `tcb/uploadfile` 写入**云托管对象存储**，不经过云函数。
+
+请在云托管控制台 → **微信令牌权限配置** 中开通：
+
+- `/tcb/uploadfile`
+- `/tcb/batchdownloadfile`
+
+上传成功后，可在对象存储控制台看到 `avatar/stylist-{id}.jpg`。
 
 ---
 

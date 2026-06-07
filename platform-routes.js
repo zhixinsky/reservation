@@ -58,9 +58,20 @@ function createPlatformRouter(deps) {
         syncStylistsRef,
         generateStoreWxacode,
         invokeCloudFunction,
+        getWechatAccessToken,
+        getWechatApiBaseUrl,
+        getWechatRequestConfig,
+        useWechatCloudOpenApi,
         refreshSmsTemplateStatus,
         SMS_ENABLED
     } = deps;
+
+    const wechatApi = {
+        getWechatAccessToken,
+        getWechatApiBaseUrl,
+        getWechatRequestConfig,
+        useWechatCloudOpenApi
+    };
 
     const router = express.Router();
 
@@ -698,7 +709,7 @@ function createPlatformRouter(deps) {
     router.get('/stylists/:id', requirePlatformAdmin, async (req, res) => {
         const stylist = dbStylistAccounts.getById(req.params.id);
         if (!stylist) return res.status(404).json({ success: false, message: '发型师不存在' });
-        const photoPreviewUrl = await resolvePhotoPreviewUrl(stylist.photo, invokeCloudFunction);
+        const photoPreviewUrl = await resolvePhotoPreviewUrl(stylist.photo, wechatApi);
         res.json({
             success: true,
             stylist: { ...stylist, photoPreviewUrl: photoPreviewUrl || stylist.photo || '' }
@@ -712,7 +723,7 @@ function createPlatformRouter(deps) {
             const upload = await uploadStylistAvatar(
                 req.params.id,
                 req.body && req.body.imageBase64,
-                invokeCloudFunction
+                wechatApi
             );
             if (!upload.ok) return res.json({ success: false, message: upload.message || '上传失败' });
             const row = dbStylistAccounts.update(req.params.id, { photo: upload.photo });

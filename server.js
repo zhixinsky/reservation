@@ -386,6 +386,10 @@ app.use('/api/platform', createPlatformRouter({
     syncStylistsRef: () => dbStylistAccounts.syncToArray(stylists),
     generateStoreWxacode,
     invokeCloudFunction,
+    getWechatAccessToken,
+    getWechatApiBaseUrl,
+    getWechatRequestConfig,
+    useWechatCloudOpenApi,
     refreshSmsTemplateStatus,
     SMS_ENABLED
 }));
