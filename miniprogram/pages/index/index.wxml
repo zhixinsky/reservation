@@ -125,7 +125,9 @@
   </view>
 
   <view class="success-modal {{successVisible ? 'show' : ''}}">
-    <view class="success-icon">✓</view>
+    <view class="success-icon">
+      <image class="success-icon-img" src="/images/success-check.svg" mode="aspectFit"></image>
+    </view>
     <view class="success-title">预约成功</view>
     <view class="success-block">
       <view class="success-label">您的预约号</view>
@@ -155,8 +157,6 @@
         </view>
       </view>
     </view>
-    <view class="success-note">到店请出示您的预约号</view>
-    <view class="success-note">取消预约请使用手机号</view>
     <button class="confirm-btn single" bindtap="closeAll">确 认</button>
   </view>
 
