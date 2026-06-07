@@ -13,8 +13,7 @@ const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间
 const EMPTY_ANNOUNCEMENT_TEXT = '暂无公告';
 const PAGE_BG =
   'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/background.png';
-const STYLIST_AVATAR_CUT = '/images/11.png';
-const STYLIST_AVATAR_DYE = '/images/22.png';
+const { resolveStylistAvatar } = require('../../utils/stylist-avatar');
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
 function pad2(n) {
@@ -70,6 +69,19 @@ function clampBookAheadDays(value) {
   return Math.min(3, Math.max(1, Math.round(n)));
 }
 
+/** 按门店名估算胶囊宽度（rpx），最多 6 字完整展示 */
+function estimateStoreCapsuleWidthRpx(name) {
+  const text = String(name || '门店');
+  let textRpx = 0;
+  for (const ch of text) {
+    textRpx += /[\u4e00-\u9fff]/.test(ch) ? 30 : 16;
+  }
+  const arrowRpx = 24;
+  const paddingRpx = 44;
+  const gapRpx = 8;
+  return Math.min(440, Math.max(156, textRpx + arrowRpx + paddingRpx + gapRpx));
+}
+
 function dayLabelForOffset(index) {
   if (index === 0) return '今天';
   if (index === 1) return '明天';
@@ -103,6 +115,7 @@ Page({
     currentId: null,
     currentStylistName: '店长',
     currentStylistRank: '',
+    currentStylistPhoto: '',
     drawerVisible: false,
     maskVisible: false,
     useWorkletDrawer: false,
@@ -133,7 +146,7 @@ Page({
     successTimeLabel: '',
     successStylistName: '',
     successStylistRank: '',
-    successStylistAvatar: STYLIST_AVATAR_CUT,
+    successStylistAvatar: '/images/11.png',
     cancelModalVisible: false,
     cancelStep: 1,
     cancelPhone: '',
@@ -152,6 +165,7 @@ Page({
     storeList: [],
     selectedStoreId: null,
     selectedStoreName: '门店',
+    storeCapsuleWidth: 180,
     bookAheadDays: 3
   },
 
@@ -479,14 +493,18 @@ Page({
         { preferredStoreId: launchId }
       );
       const selectedStore = ctx.selectedStore || {};
+      const activeCount = (ctx.stores || []).length;
+      console.log('[store] 营业门店数:', activeCount, (ctx.stores || []).map((s) => s.name));
+      const selectedStoreName = formatStoreName(selectedStore.name);
       this.setData({
-        storePickerVisible: ctx.showPicker,
+        storePickerVisible: activeCount > 1,
         storeList: ctx.stores,
         selectedStoreId: ctx.storeId,
-        selectedStoreName: formatStoreName(selectedStore.name),
+        selectedStoreName,
+        storeCapsuleWidth: estimateStoreCapsuleWidthRpx(selectedStoreName),
         bookAheadDays: clampBookAheadDays(selectedStore.bookAheadDays),
         storeMenuVisible: false
-      });
+      }, () => this.refineStoreCapsuleWidth());
       if (ctx.fromScan && ctx.selectedStore && ctx.selectedStore.name) {
         wx.showToast({ title: `已进入${ctx.selectedStore.name}`, icon: 'none', duration: 2000 });
       }
@@ -519,11 +537,33 @@ Page({
         currentId: stylist.id,
         currentStylistName: stylist.name || '店长',
         currentStylistRank: stylist.rank || '',
+        currentStylistPhoto: stylist.photo || '',
         bookingDisabled: !hasBookableDayInWindow(stylist, this.data.bookAheadDays)
       });
     } catch (e) {
       console.error('加载发型师信息失败:', e);
     }
+  },
+
+  refineStoreCapsuleWidth() {
+    wx.nextTick(() => {
+      const query = this.createSelectorQuery();
+      query.select('.store-capsule-name').boundingClientRect();
+      query.select('.store-capsule-arrow').boundingClientRect();
+      query.exec((res) => {
+        const nameRect = res && res[0];
+        if (!nameRect || !nameRect.width) return;
+        const arrowRect = res && res[1];
+        const sys = wx.getSystemInfoSync();
+        const toRpx = (px) => (px / sys.windowWidth) * 750;
+        const arrowRpx = arrowRect && arrowRect.width ? toRpx(arrowRect.width) : 24;
+        const measured = Math.ceil(toRpx(nameRect.width) + arrowRpx + 44 + 8);
+        const next = Math.min(440, Math.max(156, measured));
+        if (Math.abs(next - this.data.storeCapsuleWidth) > 2) {
+          this.setData({ storeCapsuleWidth: next });
+        }
+      });
+    });
   },
 
   toggleStoreMenu() {
@@ -539,12 +579,14 @@ Page({
       return;
     }
     saveStoreSelection(store);
+    const selectedStoreName = formatStoreName(store.name);
     this.setData({
       selectedStoreId: id,
-      selectedStoreName: formatStoreName(store.name),
+      selectedStoreName,
+      storeCapsuleWidth: estimateStoreCapsuleWidthRpx(selectedStoreName),
       bookAheadDays: clampBookAheadDays(store.bookAheadDays),
       storeMenuVisible: false
-    });
+    }, () => this.refineStoreCapsuleWidth());
     await this.initStylists(id);
     this.loadAnnouncement();
     if (this.data.drawerVisible) {
@@ -866,7 +908,10 @@ Page({
       successTimeLabel: buildSuccessTimeLabel(serviceType, time, this.data.selectedTimeSlot),
       successStylistName: this.data.currentStylistName || '店长',
       successStylistRank: this.data.currentStylistRank || '',
-      successStylistAvatar: serviceType === 'dye' ? STYLIST_AVATAR_DYE : STYLIST_AVATAR_CUT
+      successStylistAvatar: resolveStylistAvatar(
+        { photo: this.data.currentStylistPhoto },
+        serviceType
+      )
     };
   },
 

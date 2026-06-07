@@ -28,8 +28,9 @@ const {
     isDateWithinBookAhead
 } = require('./slot-config');
 const { createPlatformRouter } = require('./platform-routes');
+const { ensureAvatarDir } = require('./avatar-upload');
 const app = express();
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '5mb' }));
 // 静态文件延后挂载，确保 /api 等路由优先匹配（见文件末尾）
 
 let wechatAccessTokenCache = { token: '', expiresAt: 0 };
@@ -1727,6 +1728,7 @@ app.use(express.static('public'));
 const PORT = process.env.PORT || 3000;
 dbReady.then(async () => {
     try {
+        ensureAvatarDir();
         await dbStylistAccounts.seedFromConfigIfEmpty(getBootstrapStylists());
         dbStylistAccounts.syncToArray(stylists);
         applyPersistedVacationsToStylists(stylists);

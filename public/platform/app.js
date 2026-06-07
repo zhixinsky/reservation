@@ -7,6 +7,8 @@
 
   let storesCache = [];
   let storeQrcodeObjectUrl = '';
+  let avatarCropper = null;
+  let avatarCropObjectUrl = '';
 
   const AUDIT_ACTION_LABELS = {
     'auth.login': '平台登录',
@@ -399,6 +401,110 @@
     });
   }
 
+  function resetStylistAvatarPreview() {
+    const preview = $('#stylistAvatarPreview');
+    const placeholder = $('#stylistAvatarPlaceholder');
+    if (preview) {
+      preview.removeAttribute('src');
+      preview.hidden = true;
+    }
+    if (placeholder) placeholder.hidden = false;
+  }
+
+  function setStylistAvatarPreview(url) {
+    const preview = $('#stylistAvatarPreview');
+    const placeholder = $('#stylistAvatarPlaceholder');
+    const value = String(url || '').trim();
+    if (!preview || !placeholder) return;
+    if (!value) {
+      resetStylistAvatarPreview();
+      return;
+    }
+    preview.src = value;
+    preview.hidden = false;
+    placeholder.hidden = true;
+  }
+
+  function updateStylistAvatarControls() {
+    const id = $('#stylistId').value;
+    const hasId = !!id;
+    const pickBtn = $('#btnPickStylistAvatar');
+    const hint = $('#stylistAvatarHint');
+    if (pickBtn) pickBtn.disabled = !hasId;
+    if (hint) hint.hidden = hasId;
+  }
+
+  function destroyAvatarCropper() {
+    if (avatarCropper) {
+      avatarCropper.destroy();
+      avatarCropper = null;
+    }
+    if (avatarCropObjectUrl) {
+      URL.revokeObjectURL(avatarCropObjectUrl);
+      avatarCropObjectUrl = '';
+    }
+  }
+
+  function closeAvatarCropModal() {
+    destroyAvatarCropper();
+    const modal = $('#avatarCropModal');
+    const image = $('#avatarCropImage');
+    if (image) image.removeAttribute('src');
+    if (modal) modal.hidden = true;
+  }
+
+  function openAvatarCropModal(file) {
+    if (!file || !window.Cropper) return toast('裁剪组件未加载');
+    destroyAvatarCropper();
+    const modal = $('#avatarCropModal');
+    const image = $('#avatarCropImage');
+    if (!modal || !image) return;
+    avatarCropObjectUrl = URL.createObjectURL(file);
+    image.src = avatarCropObjectUrl;
+    modal.hidden = false;
+    const initCropper = () => {
+      if (avatarCropper) {
+        avatarCropper.destroy();
+        avatarCropper = null;
+      }
+      avatarCropper = new window.Cropper(image, {
+        aspectRatio: 1,
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 1,
+        background: false,
+        responsive: true,
+        guides: false,
+        center: true,
+        highlight: false,
+        cropBoxMovable: false,
+        cropBoxResizable: false,
+        toggleDragModeOnDblclick: false
+      });
+    };
+    image.onload = initCropper;
+    if (image.complete) initCropper();
+  }
+
+  function getCircularCroppedBase64(cropper) {
+    const source = cropper.getCroppedCanvas({ width: 320, height: 320, imageSmoothingQuality: 'high' });
+    const size = 320;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(source, 0, 0, size, size);
+    return canvas.toDataURL('image/jpeg', 0.9);
+  }
+
+  async function uploadStylistAvatarImage(stylistId, imageBase64) {
+    return api(`/stylists/${stylistId}/avatar`, { method: 'POST', json: { imageBase64 } });
+  }
+
   async function openStylistEdit(id) {
     const data = await api(`/stylists/${id}`);
     if (!data.success) return toast(data.message || '加载失败');
@@ -413,6 +519,8 @@
     $('#stylistWorkStatus').value = s.workStatus || 'working';
     $('#stylistEnabled').value = s.enabled ? '1' : '0';
     $('#stylistPassword').required = false;
+    setStylistAvatarPreview(s.photoPreviewUrl || s.photo || '');
+    updateStylistAvatarControls();
     setRoute('stylist-edit');
     $('#panel-stylist-edit').hidden = false;
     $('#pageTitle').textContent = `编辑 · ${s.name}`;
@@ -425,6 +533,8 @@
     $('#stylistEnabled').value = '1';
     $('#stylistPassword').required = true;
     if (storesCache[0]) $('#stylistStore').value = storesCache[0].id;
+    resetStylistAvatarPreview();
+    updateStylistAvatarControls();
     setRoute('stylist-edit');
     $('#panel-stylist-edit').hidden = false;
     $('#pageTitle').textContent = '新建发型师';
@@ -797,6 +907,52 @@
     if (btnBackStylists) btnBackStylists.addEventListener('click', () => setRoute('stylists'));
     const btnSaveStylist = $('#btnSaveStylist');
     if (btnSaveStylist) btnSaveStylist.addEventListener('click', saveStylist);
+
+    const btnPickStylistAvatar = $('#btnPickStylistAvatar');
+    const stylistAvatarInput = $('#stylistAvatarInput');
+    if (btnPickStylistAvatar && stylistAvatarInput) {
+      btnPickStylistAvatar.addEventListener('click', () => {
+        if (!$('#stylistId').value) return toast('请先保存发型师后再上传头像');
+        stylistAvatarInput.click();
+      });
+      stylistAvatarInput.addEventListener('change', () => {
+        const file = stylistAvatarInput.files && stylistAvatarInput.files[0];
+        stylistAvatarInput.value = '';
+        if (!file) return;
+        if (!/^image\/(jpeg|jpg|png|webp)$/i.test(file.type)) {
+          return toast('请选择 JPG、PNG 或 WebP 图片');
+        }
+        if (file.size > 5 * 1024 * 1024) return toast('图片不能超过 5MB');
+        openAvatarCropModal(file);
+      });
+    }
+    const avatarCropClose = $('#avatarCropClose');
+    const avatarCropCancel = $('#avatarCropCancel');
+    const avatarCropBackdrop = $('#avatarCropBackdrop');
+    const avatarCropConfirm = $('#avatarCropConfirm');
+    [avatarCropClose, avatarCropCancel, avatarCropBackdrop].forEach((el) => {
+      if (el) el.addEventListener('click', closeAvatarCropModal);
+    });
+    if (avatarCropConfirm) {
+      avatarCropConfirm.addEventListener('click', async () => {
+        const stylistId = $('#stylistId').value;
+        if (!stylistId) return toast('请先保存发型师');
+        if (!avatarCropper) return toast('请先选择图片');
+        const imageBase64 = getCircularCroppedBase64(avatarCropper);
+        avatarCropConfirm.disabled = true;
+        try {
+          const data = await uploadStylistAvatarImage(stylistId, imageBase64);
+          if (!data.success) return toast(data.message || '上传失败');
+          setStylistAvatarPreview(data.previewUrl || data.photo || '');
+          toast('头像已上传');
+          closeAvatarCropModal();
+        } catch (_) {
+          toast('上传失败');
+        } finally {
+          avatarCropConfirm.disabled = false;
+        }
+      });
+    }
 
     const todayPill = $('#todayPill');
     if (todayPill) todayPill.textContent = todayStr();

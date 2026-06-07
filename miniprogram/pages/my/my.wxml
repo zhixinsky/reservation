@@ -4,7 +4,7 @@
     <view class="profile-top">
       <view class="profile-info">
         <view class="welcome-row">
-          <view class="welcome-title">{{phone ? '欢迎回来' : '欢迎来到欧诺造型'}}</view>
+          <view class="welcome-title">{{phone ? '欢迎回来' : '欢迎来到' + storeName}}</view>
           <view wx:if="{{phone && isAdmin}}" class="admin-entry" bindtap="openAdminDashboard">管理</view>
         </view>
         <view class="welcome-sub">{{phone ? ('已登录 ' + maskedPhone) : '登录后享受更便捷的预约服务'}}</view>
@@ -66,7 +66,12 @@
         <image class="appt-card-bg" src="{{item.cardBgUrl}}" mode="widthFix"></image>
         <view class="appt-card-body">
           <view class="appt-card-main">
-            <view class="appt-status {{item.statusClass}}">{{item.cardStatusText}}</view>
+            <view class="appt-card-header">
+              <view class="appt-status {{item.statusClass}}">{{item.cardStatusText}}</view>
+              <view wx:if="{{item.storeName}}" class="appt-store-capsule">
+                <text class="appt-store-capsule-name">{{item.storeName}}</text>
+              </view>
+            </view>
             <view class="appt-datetime">{{item.dateCardText}} {{item.weekdayText}} {{item.timeDisplay}}</view>
             <view class="appt-meta">
               <text class="appt-appid">预约号：{{item.appId}}</text>
@@ -123,18 +128,32 @@
         <view class="detail-progress-label">排队进度</view>
         <view class="detail-progress-refresh" bindtap="refreshDetailProgress">刷新</view>
       </view>
-      <view wx:if="{{detailLoading}}" class="detail-progress-loading">正在获取排队信息...</view>
-      <block wx:elif="{{detailProgress}}">
-        <view wx:if="{{detailProgress.showStatus}}" class="detail-progress-status {{detailProgress.statusLevel}}">{{detailProgress.statusText}}</view>
-        <view class="detail-progress-line">
-          <block wx:if="{{detailProgress.hasAheadCount}}">您前面约有<text class="detail-queue-num">{{detailProgress.aheadCount}}</text>单待完成</block>
-          <block wx:else>{{detailProgress.delayLine1}}</block>
+      <view class="detail-progress-body">
+        <view class="detail-progress-row status-row">
+          <view wx:if="{{detailLoading}}" class="detail-progress-skeleton detail-progress-skeleton-pill"></view>
+          <view
+            wx:elif="{{detailProgress && detailProgress.showStatus}}"
+            class="detail-progress-status {{detailProgress.statusLevel}}"
+          >{{detailProgress.statusText}}</view>
         </view>
-        <view wx:if="{{detailProgress.delayLine2}}" class="detail-progress-line second">
-          <text>{{detailProgress.delayLine2}}</text><text wx:if="{{detailProgress.numberPart}}" class="detail-wait-range {{detailProgress.statusLevel}}">{{detailProgress.numberPart}}</text>
+        <view class="detail-progress-row line-row">
+          <view wx:if="{{detailLoading}}" class="detail-progress-skeleton detail-progress-skeleton-line"></view>
+          <view wx:elif="{{detailProgress}}" class="detail-progress-line">
+            <block wx:if="{{detailProgress.hasAheadCount}}">您前面约有<text class="detail-queue-num">{{detailProgress.aheadCount}}</text>单待完成</block>
+            <block wx:else>{{detailProgress.delayLine1}}</block>
+          </view>
         </view>
-        <view wx:if="{{detailProgress.showHint}}" class="detail-progress-hint">排队信息仅供参考，请以商家现场进度为准</view>
-      </block>
+        <view class="detail-progress-row line-row second">
+          <view wx:if="{{detailLoading}}" class="detail-progress-skeleton detail-progress-skeleton-line short"></view>
+          <view wx:elif="{{detailProgress && detailProgress.delayLine2}}" class="detail-progress-line second">
+            <text>{{detailProgress.delayLine2}}</text><text wx:if="{{detailProgress.numberPart}}" class="detail-wait-range {{detailProgress.statusLevel}}">{{detailProgress.numberPart}}</text>
+          </view>
+        </view>
+        <view class="detail-progress-row hint-row">
+          <view wx:if="{{detailLoading}}" class="detail-progress-skeleton detail-progress-skeleton-line hint"></view>
+          <view wx:elif="{{detailProgress && detailProgress.showHint}}" class="detail-progress-hint">排队信息仅供参考，请以商家现场进度为准</view>
+        </view>
+      </view>
     </view>
 
     <view wx:if="{{detailAppointment && detailAppointment.reason}}" class="detail-reason">{{detailAppointment.reason}}</view>

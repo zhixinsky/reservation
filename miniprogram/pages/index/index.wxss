@@ -37,63 +37,75 @@
   top: calc(16rpx + constant(safe-area-inset-top));
   top: calc(16rpx + env(safe-area-inset-top));
   left: 24rpx;
-  z-index: 120;
+  z-index: 500;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 440rpx;
 }
 
 .store-capsule {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8rpx;
-  max-width: 280rpx;
-  padding: 12rpx 24rpx;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10rpx 22rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1rpx solid rgba(74, 93, 78, 0.18);
-  box-shadow: 0 8rpx 24rpx rgba(17, 24, 39, 0.08);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.16);
+  border: 1rpx solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 2rpx 10rpx rgba(17, 24, 39, 0.02);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .store-capsule-name {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #1f2937;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-shrink: 0;
+  font-size: 22rpx;
+  font-weight: 500;
+  color: rgba(55, 65, 81, 0.62);
   white-space: nowrap;
-  max-width: 200rpx;
 }
 
 .store-capsule-arrow {
-  font-size: 20rpx;
-  color: #6b7280;
+  flex-shrink: 0;
+  font-size: 18rpx;
+  color: rgba(107, 114, 128, 0.42);
   line-height: 1;
 }
 
 .store-menu {
   position: absolute;
-  top: calc(100% + 10rpx);
+  top: calc(100% + 8rpx);
   left: 0;
-  min-width: 240rpx;
-  max-width: 320rpx;
-  padding: 8rpx;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6rpx;
   border-radius: 20rpx;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1rpx solid rgba(74, 93, 78, 0.14);
-  box-shadow: 0 16rpx 40rpx rgba(17, 24, 39, 0.12);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1rpx solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 4rpx 16rpx rgba(17, 24, 39, 0.03);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .store-menu-item {
-  padding: 18rpx 20rpx;
+  padding: 14rpx 12rpx;
   border-radius: 14rpx;
-  font-size: 26rpx;
-  color: #374151;
+  font-size: 22rpx;
+  font-weight: 500;
+  color: rgba(55, 65, 81, 0.62);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .store-menu-item.active {
-  background: rgba(45, 106, 79, 0.12);
-  color: #2D6A4F;
-  font-weight: 600;
+  background: rgba(45, 106, 79, 0.06);
+  color: rgba(45, 106, 79, 0.72);
+  font-weight: 500;
 }
 
 .store-menu-mask {

@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>平台管理 · 预约系统</title>
-  <link rel="stylesheet" href="/platform/app.css?v=7">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+  <link rel="stylesheet" href="/platform/app.css?v=8">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -176,6 +177,21 @@
             </div>
             <form id="stylistForm" class="form-grid glass card">
               <input type="hidden" id="stylistId">
+              <div class="field field-full stylist-avatar-field">
+                <span>头像</span>
+                <div class="stylist-avatar-row">
+                  <div class="stylist-avatar-preview-wrap">
+                    <img id="stylistAvatarPreview" class="stylist-avatar-preview" alt="发型师头像" hidden>
+                    <div id="stylistAvatarPlaceholder" class="stylist-avatar-placeholder">暂无头像</div>
+                  </div>
+                  <div class="stylist-avatar-actions">
+                    <button type="button" class="btn btn-secondary" id="btnPickStylistAvatar">上传头像</button>
+                    <p class="field-hint">支持 JPG/PNG，上传后可圆形裁剪。未上传时小程序显示默认头像。</p>
+                    <p id="stylistAvatarHint" class="field-hint" hidden>请先保存发型师，再上传头像。</p>
+                  </div>
+                  <input type="file" id="stylistAvatarInput" accept="image/jpeg,image/png,image/webp" hidden>
+                </div>
+              </div>
               <label class="field"><span>所属门店</span><select id="stylistStore" required></select></label>
               <label class="field"><span>姓名</span><input id="stylistName" required></label>
               <label class="field"><span>手机号</span><input id="stylistPhone" type="tel" maxlength="11" placeholder="用于小程序「管理」入口" required></label>
@@ -341,6 +357,27 @@
   </div>
 
   <div id="toast" class="toast" hidden></div>
-  <script src="/platform/app.js?v=10"></script>
+
+  <div id="avatarCropModal" class="avatar-crop-modal" hidden>
+    <div class="avatar-crop-backdrop" id="avatarCropBackdrop"></div>
+    <div class="avatar-crop-dialog glass">
+      <div class="avatar-crop-head">
+        <h3>裁剪头像</h3>
+        <button type="button" class="avatar-crop-close" id="avatarCropClose" aria-label="关闭">×</button>
+      </div>
+      <div class="avatar-crop-stage">
+        <img id="avatarCropImage" alt="裁剪预览">
+        <div class="avatar-crop-circle-mask" aria-hidden="true"></div>
+      </div>
+      <p class="avatar-crop-tip">拖动与缩放图片，圆形区域内为最终头像</p>
+      <div class="avatar-crop-actions">
+        <button type="button" class="btn btn-ghost" id="avatarCropCancel">取消</button>
+        <button type="button" class="btn btn-primary" id="avatarCropConfirm">确认上传</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+  <script src="/platform/app.js?v=11"></script>
 </body>
 </html>

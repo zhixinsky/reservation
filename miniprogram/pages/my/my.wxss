@@ -257,14 +257,46 @@
   padding-right: 16rpx;
 }
 
+.appt-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  width: 100%;
+}
+
 .appt-status {
   display: inline-flex;
-  align-self: flex-start;
+  flex-shrink: 0;
   padding: 6rpx 16rpx;
   border-radius: 8rpx;
   font-size: 22rpx;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.appt-store-capsule {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 200rpx;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1rpx solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 2rpx 8rpx rgba(17, 24, 39, 0.02);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.appt-store-capsule-name {
+  font-size: 20rpx;
+  font-weight: 500;
+  color: rgba(55, 65, 81, 0.62);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .appt-status.pending {
@@ -648,15 +680,62 @@
   font-weight: 700;
 }
 
-.detail-progress-loading {
-  font-size: 24rpx;
-  color: #94A3B8;
-  line-height: 1.5;
+.detail-progress-body {
+  min-height: 204rpx;
+}
+
+.detail-progress-row {
+  min-height: 40rpx;
+}
+
+.detail-progress-row.status-row {
+  min-height: 52rpx;
+  margin-bottom: 12rpx;
+}
+
+.detail-progress-row.line-row.second {
+  margin-top: 8rpx;
+}
+
+.detail-progress-row.hint-row {
+  min-height: 36rpx;
+  margin-top: 12rpx;
+}
+
+.detail-progress-skeleton {
+  border-radius: 8rpx;
+  background: linear-gradient(90deg, #EEF2F6 25%, #F8FAFC 50%, #EEF2F6 75%);
+  background-size: 200% 100%;
+  animation: detail-progress-skeleton 1.2s ease-in-out infinite;
+}
+
+.detail-progress-skeleton-pill {
+  width: 148rpx;
+  height: 40rpx;
+  border-radius: 999rpx;
+}
+
+.detail-progress-skeleton-line {
+  width: 100%;
+  height: 32rpx;
+}
+
+.detail-progress-skeleton-line.short {
+  width: 72%;
+}
+
+.detail-progress-skeleton-line.hint {
+  width: 88%;
+  height: 28rpx;
+}
+
+@keyframes detail-progress-skeleton {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 .detail-progress-status {
   display: inline-flex;
-  margin-bottom: 12rpx;
   padding: 8rpx 14rpx;
   border-radius: 999rpx;
   font-size: 22rpx;
@@ -686,7 +765,6 @@
 }
 
 .detail-progress-line.second {
-  margin-top: 8rpx;
   font-size: 25rpx;
   font-weight: 500;
   color: #4F6459;
@@ -715,7 +793,6 @@
 }
 
 .detail-progress-hint {
-  margin-top: 12rpx;
   font-size: 22rpx;
   color: #94A3B8;
   line-height: 1.45;

@@ -1,5 +1,5 @@
 const { callApi } = require('../../utils/api');
-const { getCachedStore } = require('../../utils/store-context');
+const { getCachedStore, formatStoreName } = require('../../utils/store-context');
 const { getVerifiedPhone, setVerifiedPhone, clearVerifiedPhone } = require('../../utils/phone-auth');
 const { getCustomNavPaddingTop } = require('../../utils/custom-nav');
 const { showTabBar, hideTabBar } = require('../../utils/tab-bar');
@@ -22,8 +22,7 @@ const HAIRCUT_BG =
 const PERM_BG =
   'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/perm.png';
 
-const STYLIST_AVATAR_CUT = '/images/11.png';
-const STYLIST_AVATAR_DYE = '/images/22.png';
+const { resolveStylistAvatar } = require('../../utils/stylist-avatar');
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
@@ -101,6 +100,7 @@ Page({
   data: {
     pagePaddingTop: 88,
     profileBgUrl: PROFILE_BG,
+    storeName: SHOP_INFO.name,
     phone: '',
     maskedPhone: '',
     isAdmin: false,
@@ -117,6 +117,7 @@ Page({
     currentAppointments: [],
     historyAppointments: [],
     stylistMap: {},
+    storeMap: {},
     detailVisible: false,
     detailAppointment: null,
     detailProgress: null,
@@ -126,10 +127,12 @@ Page({
 
   onLoad() {
     this.setData({ pagePaddingTop: getCustomNavPaddingTop(24) });
+    this.syncStoreDisplay();
     this.restorePhoneSession(false);
   },
 
   onShow() {
+    this.syncStoreDisplay();
     wx.nextTick(() => {
       showTabBar(this, {
         selected: 1,
@@ -137,6 +140,14 @@ Page({
       });
     });
     this.restorePhoneSession(true);
+  },
+
+  syncStoreDisplay() {
+    const cached = getCachedStore();
+    const storeName = formatStoreName((cached && cached.name) || SHOP_INFO.name);
+    if (storeName !== this.data.storeName) {
+      this.setData({ storeName });
+    }
   },
 
   onHide() {
@@ -216,10 +227,10 @@ Page({
   },
 
   updateDisplayList() {
-    const { appointmentTab, currentAppointments, historyAppointments, stylistMap } = this.data;
+    const { appointmentTab, currentAppointments, historyAppointments, stylistMap, storeMap } = this.data;
     const rawList = buildDisplayList(appointmentTab, currentAppointments, historyAppointments);
     this.setData({
-      displayList: this.decorateList(rawList, stylistMap)
+      displayList: this.decorateList(rawList, stylistMap, storeMap)
     }, () => this.scheduleBookingListMeasure());
   },
 
@@ -390,11 +401,12 @@ Page({
   },
 
   contactService() {
+    const phone = this.getShopInfo().phone || SHOP_INFO.phone;
     wx.makePhoneCall({
-      phoneNumber: SHOP_INFO.phone,
+      phoneNumber: phone,
       fail: () => {
         wx.setClipboardData({
-          data: SHOP_INFO.phone,
+          data: phone,
           success: () => wx.showToast({ title: '商家电话已复制', icon: 'none' })
         });
       }
@@ -458,21 +470,39 @@ Page({
     return map;
   },
 
+  buildStoreMap(stores) {
+    const map = {};
+    (Array.isArray(stores) ? stores : []).forEach(store => {
+      if (store && store.id != null) {
+        map[Number(store.id)] = formatStoreName(store.name);
+      }
+    });
+    return map;
+  },
+
+  resolveStoreName(stylist, storeMap = {}) {
+    const storeId = stylist && stylist.storeId != null ? Number(stylist.storeId) : null;
+    if (storeId != null && storeMap[storeId]) return storeMap[storeId];
+    return formatStoreName(SHOP_INFO.name);
+  },
+
   async loadData(options = {}) {
     if (!this.data.phone) return;
     const { showLoading = true } = options;
     if (showLoading) wx.showLoading({ title: '加载中' });
     try {
-      const [current, history, stylists] = await Promise.all([
+      const [current, history, stylists, stores] = await Promise.all([
         callApi('queryAppointments', { phone: this.data.phone }),
         callApi('queryAppointmentHistory', { phone: this.data.phone }),
-        callApi('getStylists')
+        callApi('getStylists'),
+        callApi('getStores')
       ]);
       const stylistMap = this.buildStylistMap(stylists);
-      const currentAppointments = this.decorateList(current && current.appointments, stylistMap);
-      const historyAppointments = this.decorateList(history && history.appointments, stylistMap);
+      const storeMap = this.buildStoreMap(stores);
+      const currentAppointments = this.decorateList(current && current.appointments, stylistMap, storeMap);
+      const historyAppointments = this.decorateList(history && history.appointments, stylistMap, storeMap);
       if (showLoading) wx.hideLoading();
-      this.setData({ currentAppointments, historyAppointments, stylistMap });
+      this.setData({ currentAppointments, historyAppointments, stylistMap, storeMap });
       this.updateStats(currentAppointments, historyAppointments);
     } catch (err) {
       if (showLoading) wx.hideLoading();
@@ -480,7 +510,7 @@ Page({
     }
   },
 
-  decorateList(list, stylistMap = {}) {
+  decorateList(list, stylistMap = {}, storeMap = {}) {
     return (Array.isArray(list) ? list : []).map(app => {
       const stylist = stylistMap[app.stylistId] || {};
       const cardStatusText = statusText(app.status);
@@ -498,7 +528,8 @@ Page({
         cardBgUrl: app.serviceType === 'dye' ? PERM_BG : HAIRCUT_BG,
         stylistName: stylist.name || '店长',
         stylistRank: stylist.rank || '',
-        stylistAvatar: app.serviceType === 'dye' ? STYLIST_AVATAR_DYE : STYLIST_AVATAR_CUT
+        stylistAvatar: resolveStylistAvatar(stylist, app.serviceType),
+        storeName: this.resolveStoreName(stylist, storeMap)
       };
     });
   },

@@ -1,6 +1,17 @@
 const STORAGE_ID_KEY = 'selected_store_id';
 const STORAGE_INFO_KEY = 'selected_store_info';
 
+function normalizeStoreList(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (raw && Array.isArray(raw.data)) return raw.data;
+  if (raw && Array.isArray(raw.stores)) return raw.stores;
+  return [];
+}
+
+function isActiveStore(store) {
+  return store && store.id != null && store.status !== 'disabled';
+}
+
 function parsePositiveStoreId(value) {
   if (value == null || value === '') return null;
   const id = Number(value);
@@ -108,7 +119,7 @@ function requestUserLocation() {
 
 async function resolveStoreContext(fetchStores, opts = {}) {
   const raw = await fetchStores();
-  const stores = (Array.isArray(raw) ? raw : []).filter((s) => s.status !== 'disabled');
+  const stores = normalizeStoreList(raw).filter(isActiveStore);
   const preferredId = parsePositiveStoreId(opts.preferredStoreId);
 
   if (preferredId != null) {

@@ -1,10 +1,10 @@
 <view class="page-shell">
   <image class="page-bg" src="{{pageBgUrl}}" mode="aspectFill" lazy-load="{{false}}"></image>
 
-  <view class="page-foreground">
   <view
     wx:if="{{storePickerVisible}}"
     class="store-capsule-wrap"
+    style="width: {{storeCapsuleWidth}}rpx;"
     catchtap="toggleStoreMenu"
   >
     <view class="store-capsule">
@@ -22,6 +22,7 @@
     </view>
   </view>
 
+  <view class="page-foreground">
   <view class="container">
     <view class="header">
       <view class="title">

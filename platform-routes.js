@@ -3,6 +3,7 @@
  */
 const express = require('express');
 const { clampBookAheadDays } = require('./slot-config');
+const { uploadStylistAvatar, resolvePhotoPreviewUrl } = require('./avatar-upload');
 
 const STORE_NAME_MAX_LEN = 6;
 
@@ -694,10 +695,44 @@ function createPlatformRouter(deps) {
         });
     });
 
-    router.get('/stylists/:id', requirePlatformAdmin, (req, res) => {
+    router.get('/stylists/:id', requirePlatformAdmin, async (req, res) => {
         const stylist = dbStylistAccounts.getById(req.params.id);
         if (!stylist) return res.status(404).json({ success: false, message: '发型师不存在' });
-        res.json({ success: true, stylist: { ...stylist } });
+        const photoPreviewUrl = await resolvePhotoPreviewUrl(stylist.photo, invokeCloudFunction);
+        res.json({
+            success: true,
+            stylist: { ...stylist, photoPreviewUrl: photoPreviewUrl || stylist.photo || '' }
+        });
+    });
+
+    router.post('/stylists/:id/avatar', requirePlatformAdmin, async (req, res) => {
+        try {
+            const stylist = dbStylistAccounts.getById(req.params.id);
+            if (!stylist) return res.status(404).json({ success: false, message: '发型师不存在' });
+            const upload = await uploadStylistAvatar(
+                req.params.id,
+                req.body && req.body.imageBase64,
+                invokeCloudFunction
+            );
+            if (!upload.ok) return res.json({ success: false, message: upload.message || '上传失败' });
+            const row = dbStylistAccounts.update(req.params.id, { photo: upload.photo });
+            if (!row) return res.status(404).json({ success: false, message: '发型师不存在' });
+            syncStylistsRef();
+            writeAudit(req, 'stylist.update', {
+                targetType: 'stylist',
+                targetId: row.id,
+                storeId: row.storeId,
+                detail: { name: row.name, fields: ['photo'] }
+            });
+            res.json({
+                success: true,
+                photo: upload.photo,
+                previewUrl: upload.previewUrl || upload.photo,
+                stylist: publicStylistRow(row)
+            });
+        } catch (e) {
+            res.json({ success: false, message: e.message || '上传失败' });
+        }
     });
 
     router.post('/stylists', requirePlatformAdmin, (req, res) => {

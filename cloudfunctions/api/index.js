@@ -856,9 +856,54 @@ async function syncStores(payload = {}) {
   };
 }
 
+function assertPlatformSecret(payload) {
+  const secret = process.env.PLATFORM_SYNC_SECRET;
+  if (!secret || payload.secret !== secret) {
+    throw new Error('同步密钥无效');
+  }
+}
+
+async function uploadStylistAvatar(payload) {
+  assertPlatformSecret(payload);
+  const stylistId = Number(payload.stylistId);
+  const base64 = String(payload.imageBase64 || '').trim();
+  if (!stylistId || !base64) {
+    return { success: false, message: '参数不完整' };
+  }
+  const buffer = Buffer.from(base64, 'base64');
+  if (!buffer.length) return { success: false, message: '图片数据为空' };
+  const cloudPath = `avatar/stylist-${stylistId}.jpg`;
+  const uploadRes = await cloud.uploadFile({
+    cloudPath,
+    fileContent: buffer
+  });
+  const fileID = uploadRes.fileID;
+  let previewUrl = fileID;
+  try {
+    const temp = await cloud.getTempFileURL({ fileList: [fileID] });
+    const row = temp && temp.fileList && temp.fileList[0];
+    if (row && row.tempFileURL) previewUrl = row.tempFileURL;
+  } catch (_) { /* ignore */ }
+  return { success: true, photo: fileID, previewUrl };
+}
+
+async function getFilePreviewUrl(payload) {
+  assertPlatformSecret(payload);
+  const fileID = String(payload.fileID || '').trim();
+  if (!fileID) return { success: false, message: '缺少 fileID' };
+  const temp = await cloud.getTempFileURL({ fileList: [fileID] });
+  const row = temp && temp.fileList && temp.fileList[0];
+  if (!row || !row.tempFileURL) {
+    return { success: false, message: '无法获取预览地址' };
+  }
+  return { success: true, previewUrl: row.tempFileURL };
+}
+
 const handlers = {
   getStores,
   syncStores,
+  uploadStylistAvatar,
+  getFilePreviewUrl,
   getAnnouncement,
   saveAnnouncement,
   getStylists,

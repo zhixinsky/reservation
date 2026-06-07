@@ -24,7 +24,14 @@ function containerRequest({ path, method = 'GET', data = {}, sessionId }) {
     header,
     method,
     data
-  }).then(res => res.data);
+  }).then((res) => {
+    const code = res && res.statusCode;
+    if (code != null && code >= 400) {
+      const msg = (res.data && (res.data.message || res.data.error)) || `请求失败(${code})`;
+      return Promise.reject(new Error(msg));
+    }
+    return res.data;
+  });
 }
 
 function callApi(action, payload = {}) {
