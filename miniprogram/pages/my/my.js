@@ -14,13 +14,13 @@ const SHOP_INFO = {
 };
 
 const PROFILE_BG =
-  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/bg.png';
+  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/bg.webp';
 
 const HAIRCUT_BG =
-  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/haircut.png';
+  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/haircut.webp';
 
 const PERM_BG =
-  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/perm.png';
+  'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/perm.webp';
 
 const { resolveStylistAvatar } = require('../../utils/stylist-avatar');
 

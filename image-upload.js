@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const tinify = require('tinify');
 
 const AVATAR_DIR = path.join(__dirname, 'public', 'avatar');
 const IMG_DIR = path.join(__dirname, 'public', 'img');
@@ -147,21 +148,54 @@ function uploadToLocal(localDir, filename, buffer) {
     };
 }
 
+async function convertStoreBackgroundToWebp(jpegBuffer) {
+    const key = process.env.TINIFY_API_KEY || '';
+    if (!key) {
+        if (allowLocalFallback()) {
+            console.warn('[tinify] 未配置 TINIFY_API_KEY，门店背景将以 JPEG 上传（仅限本地开发）');
+            return { ok: true, buffer: jpegBuffer, contentType: 'image/jpeg', ext: 'jpg' };
+        }
+        return { ok: false, message: '请配置 TINIFY_API_KEY 以将背景图转换为 WebP' };
+    }
+    try {
+        tinify.key = key;
+        if (process.env.TINIFY_PROXY) tinify.proxy = process.env.TINIFY_PROXY;
+        const webpData = await tinify.fromBuffer(jpegBuffer).convert({ type: 'image/webp' }).toBuffer();
+        const webpBuffer = Buffer.from(webpData);
+        if (!webpBuffer.length) {
+            return { ok: false, message: 'Tinify 转换 WebP 失败：结果为空' };
+        }
+        return { ok: true, buffer: webpBuffer, contentType: 'image/webp', ext: 'webp' };
+    } catch (err) {
+        console.warn('[tinify] 转换失败:', err.message);
+        if (allowLocalFallback()) {
+            console.warn('[tinify] 回退为 JPEG 上传');
+            return { ok: true, buffer: jpegBuffer, contentType: 'image/jpeg', ext: 'jpg' };
+        }
+        return { ok: false, message: err.message || '图片 WebP 转换失败' };
+    }
+}
+
 async function uploadImage({
     cloudPath,
     localDir,
     localFilename,
     imageBase64,
+    buffer,
     wechatApi,
     maxBytes,
     contentType = 'image/jpeg'
 }) {
-    const parsed = parseImageBase64(imageBase64, maxBytes);
-    if (!parsed.ok) return parsed;
+    let fileBuffer = buffer;
+    if (!fileBuffer) {
+        const parsed = parseImageBase64(imageBase64, maxBytes);
+        if (!parsed.ok) return parsed;
+        fileBuffer = parsed.buffer;
+    }
 
     if (wechatApi) {
         try {
-            const cloudResult = await uploadToCloudHosting(cloudPath, parsed.buffer, wechatApi, contentType);
+            const cloudResult = await uploadToCloudHosting(cloudPath, fileBuffer, wechatApi, contentType);
             if (cloudResult) {
                 return { ok: true, photo: cloudResult.fileId, previewUrl: cloudResult.previewUrl };
             }
@@ -177,8 +211,8 @@ async function uploadImage({
         return { ok: false, message: '对象存储上传失败，请检查云托管环境变量与微信令牌权限' };
     }
 
-    const localResult = uploadToLocal(localDir, localFilename, parsed.buffer);
-    return { ok: true, ...localResult, localFallback: true };
+    const localResult = uploadToLocal(localDir, localFilename, fileBuffer);
+    return { ok: true, photo: localResult.fileId, previewUrl: localResult.previewUrl, localFallback: true };
 }
 
 async function uploadStylistAvatar(stylistId, imageBase64, wechatApi) {
@@ -201,13 +235,21 @@ async function uploadStoreBackground(storeId, imageBase64, wechatApi) {
     if (!Number.isFinite(id) || id <= 0) {
         return { ok: false, message: '门店 ID 无效' };
     }
+    const parsed = parseImageBase64(imageBase64, MAX_BACKGROUND_BYTES);
+    if (!parsed.ok) return parsed;
+
+    const converted = await convertStoreBackgroundToWebp(parsed.buffer);
+    if (!converted.ok) return converted;
+
+    const ext = converted.ext || 'webp';
+    const filename = `store-${id}-background.${ext}`;
     return uploadImage({
-        cloudPath: `img/store-${id}-background.jpg`,
+        cloudPath: `img/${filename}`,
         localDir: IMG_DIR,
-        localFilename: `store-${id}-background.jpg`,
-        imageBase64,
+        localFilename: filename,
+        buffer: converted.buffer,
         wechatApi,
-        maxBytes: MAX_BACKGROUND_BYTES
+        contentType: converted.contentType
     });
 }
 

@@ -81,7 +81,12 @@
 
 上传成功后，可在对象存储控制台看到 `avatar/stylist-{id}.jpg`。
 
-门店预约页背景图同样走 `tcb/uploadfile`，路径为 `img/store-{id}-background.jpg`；平台裁剪比例 **9:19.5**，推荐导出 **750×1624 px**；未上传时小程序使用默认 `img/background.png`。
+门店预约页背景图同样走 `tcb/uploadfile`。平台裁剪比例 **9:19.5**，推荐导出 **750×1624 px**；上传后经 [Tinify API](https://tinypng.com/developers) 压缩并转为 **WebP**，存储路径为 `img/store-{id}-background.webp`。未上传时小程序使用默认 `img/background.webp`。
+
+| 变量名 | 说明 |
+|--------|------|
+| `TINIFY_API_KEY` | Tinify API 密钥（生产环境必填；未配置时上传背景图会失败） |
+| `TINIFY_PROXY` | 可选，HTTP 代理地址 |
 
 ---
 
