@@ -32,52 +32,9 @@ ADMIN_USERNAME=your_admin_username
 ADMIN_PASSWORD=your_admin_password
 ```
 
-### 3. 配置发型师账号
+### 3. 配置门店与发型师
 
-**方式1（推荐）：使用配置文件**
-
-复制 `stylists.example.json` 为 `stylists.json`：
-
-```bash
-# Windows
-copy stylists.example.json stylists.json
-
-# Linux/Mac
-cp stylists.example.json stylists.json
-```
-
-编辑 `stylists.json` 文件，每个发型师独立配置：
-
-```json
-[
-  {
-    "id": 1,
-    "name": "发型师1",
-    "rank": "店长",
-    "specialty": "专业造型",
-    "price": 298,
-    "photo": "图片URL",
-    "workStatus": "working",
-    "username": "stylist1",
-    "password": "password1"
-  },
-  {
-    "id": 2,
-    "name": "发型师2",
-    "rank": "总监",
-    "specialty": "染发设计",
-    "price": 258,
-    "photo": "图片URL",
-    "workStatus": "working",
-    "username": "stylist2",
-    "password": "password2"
-  }
-]
-```
-
-**方式2：使用环境变量（不推荐）**
-
-在 `.env` 文件中设置 `STYLISTS_JSON`（一行内，难以维护）
+启动服务后访问 **平台管理中心** `http://localhost:3000/platform/`，使用 `.env` 中的 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 登录，在后台创建门店和发型师（含手机号，用于小程序「管理」入口）。
 
 ### 4. 启动服务器
 
@@ -89,38 +46,19 @@ npm start
 
 ## 环境变量说明
 
-### ADMIN_USERNAME
-超级管理员用户名，默认：`admin`
+完整说明见 **[docs/cloud-hosting-env.md](docs/cloud-hosting-env.md)**（云托管控制台配置清单）。本地开发复制 `.env.example` 为 `.env`。
 
-### ADMIN_PASSWORD
-超级管理员密码，默认：`admin123`
+常用项：
 
-### STYLISTS_CONFIG_PATH（推荐）
-发型师配置文件路径，默认为 `stylists.json`。配置文件为JSON数组格式，每个发型师对象必须包含：
-- `id`: 唯一标识（数字）
-- `name`: 发型师姓名
-- `rank`: 职务（店长/总监/资深）
-- `specialty`: 擅长领域
-- `price`: 价格（数字）
-- `photo`: 头像图片URL
-- `workStatus`: 工作状态（`resting`/`free`/`working`）
-- `username`: 登录用户名
-- `password`: 登录密码
+| 变量 | 用途 |
+|------|------|
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | 平台管理中心登录 |
+| `MYSQL_*` | MySQL 连接（发型师、门店等数据入库） |
+| `WX_APPID` / `WX_APPSECRET` | 微信手机号授权 |
+| `EMAY_*` / `MINI_PROGRAM_URL` | 短信通知（可选；签名在亿美账号侧配置） |
+| `TCB_ENV_ID` / `PLATFORM_SYNC_SECRET` | 平台同步到云开发（可选） |
 
-### STYLISTS_JSON（不推荐）
-发型师账号配置，JSON数组格式（一行内）。如果设置了 `STYLISTS_CONFIG_PATH` 且文件存在，则优先使用配置文件。
-
-### 管理员手机号配置（可选）
-
-可配置哪些手机号在小程序“我的”页快速登录后直接进入管理后台：
-
-```env
-ADMIN_PHONES=15802012200
-ADMIN_STYLIST_ID=1
-```
-
-- `ADMIN_PHONES` - 管理员手机号，多个手机号用英文逗号分隔
-- `ADMIN_STYLIST_ID` - 可选，管理员手机号对应的发型师账号 ID；不配置时默认使用第一个发型师
+发型师账号与手机号在 **平台后台** 维护，不再使用 `STYLISTS_JSON` 或 `stylists.json`。
 
 ### 短信服务配置（可选）
 
@@ -155,8 +93,9 @@ EMAY_TEMPLATE_ID_CANCEL=your_cancel_template_id
 
 ## 访问地址
 
-- 用户端：`http://localhost:3000/`
-- 管理端登录：`http://localhost:3000/admin-login.html`
+- 用户端 H5：`http://localhost:3000/`
+- 平台管理 PC：`http://localhost:3000/platform/`
+- 发型师管理：小程序「我的」→「管理」（需在平台为发型师填写手机号）
 
 ## 功能特性
 
