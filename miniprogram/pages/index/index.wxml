@@ -112,12 +112,48 @@
     </view>
   </view>
 
+  <view class="alert-modal {{alertModalVisible ? 'show' : ''}}">
+    <view class="alert-icon">!</view>
+    <view class="alert-title">{{alertModalTitle}}</view>
+    <view class="alert-block" wx:if="{{alertModalAppId}}">
+      <view class="alert-label">已有预约号</view>
+      <view class="alert-no">{{alertModalAppId}}</view>
+      <view class="alert-date" wx:if="{{alertModalDateLabel}}">{{alertModalDateLabel}}</view>
+    </view>
+    <view class="alert-message">{{alertModalMessage}}</view>
+    <button class="confirm-btn single" bindtap="closeAlertModal">我知道了</button>
+  </view>
+
   <view class="success-modal {{successVisible ? 'show' : ''}}">
     <view class="success-icon">✓</view>
     <view class="success-title">预约成功</view>
     <view class="success-block">
       <view class="success-label">您的预约号</view>
       <view class="success-no">{{displayId || '---'}}</view>
+    </view>
+    <view class="success-info">
+      <view class="success-row">
+        <text class="success-row-label">服务项目</text>
+        <text class="success-row-value">{{successServiceLabel}}</text>
+      </view>
+      <view class="success-row">
+        <text class="success-row-label">预约日期</text>
+        <text class="success-row-value">{{successDateLabel}}</text>
+      </view>
+      <view class="success-row">
+        <text class="success-row-label">预约时间</text>
+        <text class="success-row-value">{{successTimeLabel}}</text>
+      </view>
+      <view class="success-row success-row-stylist">
+        <text class="success-row-label">发型师</text>
+        <view class="success-stylist">
+          <image class="success-stylist-avatar" src="{{successStylistAvatar}}" mode="aspectFill"></image>
+          <view class="success-stylist-text">
+            <text class="success-stylist-name">{{successStylistName}}</text>
+            <text wx:if="{{successStylistRank}}" class="success-stylist-rank">{{successStylistRank}}</text>
+          </view>
+        </view>
+      </view>
     </view>
     <view class="success-note">到店请出示您的预约号</view>
     <view class="success-note">取消预约请使用手机号</view>

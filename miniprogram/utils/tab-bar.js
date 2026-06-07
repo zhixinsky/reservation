@@ -50,6 +50,7 @@ function shouldShowIndexTabBar(pageData) {
   return !pageData.drawerVisible
     && !pageData.phoneModalVisible
     && !pageData.confirmModalVisible
+    && !pageData.alertModalVisible
     && !pageData.successVisible
     && !pageData.cancelModalVisible
     && !pageData.progressModalVisible;

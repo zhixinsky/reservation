@@ -7,6 +7,9 @@ const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间
 const EMPTY_ANNOUNCEMENT_TEXT = '暂无公告';
 const PAGE_BG =
   'cloud://reservation-d2gf73dgv8fd17503.7265-reservation-d2gf73dgv8fd17503-1435802081/img/background.png';
+const STYLIST_AVATAR_CUT = '/images/11.png';
+const STYLIST_AVATAR_DYE = '/images/22.png';
+const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -26,6 +29,20 @@ function formatTimeDisplay(timeStr) {
   if (!timeStr) return '';
   const firstTime = String(timeStr).split(',')[0].trim();
   return firstTime.split('-')[0] || firstTime;
+}
+
+function weekdayText(ymd) {
+  const parts = String(ymd || '').split('-').map(Number);
+  if (parts.length < 3) return '';
+  const date = new Date(parts[0], parts[1] - 1, parts[2]);
+  return WEEKDAYS[date.getDay()] || '';
+}
+
+function buildSuccessTimeLabel(serviceType, timeStr, slots) {
+  if (serviceType === 'dye' && Array.isArray(slots) && slots.length > 1) {
+    return `${formatTimeDisplay(slots[0])} - ${formatTimeDisplay(slots[slots.length - 1])}`;
+  }
+  return formatTimeDisplay(timeStr);
 }
 
 function getVacationRanges(stylist) {
@@ -64,6 +81,8 @@ Page({
     bookingDisabled: false,
     stylistId: null,
     currentId: null,
+    currentStylistName: '店长',
+    currentStylistRank: '',
     drawerVisible: false,
     maskVisible: false,
     useWorkletDrawer: false,
@@ -82,8 +101,19 @@ Page({
     confirmServiceLabel: '',
     confirmDateLabel: '',
     confirmTimeLabel: '',
+    alertModalVisible: false,
+    alertModalTitle: '',
+    alertModalMessage: '',
+    alertModalAppId: '',
+    alertModalDateLabel: '',
     successVisible: false,
     displayId: '',
+    successServiceLabel: '',
+    successDateLabel: '',
+    successTimeLabel: '',
+    successStylistName: '',
+    successStylistRank: '',
+    successStylistAvatar: STYLIST_AVATAR_CUT,
     cancelModalVisible: false,
     cancelStep: 1,
     cancelPhone: '',
@@ -131,6 +161,7 @@ Page({
         maskVisible: false,
         phoneModalVisible: false,
         confirmModalVisible: false,
+        alertModalVisible: false,
         successVisible: false,
         cancelModalVisible: false,
         progressModalVisible: false,
@@ -275,7 +306,11 @@ Page({
       const next = {
         drawerVisible: false,
         maskVisible: keepMask,
-        selectedTimeSlot: []
+        selectedTimeSlot: [],
+        confirmModalVisible: false,
+        phoneModalVisible: false,
+        alertModalVisible: false,
+        phoneError: ''
       };
       if (resetServiceType) {
         next.selectedServiceType = 'cut';
@@ -390,6 +425,8 @@ Page({
       this.setData({
         stylistId: stylist.id,
         currentId: stylist.id,
+        currentStylistName: stylist.name || '店长',
+        currentStylistRank: stylist.rank || '',
         bookingDisabled: !hasBookableDayInThreeDayWindow(stylist)
       });
     } catch (e) {
@@ -608,11 +645,7 @@ Page({
     if (verifiedPhone) {
       const blocked = await this.checkExistingAppointmentForDate(verifiedPhone, this.data.selectedDate);
       if (blocked) {
-        wx.showModal({
-          title: '无法预约',
-          content: blocked,
-          showCancel: false
-        });
+        this.showBlockedBookingModal(blocked);
         this.setData({ selectedTimeSlot: [] });
         if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
         return;
@@ -628,17 +661,48 @@ Page({
   },
 
   async checkExistingAppointmentForDate(phone, date) {
-    if (!phone || !date) return '';
+    if (!phone || !date) return null;
     try {
       const data = await this.callApi('queryAppointments', { phone });
-      if (!data || !data.success) return '';
+      if (!data || !data.success) return null;
       const appointments = Array.isArray(data.appointments) ? data.appointments : [];
       const existing = appointments.find(app => app.date === date);
-      if (!existing) return '';
-      return `您在该日期已有预约（预约号：${existing.appId}），一个手机号一天内只能预约一次`;
+      if (!existing) return null;
+      return {
+        appId: existing.appId,
+        message: '一个手机号一天内只能预约一次'
+      };
     } catch (e) {
-      return '';
+      return null;
     }
+  },
+
+  showAlertModal(title, message, options = {}) {
+    this.setData({
+      alertModalVisible: true,
+      alertModalTitle: title || '提示',
+      alertModalMessage: message || '',
+      alertModalAppId: options.appId || '',
+      alertModalDateLabel: options.dateLabel || '',
+      maskVisible: true
+    }, () => syncIndexTabBar(this));
+  },
+
+  showBlockedBookingModal(blocked) {
+    const tab = this.data.dateTabs.find(t => t.date === this.data.selectedDate);
+    const dateLabel = tab ? `${tab.day} ${tab.label}` : formatDateText(this.data.selectedDate);
+    this.showAlertModal('无法预约', blocked.message, { appId: blocked.appId, dateLabel });
+  },
+
+  closeAlertModal() {
+    this.setData({
+      alertModalVisible: false,
+      alertModalTitle: '',
+      alertModalMessage: '',
+      alertModalAppId: '',
+      alertModalDateLabel: '',
+      maskVisible: this.data.drawerVisible
+    }, () => syncIndexTabBar(this));
   },
 
   showBookingError(message) {
@@ -647,11 +711,7 @@ Page({
       this.setData({ phoneError: text });
       return;
     }
-    wx.showModal({
-      title: '预约失败',
-      content: text,
-      showCancel: false
-    });
+    this.showAlertModal('预约失败', text);
     this.setData({ selectedTimeSlot: [] });
     if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
   },
@@ -663,6 +723,23 @@ Page({
       selectedTimeSlot: []
     }, () => syncIndexTabBar(this));
     if (this.data.selectedDate) this.loadSlots(this.data.selectedDate, true);
+  },
+
+  buildSuccessSummary(time) {
+    const tab = this.data.dateTabs.find(t => t.date === this.data.selectedDate);
+    const weekday = weekdayText(this.data.selectedDate);
+    const dateLabel = tab
+      ? `${tab.day} ${tab.label} ${weekday}`.trim()
+      : `${formatDateText(this.data.selectedDate)} ${weekday}`.trim();
+    const serviceType = this.data.selectedServiceType || 'cut';
+    return {
+      successServiceLabel: serviceTypeText(serviceType),
+      successDateLabel: dateLabel,
+      successTimeLabel: buildSuccessTimeLabel(serviceType, time, this.data.selectedTimeSlot),
+      successStylistName: this.data.currentStylistName || '店长',
+      successStylistRank: this.data.currentStylistRank || '',
+      successStylistAvatar: serviceType === 'dye' ? STYLIST_AVATAR_DYE : STYLIST_AVATAR_CUT
+    };
   },
 
   async onBookingPhoneNumber(e) {
@@ -711,7 +788,8 @@ Page({
               maskVisible: true,
               successVisible: true,
               displayId: data.appId,
-              phoneError: ''
+              phoneError: '',
+              ...this.buildSuccessSummary(time)
             }, () => syncIndexTabBar(this));
           }
         });
@@ -951,6 +1029,7 @@ Page({
         maskVisible: false,
         phoneModalVisible: false,
         confirmModalVisible: false,
+        alertModalVisible: false,
         successVisible: false,
         cancelModalVisible: false,
         progressModalVisible: false,
