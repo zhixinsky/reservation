@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>平台管理 · 预约系统</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
-  <link rel="stylesheet" href="/platform/app.css?v=8">
+  <link rel="stylesheet" href="/platform/vendor/cropperjs/cropper.min.css">
+  <link rel="stylesheet" href="/platform/app.css?v=9">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -366,10 +366,12 @@
         <button type="button" class="avatar-crop-close" id="avatarCropClose" aria-label="关闭">×</button>
       </div>
       <div class="avatar-crop-stage">
-        <img id="avatarCropImage" alt="裁剪预览">
+        <div class="avatar-crop-image-box">
+          <img id="avatarCropImage" alt="裁剪预览">
+        </div>
         <div class="avatar-crop-circle-mask" aria-hidden="true"></div>
       </div>
-      <p class="avatar-crop-tip">拖动与缩放图片，圆形区域内为最终头像</p>
+      <p class="avatar-crop-tip">拖动图片调整位置，滚轮缩放，圆形区域内为最终头像</p>
       <div class="avatar-crop-actions">
         <button type="button" class="btn btn-ghost" id="avatarCropCancel">取消</button>
         <button type="button" class="btn btn-primary" id="avatarCropConfirm">确认上传</button>
@@ -377,7 +379,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
-  <script src="/platform/app.js?v=11"></script>
+  <script src="/platform/vendor/cropperjs/cropper.min.js"></script>
+  <script src="/platform/app.js?v=12"></script>
 </body>
 </html>

@@ -494,14 +494,36 @@ button, input, select, textarea {
   background: #111827;
 }
 
-.avatar-crop-stage img {
+.avatar-crop-image-box {
+  width: 100%;
+  height: 100%;
+}
+
+.avatar-crop-image-box > img {
   display: block;
   max-width: 100%;
+}
+
+.avatar-crop-stage .cropper-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.avatar-crop-stage .cropper-view-box {
+  border-radius: 50%;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.92);
+}
+
+.avatar-crop-stage .cropper-face {
+  border-radius: 50%;
+  background-color: transparent;
 }
 
 .avatar-crop-circle-mask {
   position: absolute;
   inset: 0;
+  z-index: 10;
   pointer-events: none;
   background: radial-gradient(circle at center, transparent 140px, rgba(15, 23, 42, 0.55) 141px);
 }

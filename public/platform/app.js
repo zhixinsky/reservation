@@ -449,45 +449,73 @@
     destroyAvatarCropper();
     const modal = $('#avatarCropModal');
     const image = $('#avatarCropImage');
-    if (image) image.removeAttribute('src');
+    if (image) {
+      image.onload = null;
+      image.onerror = null;
+      image.removeAttribute('src');
+    }
     if (modal) modal.hidden = true;
   }
 
+  function initAvatarCropper(image) {
+    if (!image || !window.Cropper) return;
+    if (avatarCropper) {
+      avatarCropper.destroy();
+      avatarCropper = null;
+    }
+    avatarCropper = new window.Cropper(image, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 0.92,
+      background: false,
+      responsive: true,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: true,
+      cropBoxMovable: false,
+      cropBoxResizable: false,
+      toggleDragModeOnDblclick: false,
+      zoomable: true,
+      zoomOnWheel: true,
+      wheelZoomRatio: 0.08,
+      scalable: false,
+      minContainerWidth: 280,
+      minContainerHeight: 280,
+      ready() {
+        this.cropper.crop();
+      }
+    });
+  }
+
   function openAvatarCropModal(file) {
-    if (!file || !window.Cropper) return toast('裁剪组件未加载');
+    if (!file) return;
+    if (!window.Cropper) return toast('裁剪组件未加载，请刷新页面重试');
     destroyAvatarCropper();
     const modal = $('#avatarCropModal');
     const image = $('#avatarCropImage');
     if (!modal || !image) return;
+
+    modal.hidden = false;
+    image.onload = () => {
+      window.requestAnimationFrame(() => initAvatarCropper(image));
+    };
+    image.onerror = () => toast('图片加载失败，请换一张重试');
+    image.removeAttribute('src');
     avatarCropObjectUrl = URL.createObjectURL(file);
     image.src = avatarCropObjectUrl;
-    modal.hidden = false;
-    const initCropper = () => {
-      if (avatarCropper) {
-        avatarCropper.destroy();
-        avatarCropper = null;
-      }
-      avatarCropper = new window.Cropper(image, {
-        aspectRatio: 1,
-        viewMode: 1,
-        dragMode: 'move',
-        autoCropArea: 1,
-        background: false,
-        responsive: true,
-        guides: false,
-        center: true,
-        highlight: false,
-        cropBoxMovable: false,
-        cropBoxResizable: false,
-        toggleDragModeOnDblclick: false
-      });
-    };
-    image.onload = initCropper;
-    if (image.complete) initCropper();
   }
 
   function getCircularCroppedBase64(cropper) {
-    const source = cropper.getCroppedCanvas({ width: 320, height: 320, imageSmoothingQuality: 'high' });
+    if (!cropper) throw new Error('裁剪器未就绪');
+    const source = cropper.getCroppedCanvas({
+      width: 320,
+      height: 320,
+      imageSmoothingEnabled: true,
+      imageSmoothingQuality: 'high'
+    });
+    if (!source || !source.width) throw new Error('裁剪失败，请重试');
     const size = 320;
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -938,7 +966,12 @@
         const stylistId = $('#stylistId').value;
         if (!stylistId) return toast('请先保存发型师');
         if (!avatarCropper) return toast('请先选择图片');
-        const imageBase64 = getCircularCroppedBase64(avatarCropper);
+        let imageBase64 = '';
+        try {
+          imageBase64 = getCircularCroppedBase64(avatarCropper);
+        } catch (err) {
+          return toast((err && err.message) || '裁剪失败，请重试');
+        }
         avatarCropConfirm.disabled = true;
         try {
           const data = await uploadStylistAvatarImage(stylistId, imageBase64);
