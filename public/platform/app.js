@@ -411,18 +411,53 @@
     if (placeholder) placeholder.hidden = false;
   }
 
+  function isBrowserDisplayablePhoto(url) {
+    const value = String(url || '').trim();
+    if (!value) return false;
+    if (value.startsWith('cloud://')) return false;
+    return (
+      value.startsWith('data:')
+      || value.startsWith('blob:')
+      || value.startsWith('/')
+      || /^https?:\/\//i.test(value)
+    );
+  }
+
+  function appendCacheBust(url) {
+    const value = String(url || '').trim();
+    if (!value || value.startsWith('data:') || value.startsWith('blob:')) return value;
+    const sep = value.includes('?') ? '&' : '?';
+    return `${value}${sep}_t=${Date.now()}`;
+  }
+
   function setStylistAvatarPreview(url) {
     const preview = $('#stylistAvatarPreview');
     const placeholder = $('#stylistAvatarPlaceholder');
     const value = String(url || '').trim();
     if (!preview || !placeholder) return;
-    if (!value) {
-      resetStylistAvatarPreview();
+    if (!isBrowserDisplayablePhoto(value)) {
+      if (!value) resetStylistAvatarPreview();
       return;
     }
-    preview.src = value;
     preview.hidden = false;
     placeholder.hidden = true;
+    preview.src = appendCacheBust(value);
+  }
+
+  async function refreshStylistAvatarPreview(stylistId, fallbackUrl) {
+    if (!stylistId) return;
+    try {
+      const data = await api(`/stylists/${stylistId}`);
+      if (!data.success || !data.stylist) return;
+      const remote = data.stylist.photoPreviewUrl || data.stylist.photo || '';
+      if (isBrowserDisplayablePhoto(remote)) {
+        setStylistAvatarPreview(remote);
+        return;
+      }
+    } catch (_) { /* ignore */ }
+    if (isBrowserDisplayablePhoto(fallbackUrl)) {
+      setStylistAvatarPreview(fallbackUrl);
+    }
   }
 
   function updateStylistAvatarControls() {
@@ -976,9 +1011,10 @@
         try {
           const data = await uploadStylistAvatarImage(stylistId, imageBase64);
           if (!data.success) return toast(data.message || '上传失败');
-          setStylistAvatarPreview(data.previewUrl || data.photo || '');
-          toast('头像已上传');
           closeAvatarCropModal();
+          setStylistAvatarPreview(imageBase64);
+          toast('头像已上传');
+          refreshStylistAvatarPreview(stylistId, imageBase64);
         } catch (_) {
           toast('上传失败');
         } finally {
