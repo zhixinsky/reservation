@@ -582,8 +582,8 @@
 }
 
 .success-icon-img {
-  width: 52rpx;
-  height: 52rpx;
+  width: 58rpx;
+  height: 58rpx;
 }
 
 .success-title {
