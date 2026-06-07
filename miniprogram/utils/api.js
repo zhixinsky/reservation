@@ -31,10 +31,12 @@ function callApi(action, payload = {}) {
   const sessionId = payload.sessionId;
 
   switch (action) {
+    case 'getStores':
+      return containerRequest({ path: '/api/stores' });
     case 'getAnnouncement':
-      return containerRequest({ path: '/api/announcement' });
+      return containerRequest({ path: `/api/announcement${qs({ storeId: payload.storeId })}` });
     case 'getStylists':
-      return containerRequest({ path: '/api/stylists' });
+      return containerRequest({ path: `/api/stylists${qs({ storeId: payload.storeId })}` });
     case 'getSlots':
       return containerRequest({
         path: `/api/slots/${encodeURIComponent(payload.stylistId)}${qs({ date: payload.date })}`

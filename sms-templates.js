@@ -7,7 +7,6 @@
  * {time} - 预约时间段（格式：HH:MM-HH:MM）
  * {appId} - 预约号（手机号后4位）
  * {phone} - 手机号
- * {companyName} - 固定公司名称（如：育文游）
  * {shopName} - 店铺名称（如：欧诺造型）
  * {shopPhone} - 店铺电话
  * {shopAddress} - 店铺地址
@@ -15,11 +14,9 @@
  */
 
 const MINI_PROGRAM_URL = process.env.MINI_PROGRAM_URL || 'https://wxaurl.cn/byRtNK8KNSc';
-const COMPANY_NAME = process.env.COMPANY_NAME || '育文游';
 
-// 店铺信息配置（可根据实际情况修改）
+// 默认店铺信息（无门店上下文时的兜底，正式环境以 stores 表为准）
 const SHOP_INFO = {
-    companyName: COMPANY_NAME,
     name: '欧诺造型',
     phone: '17675610733',
     address: '广州市白云区白灰场南路2号',
@@ -42,30 +39,30 @@ function formatTimeDisplay(timeStr) {
     return timeStr;
 }
 
-/** 品牌前缀：【育文游】欧诺造型提醒您， */
+/** 短信正文前缀（签名【育文游】等在亿美账号侧配置，不在代码里拼） */
 function getBrandPrefix(shopInfo = SHOP_INFO) {
-    const { companyName, name } = shopInfo;
-    return `【${companyName}】${name}提醒您，`;
+    const name = shopInfo.name || SHOP_INFO.name;
+    return `${name}提醒您，`;
 }
 
 /**
  * 亿美个性模板内容（变量格式 {#name#}）
+ * 短信签名在亿美账号侧配置；正文使用 {#shopName#} / {#shopPhone#} 支持多门店。
  */
-function getBookingSuccessEmayTemplate(shopInfo = SHOP_INFO) {
-    return `${getBrandPrefix(shopInfo)}您已成功预约！您的预约号：{#appId#}，发型师：{#stylistName#}，预约时间：{#date#} {#time#}。请提前5分钟到店，如需取消预约，请打开小程序 {#miniProgramUrl#}`;
+function getBookingSuccessEmayTemplate() {
+    return '{#shopName#}提醒您，您已成功预约！预约号：{#appId#}，发型师：{#stylistName#}，时间：{#date#} {#time#}。门店电话：{#shopPhone#}。请提前5分钟到店，取消或改约请打开 {#miniProgramUrl#}';
 }
 
-function getCancelBookingEmayTemplate(shopInfo = SHOP_INFO) {
-    return `${getBrandPrefix(shopInfo)}您的预约已取消。预约号：{#appId#}，发型师：{#stylistName#}，预约时间：{#date#} {#time#}。如需重新预约，请打开小程序 {#miniProgramUrl#}`;
+function getCancelBookingEmayTemplate() {
+    return '{#shopName#}提醒您，您的预约已取消。预约号：{#appId#}，发型师：{#stylistName#}，时间：{#date#} {#time#}。门店电话：{#shopPhone#}。如需重新预约请打开 {#miniProgramUrl#}';
 }
 
-function getBookingReminderEmayTemplate(shopInfo = SHOP_INFO) {
-    const { address } = shopInfo;
-    return `${getBrandPrefix(shopInfo)}您已预约{#stylistName#}，预约时间：{#date#} {#time#}，请提前5分钟到店。地址：${address}。打开小程序 {#miniProgramUrl#}`;
+function getBookingReminderEmayTemplate() {
+    return '{#shopName#}提醒您，您已预约{#stylistName#}，时间：{#date#} {#time#}。门店电话：{#shopPhone#}。请提前5分钟到店，打开 {#miniProgramUrl#}';
 }
 
-function getStylistCancelEmayTemplate(shopInfo = SHOP_INFO) {
-    return `${getBrandPrefix(shopInfo)}您的预约因门店安排已取消。预约号：{#appId#}，发型师：{#stylistName#}，预约时间：{#date#} {#time#}。如需重新预约，请打开小程序 {#miniProgramUrl#}`;
+function getStylistCancelEmayTemplate() {
+    return '{#shopName#}提醒您，您的预约因门店安排已取消。预约号：{#appId#}，发型师：{#stylistName#}，时间：{#date#} {#time#}。门店电话：{#shopPhone#}。如需重新预约请打开 {#miniProgramUrl#}';
 }
 
 function buildMiniProgramUrl(data) {
@@ -73,13 +70,16 @@ function buildMiniProgramUrl(data) {
 }
 
 function buildBookingSmsVariables(data) {
-    return {
+    const vars = {
         appId: String(data.appId),
         stylistName: String(data.stylistName),
         date: formatDateDisplay(data.date),
         time: formatTimeDisplay(data.time),
         miniProgramUrl: buildMiniProgramUrl(data)
     };
+    vars.shopName = String(data.shopName || SHOP_INFO.name);
+    vars.shopPhone = String(data.shopPhone || SHOP_INFO.phone);
+    return vars;
 }
 
 function buildCancelSmsVariables(data) {
@@ -159,7 +159,6 @@ function getCancelBookingSMSSimple(data) {
 
 module.exports = {
     MINI_PROGRAM_URL,
-    COMPANY_NAME,
     SHOP_INFO,
     getBrandPrefix,
     formatDateDisplay,

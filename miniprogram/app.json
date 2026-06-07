@@ -2,7 +2,6 @@
   "pages": [
     "pages/index/index",
     "pages/my/my",
-    "pages/admin-login/admin-login",
     "pages/admin-dashboard/admin-dashboard"
   ],
   "window": {
@@ -29,6 +28,14 @@
     ]
   },
   "style": "v2",
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于为您推荐距离最近的门店"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
   "lazyCodeLoading": "requiredComponents",
   "rendererOptions": {
     "skyline": {

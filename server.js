@@ -1,14 +1,33 @@
-// 加载环境变量
-require('dotenv').config();
+// 加载环境变量（固定相对 server.js 的路径，避免启动目录不同导致读不到 .env）
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const path = require('path');
 const https = require('https');
 const axios = require('axios');
 const { sendBookingSuccessSMS, sendCancelBookingSMS, sendStylistCancelBookingSMS, initSmsTemplates, refreshSmsTemplateStatus, SMS_ENABLED } = require('./sms-service');
-const { ready: dbReady, appointments: dbAppointments, blockedSlots: dbBlockedSlots, sessions: dbSessions, stylistVacations: dbStylistVacations } = require('./database');
+const {
+    ready: dbReady,
+    appointments: dbAppointments,
+    blockedSlots: dbBlockedSlots,
+    sessions: dbSessions,
+    stylistVacations: dbStylistVacations,
+    stores: dbStores,
+    phoneBlacklist: dbPhoneBlacklist,
+    auditLogs,
+    stylistAccounts: dbStylistAccounts,
+    publicStylistRow: dbPublicStylistRow,
+    normalizePhoneDigits: dbNormalizePhoneDigits
+} = require('./database');
+const {
+    buildSlotsForDate,
+    validateSlotBookable,
+    clampBookAheadDays,
+    isDateWithinBookAhead
+} = require('./slot-config');
+const { createPlatformRouter } = require('./platform-routes');
 const app = express();
 app.use(bodyParser.json());
 // 静态文件延后挂载，确保 /api 等路由优先匹配（见文件末尾）
@@ -60,29 +79,18 @@ function normalizePhone(phone) {
     return String(phone || '').replace(/\D/g, '');
 }
 
-function getAdminPhoneSet() {
-    return new Set(String(process.env.ADMIN_PHONES || '')
-        .split(',')
-        .map(normalizePhone)
-        .filter(Boolean));
-}
-
-function isAdminPhone(phone) {
-    return getAdminPhoneSet().has(normalizePhone(phone));
-}
-
-function findAdminStylistForPhone() {
-    const configuredId = process.env.ADMIN_STYLIST_ID;
-    if (configuredId) {
-        const configuredStylist = stylists.find(s => String(s.id) === String(configuredId));
-        if (configuredStylist) return configuredStylist;
-    }
-    return stylists[0] || null;
+function findStylistByAdminPhone(phone) {
+    const digits = normalizePhone(phone);
+    if (!digits) return null;
+    const matches = stylists.filter((s) => (
+        s.enabled !== false
+        && normalizePhone(s.phone) === digits
+    ));
+    return matches.length === 1 ? matches[0] : null;
 }
 
 function createAdminSessionForPhone(phone) {
-    if (!isAdminPhone(phone)) return null;
-    const stylist = findAdminStylistForPhone();
+    const stylist = findStylistByAdminPhone(phone);
     if (!stylist) return null;
 
     const sessionId = 'stylist_' + stylist.id + '_' + Date.now() + '_phone';
@@ -128,6 +136,58 @@ async function getWechatAccessToken() {
         expiresAt: Date.now() + Math.max(60, Number(data.expires_in || 7200) - 300) * 1000
     };
     return data.access_token;
+}
+
+async function generateStoreWxacode(storeId) {
+    const accessToken = await getWechatAccessToken();
+    const scene = `s=${Number(storeId)}`;
+    const envVersion = process.env.WX_QRCODE_ENV_VERSION || 'release';
+    const checkPath = process.env.WX_QRCODE_CHECK_PATH === '1';
+    const { data } = await axios.post(
+        `${getWechatApiBaseUrl()}/wxa/getwxacodeunlimit?access_token=${encodeURIComponent(accessToken)}`,
+        {
+            scene,
+            page: 'pages/index/index',
+            check_path: checkPath,
+            width: 430,
+            env_version: envVersion
+        },
+        { responseType: 'arraybuffer', ...getWechatRequestConfig() }
+    );
+    const buf = Buffer.from(data);
+    if (buf.length < 512 && buf[0] === 0x7b) {
+        let errMsg = '生成小程序码失败';
+        try {
+            const err = JSON.parse(buf.toString('utf8'));
+            errMsg = err.errmsg || errMsg;
+        } catch (_) { /* ignore */ }
+        throw new Error(errMsg);
+    }
+    return buf;
+}
+
+async function invokeCloudFunction(name, event) {
+    const accessToken = await getWechatAccessToken();
+    const env = process.env.TCB_ENV_ID
+        || process.env.WX_CLOUD_ENV
+        || 'reservation-d2gf73dgv8fd17503';
+    const { data } = await axios.post(
+        `${getWechatApiBaseUrl()}/tcb/invokecloudfunction?access_token=${encodeURIComponent(accessToken)}`,
+        {
+            env,
+            name: name || process.env.CLOUD_FUNCTION_NAME || 'api',
+            req_data: JSON.stringify(event || {})
+        },
+        getWechatRequestConfig()
+    );
+    if (!data || data.errcode) {
+        throw new Error((data && data.errmsg) || '云函数调用失败');
+    }
+    try {
+        return JSON.parse(data.resp_data || '{}');
+    } catch (_) {
+        return { raw: data.resp_data };
+    }
 }
 
 app.post('/api/wechat/phone-number', async (req, res) => {
@@ -242,89 +302,98 @@ function refreshStylistVacationFromStore(stylist) {
     }
 }
 
-// 发型师数据：优先从环境变量读取，其次从配置文件，最后使用默认值
+// 发型师数据：启动后从 MySQL 加载，空库时写入占位账号（请在 /platform/ 管理）
 let stylists = [];
 
-// 方法1：从环境变量读取（云托管推荐）
-if (process.env.STYLISTS_JSON) {
-    try {
-        const jsonStr = process.env.STYLISTS_JSON.replace(/\n/g, '').replace(/\s+/g, ' ');
-        stylists = JSON.parse(jsonStr);
-        console.log(`✓ 已从环境变量 STYLISTS_JSON 加载 ${stylists.length} 个发型师账号`);
-    } catch (e) {
-        console.error('❌ 环境变量 STYLISTS_JSON 格式错误:', e.message);
-        console.log('⚠ 使用默认发型师数据');
-        stylists = getDefaultStylists();
+function getBootstrapStylists() {
+    return [{
+        id: 1,
+        storeId: 1,
+        name: '店长',
+        workStatus: 'working',
+        username: 'tony',
+        password: 'change-me',
+        phone: '',
+        enabled: true
+    }];
+}
+
+function getStoreForStylist(stylist) {
+    const storeId = stylist && stylist.storeId != null ? Number(stylist.storeId) : 1;
+    return dbStores.getById(storeId) || dbStores.getById(1) || dbStores.getAll()[0] || null;
+}
+
+function smsPayloadForStylist(stylist, payload) {
+    const store = getStoreForStylist(stylist);
+    if (!store) return payload;
+    return {
+        ...payload,
+        shopName: store.name || payload.shopName || '门店',
+        shopPhone: store.phone || payload.shopPhone || '',
+        miniProgramUrl: store.miniProgramUrl || process.env.MINI_PROGRAM_URL || payload.miniProgramUrl
+    };
+}
+
+function getBlacklistNoticeForPhone(phone) {
+    const digits = dbNormalizePhoneDigits(phone);
+    if (!digits) return null;
+    const globalHit = dbPhoneBlacklist.getAll().find(
+        (row) => row.phone === digits && row.storeId == null
+    );
+    if (globalHit) {
+        return {
+            scope: 'global',
+            scopeLabel: '全平台',
+            reason: globalHit.reason || '该手机号已被限制预约'
+        };
     }
-}
-// 方法2：从配置文件读取（本地开发备用）
-else {
-    const stylistsConfigPath = process.env.STYLISTS_CONFIG_PATH || 'stylists.json';
-    if (fs.existsSync(stylistsConfigPath)) {
-        try {
-            const configData = fs.readFileSync(stylistsConfigPath, 'utf8');
-            stylists = JSON.parse(configData);
-            console.log(`✓ 已从配置文件 ${stylistsConfigPath} 加载 ${stylists.length} 个发型师账号`);
-        } catch (e) {
-            console.error(`❌ 配置文件 ${stylistsConfigPath} 格式错误:`, e.message);
-            console.log('⚠ 使用默认发型师数据');
-            stylists = getDefaultStylists();
-        }
-    } else {
-        console.log('⚠ 使用默认发型师数据');
-        console.log('💡 提示：云托管请设置 STYLISTS_JSON 环境变量来配置发型师账号');
-        stylists = getDefaultStylists();
-    }
+    const storeHits = dbPhoneBlacklist.getAll()
+        .filter(row => row.phone === digits && row.storeId != null)
+        .map((row) => {
+            const store = dbStores.getById(row.storeId);
+            return {
+                scope: 'store',
+                storeId: row.storeId,
+                scopeLabel: (store && store.name) || `门店#${row.storeId}`,
+                reason: row.reason || '该手机号在此门店已被限制预约'
+            };
+        });
+    if (storeHits.length) return storeHits[0];
+    return null;
 }
 
-function validateStylistsConfig(list) {
-    if (!Array.isArray(list) || list.length === 0) {
-        throw new Error('发型师配置必须是非空数组');
-    }
-    for (const item of list) {
-        if (!item || item.id == null || !item.name || !item.username || !item.password) {
-            throw new Error('每个发型师必须包含 id、name、username、password');
-        }
-    }
-    return list;
+function isPhoneBlacklistedForStylist(phone, stylist) {
+    const store = getStoreForStylist(stylist);
+    const storeId = store ? store.id : 1;
+    const hit = dbPhoneBlacklist.findActive(phone, storeId);
+    if (hit) return hit;
+    return dbPhoneBlacklist.findActive(phone, null);
 }
 
-try {
-    stylists = validateStylistsConfig(stylists);
-} catch (e) {
-    console.error('❌ 发型师配置无效:', e.message);
-    stylists = getDefaultStylists();
-}
+// 平台最高管理员 API（PC 端，与小程序 API 同端口部署）
+app.use('/api/platform', createPlatformRouter({
+    dbSessions,
+    dbAppointments,
+    dbStores,
+    dbPhoneBlacklist,
+    dbAuditLogs: auditLogs,
+    dbStylistAccounts,
+    publicStylistRow: dbPublicStylistRow,
+    stylists,
+    getTodayDate,
+    normalizePhone: dbNormalizePhoneDigits,
+    syncStylistsRef: () => dbStylistAccounts.syncToArray(stylists),
+    generateStoreWxacode,
+    invokeCloudFunction,
+    refreshSmsTemplateStatus,
+    SMS_ENABLED
+}));
 
-applyPersistedVacationsToStylists(stylists);
-
-// 默认发型师数据（仅用于配置缺失时让服务可启动；生产环境请设置 STYLISTS_JSON）
-function getDefaultStylists() {
-    return [
-        {
-            id: 1,
-            name: "店长",
-            workStatus: 'working',
-            username: 'tony',
-            password: 'change-me'
-        }
-    ];
-}
-
-/*
-// 如需完整发型师展示字段，可在 STYLISTS_JSON 中增加 rank、specialty、price、photo 等字段，例如：
-[
-  {
-    "id": 1,
-    "name": "店长",
-    "workStatus": "working",
-    "username": "tony",
-    "password": "your-password"
-  }
-]
-*/
-
-// 已移除超级管理员功能，仅保留发型师管理
+// 平台管理 PC 端（Apple 风格 SPA，云托管 80 端口静态资源）
+// 注意：Express 默认非严格路由下 /platform 会匹配 /platform/，若再 redirect 会死循环
+app.get(['/platform', '/platform/'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'platform', 'index.html'));
+});
 
 // 使用数据库存储会话（已迁移到 database.js）
 
@@ -344,8 +413,29 @@ app.get('/api/carousel-images', (req, res) => {
 
 // --- API 接口 ---
 
+// 用户端：营业门店列表（小程序选店 / 导航）
+app.get('/api/stores', (req, res) => {
+    const list = dbStores.getAll()
+        .filter(s => s.status === 'active')
+        .map(s => ({
+            id: s.id,
+            name: String(s.name || '').trim().slice(0, 6),
+            phone: s.phone || '',
+            latitude: s.latitude != null ? Number(s.latitude) : null,
+            longitude: s.longitude != null ? Number(s.longitude) : null,
+            bookAheadDays: clampBookAheadDays(s.bookAheadDays),
+            status: s.status
+        }));
+    res.set('Cache-Control', 'no-store');
+    res.json(list);
+});
+
 // 1. 获取所有发型师及其状态
 app.get('/api/stylists', (req, res) => {
+    const storeIdFilter = req.query.storeId != null && req.query.storeId !== ''
+        ? Number(req.query.storeId)
+        : null;
+
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
@@ -357,7 +447,12 @@ app.get('/api/stylists', (req, res) => {
     const workEndMinutes = 22 * 60 + 30; // 22:30
     const isWorkTime = currentTotalMinutes >= workStartMinutes && currentTotalMinutes < workEndMinutes;
     
-    const result = stylists.map(s => {
+    let stylistList = stylists.filter(s => s.enabled !== false);
+    if (storeIdFilter != null && !Number.isNaN(storeIdFilter)) {
+        stylistList = stylistList.filter(s => Number(s.storeId) === storeIdFilter);
+    }
+
+    const result = stylistList.map(s => {
         refreshStylistVacationFromStore(s);
         let displayStatus = 'working';
         let statusText = '';
@@ -416,108 +511,27 @@ app.get('/api/slots/:stylistId', (req, res) => {
     }
     refreshStylistVacationFromStore(stylist);
     
+    const store = getStoreForStylist(stylist);
+    if (!isDateWithinBookAhead(targetDate, today, store && store.bookAheadDays)) {
+        return res.json([]);
+    }
+
     // 优先：休假日期内不可预约（YYYY-MM-DD 字符串比较，与用户端「今天/明天/后天」一致）
     if (isYmdInVacation(stylist, targetDate)) {
         return res.json([]);
     }
     
     // 不再检查 workStatus，因为"休息中"只是当前时间不在工作时间内，但可以预约未来时段
-    
-    // 获取当前时间（本地时区）
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    
-    const slots = [];
-    
-    // 从11:00开始，到22:30截止
-    // 生成时间段：11:00-11:30, 11:30-12:00, ..., 22:00-22:30
-    // 共23个时间段
-    for (let h = 11; h <= 22; h++) {
-        // 对于22点，只生成22:00-22:30，不生成22:30-23:00
-        const minutes = h === 22 ? ['00'] : ['00', '30'];
-        
-        minutes.forEach(m => {
-            let startHour = h;
-            let startMin = m;
-            let endHour = m === '00' ? h : h + 1;
-            let endMin = m === '00' ? '30' : '00';
-            
-            const startTime = `${String(startHour).padStart(2, '0')}:${startMin}`;
-            const endTime = `${String(endHour).padStart(2, '0')}:${endMin}`;
-            const timeRange = `${startTime}-${endTime}`;
-            
-            // 调试：确保所有时间段都被生成
-            // console.log('Generating slot:', timeRange);
+    const slots = buildSlotsForDate({
+        rules: store,
+        targetDate,
+        today,
+        now,
+        stylistId,
+        appointmentsFind: cond => dbAppointments.find(cond),
+        blockedFind: cond => dbBlockedSlots.find(cond)
+    });
 
-            // 检查该时间段是否已被预约（排除已取消和已完成的）
-            const bookedApps = dbAppointments.find({
-                stylistId: stylistId,
-                date: targetDate,
-                time: timeRange,
-                status: ['booked', 'pending']
-            }).filter(app => app.status !== 'cancelled' && app.status !== 'completed');
-            const isBooked = bookedApps.length > 0;
-
-            // 检查是否被锁定（包括默认锁定的时间段）
-            const blocked = dbBlockedSlots.find({
-                stylistId: stylistId,
-                date: targetDate,
-                time: timeRange
-            });
-            const isBlocked = blocked.length > 0;
-            
-            // 检查是否是默认锁定的时间段（12:00-12:30 和 18:00-18:30）
-            // 如果该时间段没有被预约，且不在 blocked_slots 中（说明发型师没有主动解锁），则视为已锁定
-            // 注意：如果发型师解锁了，会在 blocked_slots 中创建一个解锁标记（使用特殊格式：time + '_UNLOCKED'）
-            const isDefaultMealTime = (timeRange === '12:00-12:30' || timeRange === '18:00-18:30');
-            const unlocked = dbBlockedSlots.find({
-                stylistId: stylistId,
-                date: targetDate,
-                time: timeRange + '_UNLOCKED'
-            });
-            const isUnlocked = unlocked.length > 0;
-            const isDefaultBlocked = isDefaultMealTime && !isBooked && !isBlocked && !isUnlocked;
-            
-            // 检查时间段是否已过期（仅对今天的日期）
-            let isPast = false;
-            if (targetDate === today) {
-                // 计算时间段开始时间的总分钟数
-                const startTotalMinutes = startHour * 60 + parseInt(startMin);
-                // 计算当前时间的总分钟数
-                const currentTotalMinutes = currentHour * 60 + currentMinute;
-                // 如果当前时间超过开始时间10分钟以上，则不可预约
-                if (currentTotalMinutes > startTotalMinutes + 10) {
-                    isPast = true;
-                }
-            } else if (targetDate < today) {
-                // 过去的日期，所有时间段都不可预约
-                isPast = true;
-            }
-            
-            // 确定时间段状态
-            let status = 'available'; // 默认可预约
-            if (isPast) {
-                status = 'past'; // 已过期
-            } else if (isBooked) {
-                status = 'booked'; // 已预约
-            } else if (isBlocked || isDefaultBlocked) {
-                status = 'blocked'; // 已锁定（不可预约）
-            }
-            
-            slots.push({ 
-                time: timeRange,
-                available: !isBooked && !isBlocked && !isDefaultBlocked && !isPast,
-                status: status // 添加状态字段：available, booked, blocked, past
-            });
-        });
-    }
-    
-    // 调试：检查是否包含关键时间段
-    const hasNewSlots = slots.some(s => s.time === '11:00-11:30' || s.time === '12:00-12:30' || s.time === '18:00-18:30' || s.time === '22:00-22:30');
-    if (!hasNewSlots) {
-        console.warn('警告：关键时间段（11:00-11:30, 12:00-12:30, 18:00-18:30, 22:00-22:30）未生成');
-    }
-    
     res.json(slots);
 });
 
@@ -548,63 +562,40 @@ app.post('/api/book', (req, res) => {
     // 检查时间段是否可用
     const now = new Date();
     
-    // 检查所有时间段是否可用
+    const store = getStoreForStylist(stylist);
+    if (!isDateWithinBookAhead(targetDate, today, store && store.bookAheadDays)) {
+        return res.json({ success: false, message: '该日期不在可预约范围内' });
+    }
+
     for (const timeSlot of timeSlots) {
-        // 检查时间段是否已过期（仅对今天的日期）
-        if (targetDate === today) {
-            const [startTime] = timeSlot.split('-');
-            const [startHour, startMin] = startTime.split(':').map(Number);
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            
-            // 计算时间段开始时间的总分钟数
-            const startTotalMinutes = startHour * 60 + startMin;
-            // 计算当前时间的总分钟数
-            const currentTotalMinutes = currentHour * 60 + currentMinute;
-            
-            // 如果当前时间超过开始时间10分钟以上，则不可预约
-            if (currentTotalMinutes > startTotalMinutes + 10) {
-                return res.json({ success: false, message: '该时间段已过期，无法预约' });
-            }
-        }
-        
-        // 检查时间段是否已被预约（排除已取消和已完成的）
-        const bookedApps = dbAppointments.find({
-            stylistId: stylistId,
-            date: targetDate,
-            time: timeSlot
-        }).filter(app => app.status !== 'cancelled' && app.status !== 'completed');
-        const isBooked = bookedApps.length > 0;
-        
-        // 检查是否被锁定
-        const blocked = dbBlockedSlots.find({
-            stylistId: stylistId,
-            date: targetDate,
-            time: timeSlot
+        const check = validateSlotBookable({
+            timeSlot,
+            targetDate,
+            today,
+            now,
+            stylistId,
+            rules: store,
+            appointmentsFind: cond => dbAppointments.find(cond),
+            blockedFind: cond => dbBlockedSlots.find(cond)
         });
-        const isBlocked = blocked.length > 0;
-        
-        // 检查是否是默认锁定的时间段（12:00-12:30 和 18:00-18:30）
-        // 如果该时间段没有被预约，且不在 blocked_slots 中（说明发型师没有主动解锁），则视为已锁定
-        // 注意：如果发型师解锁了，会在 blocked_slots 中创建一个解锁标记（使用特殊格式：time + '_UNLOCKED'）
-        // 对于烫染服务，前端会处理跳过逻辑，后端只需要验证时间段是否真的可用
-        const isDefaultMealTime = (timeSlot === '12:00-12:30' || timeSlot === '18:00-18:30');
-        const unlocked = dbBlockedSlots.find({
-            stylistId: stylistId,
-            date: targetDate,
-            time: timeSlot + '_UNLOCKED'
-        });
-        const isUnlocked = unlocked.length > 0;
-        const isDefaultBlocked = isDefaultMealTime && !isBooked && !isBlocked && !isUnlocked;
-        
-        if (isBooked || isBlocked || isDefaultBlocked) {
-            return res.json({ success: false, message: `时间段 ${timeSlot} 已被预约或锁定` });
+        if (!check.ok) {
+            return res.json({ success: false, message: check.message });
         }
     }
-    
+
     // 验证手机号格式（简单验证）
     if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
         return res.json({ success: false, message: '请输入正确的手机号码' });
+    }
+
+    const blacklistHit = isPhoneBlacklistedForStylist(phone, stylist);
+    if (blacklistHit) {
+        return res.json({
+            success: false,
+            message: blacklistHit.reason
+                ? `无法预约：${blacklistHit.reason}`
+                : '您的手机号已被限制预约，请联系门店'
+        });
     }
     
     // 检查该手机号在目标日期是否已有有效预约（一个手机号一天内只能预约一次）
@@ -666,13 +657,13 @@ app.post('/api/book', (req, res) => {
             displayTime = timeSlots.join('、');
         }
         
-        sendBookingSuccessSMS({
+        sendBookingSuccessSMS(smsPayloadForStylist(bookingStylist, {
             phone: phone,
             appId: appId,
             stylistName: bookingStylist.name,
             date: targetDate,
             time: displayTime
-        }).catch(err => {
+        })).catch(err => {
             console.error('短信发送异常（不影响预约）:', err.message);
         });
     }
@@ -691,6 +682,9 @@ app.post('/api/auth/login', (req, res) => {
     // 检查是否为发型师
     const stylist = stylists.find(s => s.username === username && s.password === password);
     if (stylist) {
+        if (stylist.enabled === false) {
+            return res.json({ success: false, message: '该账号已停用，请联系平台管理员' });
+        }
         const sessionId = 'stylist_' + stylist.id + '_' + Date.now();
         dbSessions.create(sessionId, { role: 'stylist', stylistId: stylist.id, username: stylist.name });
         console.log(`[登录成功] 发型师登录: ${stylist.name}，SessionId: ${sessionId}`);
@@ -953,13 +947,13 @@ app.post('/api/admin/cancel', requireAuth, (req, res) => {
     // 发送取消预约短信（异步，不阻塞响应）
     const cancelStylist = stylists.find(s => s.id == app.stylistId);
     if (cancelStylist && app.phone) {
-        sendStylistCancelBookingSMS({
+        sendStylistCancelBookingSMS(smsPayloadForStylist(cancelStylist, {
             phone: app.phone,
             appId: app.appId,
             stylistName: cancelStylist.name,
             date: app.date,
             time: displayTime
-        }).catch(err => {
+        })).catch(err => {
             console.error('短信发送异常（不影响取消）:', err.message);
         });
     }
@@ -1213,12 +1207,17 @@ const dataDir = path.join(__dirname, 'data');
 const announcementFile = path.join(dataDir, 'announcement.json');
 const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间 11:00-22:00，请提前预约到店！';
 
-function getAnnouncement() {
+function getAnnouncementText(storeId = 1) {
+    const store = dbStores.getById(storeId) || dbStores.getAll()[0];
+    if (store && String(store.announcementText || '').trim()) {
+        return String(store.announcementText).trim();
+    }
     try {
         if (fs.existsSync(announcementFile)) {
             const data = fs.readFileSync(announcementFile, 'utf8');
             const obj = JSON.parse(data);
-            return (obj.text != null ? String(obj.text) : '').trim();
+            const legacy = (obj.text != null ? String(obj.text) : '').trim();
+            if (legacy) return legacy;
         }
     } catch (e) {
         console.error('读取公告失败:', e.message);
@@ -1226,33 +1225,32 @@ function getAnnouncement() {
     return DEFAULT_ANNOUNCEMENT_TEXT;
 }
 
-function saveAnnouncement(text) {
-    try {
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
-        }
-        fs.writeFileSync(announcementFile, JSON.stringify({ text: text || '' }, null, 2), 'utf8');
-        return true;
-    } catch (e) {
-        console.error('保存公告失败:', e.message);
-        return false;
-    }
+function saveAnnouncementForStore(storeId, text) {
+    const store = dbStores.getById(storeId) || dbStores.getAll()[0];
+    if (!store) return false;
+    dbStores.update(store.id, { announcementText: text || '' });
+    return true;
 }
 
 // 用户端：获取公告（无需登录）
 app.get('/api/announcement', (req, res) => {
-    res.json({ text: getAnnouncement() });
+    const storeId = Number(req.query.storeId) || 1;
+    res.json({ text: getAnnouncementText(storeId) });
 });
 
 // 管理端：获取公告
 app.get('/api/admin/announcement', requireAuth, (req, res) => {
-    res.json({ text: getAnnouncement() });
+    const stylist = stylists.find(s => Number(s.id) === Number(req.session.stylistId));
+    const storeId = stylist && stylist.storeId != null ? Number(stylist.storeId) : 1;
+    res.json({ text: getAnnouncementText(storeId) });
 });
 
 // 管理端：保存公告
 app.post('/api/admin/announcement', requireAuth, (req, res) => {
     const text = req.body && req.body.text != null ? String(req.body.text).trim() : '';
-    if (!saveAnnouncement(text)) {
+    const stylist = stylists.find(s => Number(s.id) === Number(req.session.stylistId));
+    const storeId = stylist && stylist.storeId != null ? Number(stylist.storeId) : 1;
+    if (!saveAnnouncementForStore(storeId, text)) {
         return res.status(500).json({ success: false, message: '保存失败' });
     }
     res.json({ success: true });
@@ -1385,9 +1383,12 @@ app.post('/api/appointments/query', (req, res) => {
         };
     });
     
+    const blacklistNotice = getBlacklistNoticeForPhone(phone);
+
     res.json({
         success: true,
-        appointments
+        appointments,
+        blacklistNotice
     });
 });
 
@@ -1608,13 +1609,13 @@ app.post('/api/cancel', (req, res) => {
                     }
                 }
                 
-                sendCancelBookingSMS({
+                sendCancelBookingSMS(smsPayloadForStylist(stylist, {
                     phone: app.phone,
                     appId: app.appId,
                     stylistName: stylist.name,
                     date: app.date,
                     time: displayTime
-                }).catch(err => {
+                })).catch(err => {
                     console.error('短信发送异常（不影响取消）:', err.message);
                 });
             }
@@ -1725,6 +1726,18 @@ app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
 dbReady.then(async () => {
+    try {
+        await dbStylistAccounts.seedFromConfigIfEmpty(getBootstrapStylists());
+        dbStylistAccounts.syncToArray(stylists);
+        applyPersistedVacationsToStylists(stylists);
+        stylists.forEach(s => {
+            if (s.storeId == null) s.storeId = 1;
+        });
+        console.log(`✓ 发型师账号已从数据库加载（${stylists.length} 个，请在 /platform/ 管理）`);
+    } catch (e) {
+        console.warn('⚠️  发型师账号同步失败:', e.message);
+    }
+
     if (SMS_ENABLED) {
         try {
             const smsInitResult = await initSmsTemplates();
@@ -1735,8 +1748,10 @@ dbReady.then(async () => {
     }
 
     app.listen(PORT, '0.0.0.0', () => {
+        const platformUser = String(process.env.ADMIN_USERNAME || 'admin').trim();
         console.log(`✓ 服务器运行在 http://0.0.0.0:${PORT}`);
         console.log(`✓ 用户端访问: http://localhost:${PORT}`);
-        console.log(`✓ 管理端访问: http://localhost:${PORT}/admin-login.html`);
+        console.log(`✓ 发型师管理: 小程序「我的」页 → 管理`);
+        console.log(`✓ 平台管理 PC: http://localhost:${PORT}/platform/ （账号: ${platformUser}）`);
     });
 });

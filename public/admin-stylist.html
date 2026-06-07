@@ -748,7 +748,7 @@
 
         // 检查登录状态 - 使用localStorage实现持久登录
         if (!sessionId || role !== 'stylist') {
-            window.location.href = '/admin-login.html';
+            window.location.href = '/';
         }
         
         // 检查 stylistId 是否存在
@@ -756,7 +756,7 @@
             console.error('stylistId not found in localStorage, redirecting to login');
             alert('登录信息不完整，请重新登录');
             setTimeout(() => {
-                window.location.href = '/admin-login.html';
+                window.location.href = '/';
             }, 1000);
         }
 
@@ -1141,7 +1141,7 @@
 
         function logout() {
             localStorage.clear();
-            window.location.href = '/admin-login.html';
+            window.location.href = '/';
         }
 
         // 初始化 - 默认显示今天

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>平台管理 · 预约系统</title>
+  <link rel="stylesheet" href="/platform/app.css?v=7">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <!-- 登录 -->
+    <section id="view-login" class="view view-login is-active">
+      <div class="login-card glass">
+        <div class="login-brand">
+          <div class="brand-mark">R</div>
+          <h1>平台管理中心</h1>
+          <p>多门店预约与规则配置</p>
+        </div>
+        <form id="loginForm" class="login-form">
+          <label class="field">
+            <span>用户名</span>
+            <input type="text" id="loginUser" autocomplete="username" required>
+          </label>
+          <label class="field">
+            <span>密码</span>
+            <input type="password" id="loginPass" autocomplete="current-password" required>
+          </label>
+          <p id="loginError" class="form-error" hidden></p>
+          <button type="submit" class="btn btn-primary btn-block" id="loginBtn">登录</button>
+        </form>
+        <p class="login-foot">与小程序后端同服部署 · 云托管 80 端口</p>
+      </div>
+    </section>
+
+    <!-- 主框架 -->
+    <section id="view-main" class="view view-main">
+      <aside class="sidebar glass">
+        <div class="sidebar-brand">
+          <div class="brand-mark sm">R</div>
+          <div>
+            <strong>平台管理</strong>
+            <span>Reservation OS</span>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <button type="button" class="nav-item active" data-route="dashboard">
+            <span class="nav-icon">◉</span>概览
+          </button>
+          <button type="button" class="nav-item" data-route="stores">
+            <span class="nav-icon">▣</span>门店
+          </button>
+          <button type="button" class="nav-item" data-route="stylists">
+            <span class="nav-icon">◎</span>发型师
+          </button>
+          <button type="button" class="nav-item" data-route="reports">
+            <span class="nav-icon">◫</span>报表
+          </button>
+          <button type="button" class="nav-item" data-route="appointments">
+            <span class="nav-icon">☰</span>预约
+          </button>
+          <button type="button" class="nav-item" data-route="blacklist">
+            <span class="nav-icon">⊘</span>黑名单
+          </button>
+          <button type="button" class="nav-item" data-route="audit">
+            <span class="nav-icon">◷</span>审计
+          </button>
+        </nav>
+        <div class="sidebar-foot">
+          <button type="button" class="btn btn-ghost btn-block" id="logoutBtn">退出登录</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar glass">
+          <h2 id="pageTitle">概览</h2>
+          <div class="topbar-actions">
+            <span class="pill" id="todayPill"></span>
+          </div>
+        </header>
+
+        <div class="main-scroll">
+          <!-- 概览 -->
+          <div id="panel-dashboard" class="panel">
+            <div class="stat-grid" id="statGrid"></div>
+            <div class="card glass">
+              <div class="card-head">
+                <h3>门店今日预约</h3>
+              </div>
+              <div id="storeTodayList" class="store-today-list"></div>
+            </div>
+            <div class="card glass" id="smsStatusCard">
+              <div class="card-head split-head">
+                <h3>短信模板状态</h3>
+                <button type="button" class="btn btn-ghost btn-sm" id="btnRefreshSms">刷新</button>
+              </div>
+              <div id="smsStatusBody" class="sms-status-body"></div>
+            </div>
+          </div>
+
+          <!-- 门店列表 -->
+          <div id="panel-stores" class="panel" hidden>
+            <div class="toolbar">
+              <button type="button" class="btn btn-primary" id="btnNewStore">新建门店</button>
+              <button type="button" class="btn btn-ghost" id="btnSyncCloud">同步到云开发</button>
+            </div>
+            <p class="field-hint store-sync-hint">可选：仅在使用<strong>云函数</strong>（非云托管）时需要，将门店与黑名单同步到云数据库。你当前使用云托管可忽略此按钮。</p>
+            <div id="storeList" class="card-list"></div>
+          </div>
+
+          <!-- 门店编辑 -->
+          <div id="panel-store-edit" class="panel" hidden>
+            <div class="toolbar">
+              <button type="button" class="btn btn-ghost" id="btnBackStores">← 返回门店列表</button>
+              <button type="button" class="btn btn-primary" id="btnSaveStore">保存</button>
+            </div>
+            <form id="storeForm" class="form-grid glass card">
+              <input type="hidden" id="storeId">
+              <fieldset class="form-section">
+                <legend>基本信息</legend>
+                <label class="field"><span>门店名称（最多6字）</span><input id="storeName" required maxlength="6"></label>
+                <label class="field"><span>门店编码</span><input id="storeCode"></label>
+                <label class="field"><span>状态</span>
+                  <select id="storeStatus">
+                    <option value="active">营业中</option>
+                    <option value="disabled">已停用</option>
+                  </select>
+                </label>
+                <label class="field"><span>电话</span><input id="storePhone"></label>
+                <label class="field"><span>纬度（导航必填）</span><input id="storeLatitude" type="number" step="any" placeholder="如 23.185396"></label>
+                <label class="field"><span>经度（导航必填）</span><input id="storeLongitude" type="number" step="any" placeholder="如 113.323372"></label>
+                <label class="field field-full"><span>地址（可选，仅展示）</span><input id="storeAddress" placeholder="可不填，导航使用经纬度"></label>
+              </fieldset>
+              <fieldset class="form-section">
+                <legend>预约规则</legend>
+                <label class="field"><span>营业开始</span><input id="storeWorkStart" type="time" step="60"></label>
+                <label class="field"><span>营业结束</span><input id="storeWorkEnd" type="time" step="60"></label>
+                <label class="field"><span>时段间隔（分钟）</span><input id="storeInterval" type="number" min="15" step="15"></label>
+                <label class="field"><span>可预约天数（1–3 天）</span><input id="storeBookDays" type="number" min="1" max="3" step="1"></label>
+                <label class="field"><span>烫染占格数</span><input id="storeDyeSlots" type="number" min="1" max="8"></label>
+                <label class="field field-full"><span>默认锁定时段（每行一个，如 12:00-12:30）</span>
+                  <textarea id="storeBlocked" rows="4"></textarea>
+                </label>
+              </fieldset>
+              <fieldset class="form-section">
+                <legend>展示与通知</legend>
+                <label class="field field-full"><span>首页公告</span><textarea id="storeAnnouncement" rows="3"></textarea></label>
+                <label class="field field-full"><span>小程序链接</span><input id="storeMiniUrl"></label>
+              </fieldset>
+              <fieldset class="form-section" id="storeQrcodeSection" hidden>
+                <legend>扫码入店</legend>
+                <p class="field-hint">每店独立小程序码，顾客扫码后直接进入该门店预约，无需手动选店；仍可通过左上角切换其他门店。</p>
+                <div class="qrcode-box">
+                  <img id="storeQrcodeImg" alt="门店小程序码" width="200" height="200">
+                  <div class="qrcode-actions">
+                    <a id="storeQrcodeDownload" class="btn btn-ghost btn-sm" download>下载二维码</a>
+                    <button type="button" class="btn btn-ghost btn-sm" id="btnRefreshQrcode">刷新</button>
+                  </div>
+                </div>
+              </fieldset>
+            </form>
+          </div>
+
+          <!-- 发型师 -->
+          <div id="panel-stylists" class="panel" hidden>
+            <div class="toolbar">
+              <select id="stylistFilterStore"><option value="">全部门店</option></select>
+              <button type="button" class="btn btn-primary" id="btnNewStylist">新建发型师</button>
+            </div>
+            <div id="stylistList" class="card-list"></div>
+          </div>
+
+          <div id="panel-stylist-edit" class="panel" hidden>
+            <div class="toolbar">
+              <button type="button" class="btn btn-ghost" id="btnBackStylists">← 返回列表</button>
+              <button type="button" class="btn btn-primary" id="btnSaveStylist">保存</button>
+            </div>
+            <form id="stylistForm" class="form-grid glass card">
+              <input type="hidden" id="stylistId">
+              <label class="field"><span>所属门店</span><select id="stylistStore" required></select></label>
+              <label class="field"><span>姓名</span><input id="stylistName" required></label>
+              <label class="field"><span>手机号</span><input id="stylistPhone" type="tel" maxlength="11" placeholder="用于小程序「管理」入口" required></label>
+              <label class="field"><span>登录名</span><input id="stylistUsername" required></label>
+              <label class="field"><span>密码</span><input id="stylistPassword" type="password" required></label>
+              <label class="field"><span>职级</span><input id="stylistRank" placeholder="如：总监"></label>
+              <label class="field"><span>状态</span>
+                <select id="stylistWorkStatus">
+                  <option value="working">工作中</option>
+                  <option value="resting">休息中</option>
+                </select>
+              </label>
+              <label class="field"><span>账号</span>
+                <select id="stylistEnabled">
+                  <option value="1">启用</option>
+                  <option value="0">停用</option>
+                </select>
+              </label>
+            </form>
+          </div>
+
+          <!-- 报表 -->
+          <div id="panel-reports" class="panel" hidden>
+            <div class="filter-bar glass">
+              <select id="reportStore"><option value="">全部门店</option></select>
+              <input type="date" id="reportFrom" placeholder="开始日期">
+              <input type="date" id="reportTo" placeholder="结束日期">
+              <button type="button" class="btn btn-secondary" id="btnLoadReport">查询</button>
+            </div>
+            <div class="stat-grid" id="reportStatGrid"></div>
+            <div class="card glass report-section">
+              <div class="card-head"><h3>各店预约统计</h3></div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>门店</th><th>预约单</th><th>待服务</th><th>已完成</th><th>已取消</th><th>取消率</th><th>剪发</th><th>烫染</th></tr>
+                  </thead>
+                  <tbody id="reportStoreBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="card glass report-section">
+              <div class="card-head"><h3>高峰时段（按时段条数）</h3></div>
+              <div id="reportPeakList" class="peak-list"></div>
+            </div>
+          </div>
+
+          <!-- 预约 -->
+          <div id="panel-appointments" class="panel" hidden>
+            <div class="filter-bar glass">
+              <select id="filterStore"><option value="">全部门店</option></select>
+              <input type="date" id="filterDate">
+              <input type="text" id="filterPhone" placeholder="手机号">
+              <select id="filterStatus">
+                <option value="">全部状态</option>
+                <option value="booked">待服务</option>
+                <option value="completed">已完成</option>
+                <option value="cancelled">已取消</option>
+                <option value="no_show">疑似爽约</option>
+              </select>
+              <button type="button" class="btn btn-secondary" id="btnSearchAppt">查询</button>
+              <button type="button" class="btn btn-ghost" id="btnHistoryAppt">手机号历史</button>
+              <button type="button" class="btn btn-ghost" id="btnExportAppt">导出 CSV</button>
+            </div>
+            <div id="apptHistoryBox" class="card glass" hidden>
+              <div class="card-head"><h3>预约历史</h3></div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>预约号</th><th>门店</th><th>日期</th><th>时间</th><th>服务</th><th>状态</th></tr>
+                  </thead>
+                  <tbody id="apptHistoryBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="table-wrap glass">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>预约号</th><th>门店</th><th>发型师</th><th>日期</th><th>时间</th><th>服务</th><th>手机</th><th>状态</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="apptTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 黑名单 -->
+          <div id="panel-blacklist" class="panel" hidden>
+            <div class="card glass report-section">
+              <div class="card-head split-head">
+                <h3>拉黑建议</h3>
+                <div class="inline-form compact">
+                  <select id="blSuggestStore"><option value="">全部门店</option></select>
+                  <button type="button" class="btn btn-ghost btn-sm" id="btnRefreshBlSuggest">刷新</button>
+                </div>
+              </div>
+              <p class="field-hint">根据近 90 天多次取消或疑似爽约（过期仍未完成/取消的预约）自动推荐，需人工确认后拉黑。</p>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>手机号</th><th>门店</th><th>取消</th><th>爽约</th><th>建议原因</th><th></th></tr>
+                  </thead>
+                  <tbody id="blSuggestBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="toolbar split">
+              <form id="blacklistForm" class="inline-form glass">
+                <input type="text" id="blPhone" placeholder="手机号" required pattern="1[3-9][0-9]{9}">
+                <select id="blStore">
+                  <option value="global">全平台</option>
+                </select>
+                <input type="text" id="blReason" placeholder="原因（可选）">
+                <button type="submit" class="btn btn-primary">添加</button>
+              </form>
+            </div>
+            <div class="table-wrap glass">
+              <table class="data-table">
+                <thead>
+                  <tr><th>手机号</th><th>范围</th><th>原因</th><th>添加时间</th><th></th></tr>
+                </thead>
+                <tbody id="blTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 审计日志 -->
+          <div id="panel-audit" class="panel" hidden>
+            <div class="toolbar">
+              <select id="auditAction">
+                <option value="">全部操作</option>
+                <option value="store.create">新建门店</option>
+                <option value="store.update">更新门店</option>
+                <option value="store.status">门店启停</option>
+                <option value="store.duplicate">复制门店</option>
+                <option value="stylist.create">新建发型师</option>
+                <option value="stylist.update">更新发型师</option>
+                <option value="appointment.cancel">代取消预约</option>
+                <option value="appointment.complete">标记完成</option>
+                <option value="blacklist.add">添加黑名单</option>
+                <option value="blacklist.remove">移除黑名单</option>
+                <option value="auth.login">平台登录</option>
+                <option value="cloud.sync_stores">同步云开发</option>
+              </select>
+              <select id="auditStore"><option value="">全部门店</option></select>
+              <input type="date" id="auditFrom">
+              <input type="date" id="auditTo">
+              <button type="button" class="btn btn-secondary" id="btnLoadAudit">查询</button>
+            </div>
+            <div class="table-wrap glass">
+              <table class="data-table">
+                <thead>
+                  <tr><th>时间</th><th>操作人</th><th>操作</th><th>门店</th><th>对象</th><th>详情</th></tr>
+                </thead>
+                <tbody id="auditTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="/platform/app.js?v=10"></script>
+</body>
+</html>

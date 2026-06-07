@@ -1,4 +1,5 @@
 const { callApi } = require('../../utils/api');
+const { getCachedStore } = require('../../utils/store-context');
 const { getVerifiedPhone, setVerifiedPhone, clearVerifiedPhone } = require('../../utils/phone-auth');
 const { getCustomNavPaddingTop } = require('../../utils/custom-nav');
 const { showTabBar, hideTabBar } = require('../../utils/tab-bar');
@@ -343,28 +344,45 @@ Page({
     this.doCancel(app.id, true);
   },
 
-  openStoreNavigation() {
-    if (wx.openLocation && SHOP_INFO.latitude && SHOP_INFO.longitude) {
-      wx.openLocation({
-        latitude: SHOP_INFO.latitude,
-        longitude: SHOP_INFO.longitude,
-        scale: 18,
-        name: SHOP_INFO.name,
+  getShopInfo() {
+    const cached = getCachedStore();
+    if (cached && cached.latitude != null && cached.longitude != null) {
+      return {
+        name: cached.name || SHOP_INFO.name,
+        phone: cached.phone || SHOP_INFO.phone,
         address: SHOP_INFO.address,
-        fail: () => this.copyStoreAddress()
+        latitude: Number(cached.latitude),
+        longitude: Number(cached.longitude)
+      };
+    }
+    return SHOP_INFO;
+  },
+
+  openStoreNavigation() {
+    const shop = this.getShopInfo();
+    if (wx.openLocation && shop.latitude && shop.longitude) {
+      wx.openLocation({
+        latitude: shop.latitude,
+        longitude: shop.longitude,
+        scale: 18,
+        name: shop.name,
+        address: shop.address || shop.name,
+        fail: () => this.copyStoreAddress(shop)
       });
       return;
     }
-    this.copyStoreAddress();
+    this.copyStoreAddress(shop);
   },
 
-  copyStoreAddress() {
+  copyStoreAddress(shop) {
+    const info = shop || this.getShopInfo();
+    const text = info.address || `${info.name}（请在地图搜索门店名称导航）`;
     wx.setClipboardData({
-      data: SHOP_INFO.address,
+      data: text,
       success: () => {
         wx.showModal({
           title: '门店地址',
-          content: `${SHOP_INFO.address}\n\n地址已复制，可在地图中搜索导航。`,
+          content: `${text}\n\n地址已复制，可在地图中搜索导航。`,
           showCancel: false
         });
       }

@@ -181,10 +181,15 @@ Page({
     announcementError: ''
   },
 
+  redirectToMyForAdmin() {
+    wx.showToast({ title: '请在我的页使用管理员手机号登录', icon: 'none' });
+    wx.switchTab({ url: '/pages/my/my' });
+  },
+
   onLoad() {
     const session = wx.getStorageSync('admin_session');
     if (!session || !session.sessionId || session.role !== 'stylist') {
-      wx.redirectTo({ url: '/pages/admin-login/admin-login' });
+      this.redirectToMyForAdmin();
       return;
     }
     this.setData({ session });
@@ -217,7 +222,7 @@ Page({
     const data = await this.callApi('verifySession').catch(() => ({ valid: false }));
     if (!data || !data.valid) {
       wx.removeStorageSync('admin_session');
-      wx.redirectTo({ url: '/pages/admin-login/admin-login' });
+      this.redirectToMyForAdmin();
       return;
     }
     this.loadAll();

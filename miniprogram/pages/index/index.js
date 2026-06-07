@@ -2,6 +2,12 @@ const { callApi } = require('../../utils/api');
 const { getVerifiedPhone, setVerifiedPhone } = require('../../utils/phone-auth');
 const { syncIndexTabBar } = require('../../utils/tab-bar');
 const { buildProgressRow: createProgressRow } = require('../../utils/queue-progress');
+const {
+  resolveStoreContext,
+  saveStoreSelection,
+  parseLaunchStoreId,
+  formatStoreName
+} = require('../../utils/store-context');
 
 const DEFAULT_ANNOUNCEMENT_TEXT = '欢迎光临欧诺造型，本店营业时间 11:00-22:00，请提前预约到店！';
 const EMPTY_ANNOUNCEMENT_TEXT = '暂无公告';
@@ -58,9 +64,23 @@ function isYmdInVacation(stylist, ymd) {
   return getVacationRanges(stylist).some(r => r.vacationStartDate && r.vacationEndDate && ymd >= r.vacationStartDate && ymd <= r.vacationEndDate);
 }
 
-function hasBookableDayInThreeDayWindow(stylist) {
+function clampBookAheadDays(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 3;
+  return Math.min(3, Math.max(1, Math.round(n)));
+}
+
+function dayLabelForOffset(index) {
+  if (index === 0) return '今天';
+  if (index === 1) return '明天';
+  if (index === 2) return '后天';
+  return `第${index + 1}天`;
+}
+
+function hasBookableDayInWindow(stylist, bookAheadDays) {
+  const days = clampBookAheadDays(bookAheadDays);
   const now = new Date();
-  for (let i = 0; i < 3; i += 1) {
+  for (let i = 0; i < days; i += 1) {
     const d = new Date(now);
     d.setDate(now.getDate() + i);
     if (!isYmdInVacation(stylist, ymdFromDate(d))) return true;
@@ -126,16 +146,47 @@ Page({
     progressStep: 1,
     progressPhone: '',
     progressError: '',
-    progressRows: []
+    progressRows: [],
+    storePickerVisible: false,
+    storeMenuVisible: false,
+    storeList: [],
+    selectedStoreId: null,
+    selectedStoreName: '门店',
+    bookAheadDays: 3
   },
 
-  onLoad() {
-    this.init();
+  onLoad(options) {
+    this._launchStoreId = this.consumeLaunchStoreId(options);
+    this.bootstrap();
+  },
+
+  consumeLaunchStoreId(options) {
+    const fromPage = parseLaunchStoreId(options || {});
+    if (fromPage != null) return fromPage;
+    const app = getApp();
+    if (!app || !app.globalData) return null;
+    const pending = app.globalData.launchStoreId;
+    app.globalData.launchStoreId = null;
+    return pending != null ? pending : null;
+  },
+
+  async bootstrap() {
+    await this.initStoreContext(this._launchStoreId);
+    await this.initStylists(this.data.selectedStoreId);
     this.loadAnnouncement();
   },
 
-  onShow() {
-    this.init();
+  onShow(options) {
+    const scanStoreId = parseLaunchStoreId(options || {});
+    if (scanStoreId != null && scanStoreId !== this.data.selectedStoreId) {
+      this._launchStoreId = scanStoreId;
+      this.initStoreContext(scanStoreId).then(() => {
+        this.initStylists(this.data.selectedStoreId);
+        this.loadAnnouncement();
+      });
+    } else if (this.data.selectedStoreId) {
+      this.initStylists(this.data.selectedStoreId);
+    }
     wx.nextTick(() => {
       if (!this.data.drawerVisible) {
         this.resetDrawerAnimationState();
@@ -401,7 +452,8 @@ Page({
 
   async loadAnnouncement() {
     try {
-      const data = await this.callApi('getAnnouncement');
+      const storeId = this.data.selectedStoreId || 1;
+      const data = await this.callApi('getAnnouncement', { storeId });
       const text = data && data.text && data.text.trim() ? data.text.trim() : EMPTY_ANNOUNCEMENT_TEXT;
       this.setData({
         announcementText: text,
@@ -417,31 +469,107 @@ Page({
     }
   },
 
-  async init() {
+  async initStoreContext(preferredStoreId) {
+    const launchId = preferredStoreId != null
+      ? preferredStoreId
+      : (this._launchStoreId != null ? this._launchStoreId : null);
     try {
-      const stylists = await this.callApi('getStylists');
-      if (!Array.isArray(stylists) || stylists.length === 0) return;
+      const ctx = await resolveStoreContext(
+        () => this.callApi('getStores'),
+        { preferredStoreId: launchId }
+      );
+      const selectedStore = ctx.selectedStore || {};
+      this.setData({
+        storePickerVisible: ctx.showPicker,
+        storeList: ctx.stores,
+        selectedStoreId: ctx.storeId,
+        selectedStoreName: formatStoreName(selectedStore.name),
+        bookAheadDays: clampBookAheadDays(selectedStore.bookAheadDays),
+        storeMenuVisible: false
+      });
+      if (ctx.fromScan && ctx.selectedStore && ctx.selectedStore.name) {
+        wx.showToast({ title: `已进入${ctx.selectedStore.name}`, icon: 'none', duration: 2000 });
+      }
+    } catch (e) {
+      console.error('加载门店失败:', e);
+      this.setData({
+        storePickerVisible: false,
+        selectedStoreId: 1,
+        selectedStoreName: '门店',
+        bookAheadDays: 3
+      });
+    }
+  },
+
+  async initStylists(storeId) {
+    const sid = storeId || this.data.selectedStoreId || 1;
+    try {
+      const stylists = await this.callApi('getStylists', { storeId: sid });
+      if (!Array.isArray(stylists) || stylists.length === 0) {
+        this.setData({
+          stylistId: null,
+          currentId: null,
+          bookingDisabled: true
+        });
+        return;
+      }
       const stylist = stylists[0];
       this.setData({
         stylistId: stylist.id,
         currentId: stylist.id,
         currentStylistName: stylist.name || '店长',
         currentStylistRank: stylist.rank || '',
-        bookingDisabled: !hasBookableDayInThreeDayWindow(stylist)
+        bookingDisabled: !hasBookableDayInWindow(stylist, this.data.bookAheadDays)
       });
     } catch (e) {
       console.error('加载发型师信息失败:', e);
     }
   },
 
+  toggleStoreMenu() {
+    if (!this.data.storePickerVisible) return;
+    this.setData({ storeMenuVisible: !this.data.storeMenuVisible });
+  },
+
+  async onSelectStore(e) {
+    const id = Number(e.currentTarget.dataset.id);
+    const store = (this.data.storeList || []).find((s) => Number(s.id) === id);
+    if (!store || id === this.data.selectedStoreId) {
+      this.setData({ storeMenuVisible: false });
+      return;
+    }
+    saveStoreSelection(store);
+    this.setData({
+      selectedStoreId: id,
+      selectedStoreName: formatStoreName(store.name),
+      bookAheadDays: clampBookAheadDays(store.bookAheadDays),
+      storeMenuVisible: false
+    });
+    await this.initStylists(id);
+    this.loadAnnouncement();
+    if (this.data.drawerVisible) {
+      this.closeDrawer();
+    }
+  },
+
+  closeStoreMenu() {
+    if (this.data.storeMenuVisible) {
+      this.setData({ storeMenuVisible: false });
+    }
+  },
+
+  async init() {
+    await this.initStylists(this.data.selectedStoreId);
+  },
+
   buildDateTabs() {
     const now = new Date();
-    const days = ['今天', '明天', '后天'];
-    return days.map((day, index) => {
+    const count = clampBookAheadDays(this.data.bookAheadDays);
+    return Array.from({ length: count }, (_, index) => {
       const d = new Date(now);
       d.setDate(now.getDate() + index);
       return {
-        day,
+        day: dayLabelForOffset(index),
         date: ymdFromDate(d),
         label: `${d.getMonth() + 1}/${d.getDate()}`
       };
@@ -1034,7 +1162,8 @@ Page({
         cancelModalVisible: false,
         progressModalVisible: false,
         selectedTimeSlot: [],
-        selectedServiceType: 'cut'
+        selectedServiceType: 'cut',
+        storeMenuVisible: false
       }, () => syncIndexTabBar(this));
     };
 

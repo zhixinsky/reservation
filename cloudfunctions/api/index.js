@@ -1,4 +1,11 @@
 const cloud = require('wx-server-sdk');
+const { buildSlotsForDate, validateSlotBookable, DEFAULT_STORE_RULES } = require('./slot-config');
+const {
+  storeRulesFromDoc,
+  isStoreWorkTime,
+  normalizePhoneDigits,
+  cloudStorePayload
+} = require('./store-helpers');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
@@ -11,12 +18,15 @@ const COLLECTIONS = {
   stylists: 'stylists',
   vacations: 'stylist_vacations',
   announcement: 'announcement',
-  sessions: 'sessions'
+  sessions: 'sessions',
+  stores: 'stores',
+  phoneBlacklist: 'phone_blacklist'
 };
 
 const DEFAULT_STYLISTS = [
   {
     id: 1,
+    storeId: 1,
     name: '店长',
     workStatus: 'working',
     username: 'tony',
@@ -95,34 +105,119 @@ async function getStylistsInternal() {
   });
 }
 
-async function getAnnouncement() {
+async function getStoreById(storeId) {
+  const id = Number(storeId) || 1;
+  const res = await db.collection(COLLECTIONS.stores).where({ id }).limit(1).get().catch(() => ({ data: [] }));
+  if (res.data && res.data[0]) return cloudStorePayload(res.data[0]);
+  return {
+    id,
+    ...DEFAULT_STORE_RULES,
+    name: '默认门店',
+    status: 'active',
+    announcementText: ''
+  };
+}
+
+async function getActiveStores() {
+  const rows = await getAll(COLLECTIONS.stores);
+  const stores = rows.map(cloudStorePayload).filter(s => s.status === 'active');
+  if (stores.length) {
+    return stores.map(s => ({
+      id: s.id,
+      name: s.name,
+      phone: s.phone || '',
+      latitude: s.latitude,
+      longitude: s.longitude,
+      status: s.status
+    }));
+  }
+  return [{
+    id: 1,
+    name: '默认门店',
+    phone: '',
+    latitude: null,
+    longitude: null,
+    status: 'active'
+  }];
+}
+
+async function getStoreForStylist(stylist) {
+  const storeId = stylist && stylist.storeId != null ? Number(stylist.storeId) : 1;
+  return getStoreById(storeId);
+}
+
+async function findActiveBlacklist(phone, storeId) {
+  const digits = normalizePhoneDigits(phone);
+  if (!digits) return null;
+  const rows = await getAll(COLLECTIONS.phoneBlacklist);
+  const now = Date.now();
+  return rows.find((row) => {
+    if (normalizePhoneDigits(row.phone) !== digits) return false;
+    if (row.expiresAt && new Date(row.expiresAt).getTime() <= now) return false;
+    if (row.storeId == null || row.storeId === '') return true;
+    return Number(row.storeId) === Number(storeId);
+  }) || null;
+}
+
+async function getStores() {
+  return getActiveStores();
+}
+
+async function getAnnouncement(payload = {}) {
+  const storeId = Number(payload.storeId) || 1;
+  const store = await getStoreById(storeId);
+  if (store.announcementText) {
+    return { text: String(store.announcementText).trim() };
+  }
   const res = await db.collection(COLLECTIONS.announcement).doc('current').get().catch(() => null);
   return { text: res && res.data && res.data.text ? String(res.data.text).trim() : '' };
 }
 
 async function saveAnnouncement(payload) {
-  await requireStylistSession(payload);
+  const session = await requireStylistSession(payload);
   const text = payload && payload.text != null ? String(payload.text).trim() : '';
+  const stylists = await getStylistsInternal();
+  const stylist = stylists.find(s => Number(s.id) === Number(session.stylistId));
+  const store = await getStoreForStylist(stylist);
+  const existing = await db.collection(COLLECTIONS.stores).where({ id: store.id }).limit(1).get().catch(() => ({ data: [] }));
+  if (existing.data && existing.data[0]) {
+    await db.collection(COLLECTIONS.stores).doc(existing.data[0]._id).update({
+      data: { announcementText: text, updatedAt: db.serverDate() }
+    });
+  } else {
+    await db.collection(COLLECTIONS.stores).add({
+      data: { ...store, announcementText: text, updatedAt: db.serverDate() }
+    });
+  }
   await db.collection(COLLECTIONS.announcement).doc('current').set({
     data: { text, updatedAt: db.serverDate() }
-  });
+  }).catch(() => null);
   return { success: true };
 }
 
 async function getAdminAnnouncement(payload) {
   await requireStylistSession(payload);
-  return getAnnouncement();
+  const session = await getSession(payload.sessionId);
+  const stylists = await getStylistsInternal();
+  const stylist = stylists.find(s => Number(s.id) === Number(session.stylistId));
+  const store = await getStoreForStylist(stylist);
+  return getAnnouncement({ storeId: store.id });
 }
 
-async function getStylists() {
+async function getStylists(payload = {}) {
+  const storeIdFilter = payload.storeId != null && payload.storeId !== ''
+    ? Number(payload.storeId)
+    : null;
   const nowMinutes = currentTotalMinutes();
-  const workStartMinutes = 11 * 60;
-  const workEndMinutes = 22 * 60 + 30;
-  const isWorkTime = nowMinutes >= workStartMinutes && nowMinutes < workEndMinutes;
   const today = getTodayDate();
-  const stylists = await getStylistsInternal();
+  let stylists = await getStylistsInternal();
+  if (storeIdFilter != null && !Number.isNaN(storeIdFilter)) {
+    stylists = stylists.filter(s => Number(s.storeId || 1) === storeIdFilter);
+  }
 
-  return stylists.map(s => {
+  return Promise.all(stylists.map(async (s) => {
+    const store = await getStoreForStylist(s);
+    const isWorkTime = isStoreWorkTime(store, nowMinutes);
     let displayStatus = 'working';
     let statusText = '';
     if (isYmdInVacation(s, today)) {
@@ -140,7 +235,7 @@ async function getStylists() {
       displayStatus,
       statusText
     });
-  });
+  }));
 }
 
 async function getSlots(payload) {
@@ -150,8 +245,10 @@ async function getSlots(payload) {
   const stylist = stylists.find(s => String(s.id) === String(stylistId));
   if (!stylist || isYmdInVacation(stylist, targetDate)) return [];
 
+  const store = await getStoreForStylist(stylist);
   const today = getTodayDate();
-  const nowMinutes = currentTotalMinutes();
+  const p = shanghaiParts();
+  const now = { getHours: () => p.hour, getMinutes: () => p.minute };
   const apps = await getAll(COLLECTIONS.appointments, {
     stylistId: Number(stylistId),
     date: targetDate
@@ -161,45 +258,23 @@ async function getSlots(payload) {
     date: targetDate
   });
 
-  const slots = [];
-  for (let h = 11; h <= 22; h += 1) {
-    const minutes = h === 22 ? ['00'] : ['00', '30'];
-    for (const m of minutes) {
-      const startHour = h;
-      const startMin = m;
-      const endHour = m === '00' ? h : h + 1;
-      const endMin = m === '00' ? '30' : '00';
-      const startTime = `${pad2(startHour)}:${startMin}`;
-      const endTime = `${pad2(endHour)}:${endMin}`;
-      const timeRange = `${startTime}-${endTime}`;
-
-      const isBooked = apps.some(app => app.time === timeRange && app.status !== 'cancelled' && app.status !== 'completed');
-      const isBlocked = blocks.some(b => b.time === timeRange);
-      const isDefaultMealTime = timeRange === '12:00-12:30' || timeRange === '18:00-18:30';
-      const isUnlocked = blocks.some(b => b.time === `${timeRange}_UNLOCKED`);
-      const isDefaultBlocked = isDefaultMealTime && !isBooked && !isBlocked && !isUnlocked;
-
-      let isPast = false;
-      if (targetDate === today) {
-        const startTotal = startHour * 60 + Number(startMin);
-        if (nowMinutes > startTotal + 10) isPast = true;
-      } else if (targetDate < today) {
-        isPast = true;
-      }
-
-      let status = 'available';
-      if (isPast) status = 'past';
-      else if (isBooked) status = 'booked';
-      else if (isBlocked || isDefaultBlocked) status = 'blocked';
-
-      slots.push({
-        time: timeRange,
-        available: !isBooked && !isBlocked && !isDefaultBlocked && !isPast,
-        status
-      });
-    }
-  }
-  return slots;
+  return buildSlotsForDate({
+    rules: storeRulesFromDoc(store),
+    targetDate,
+    today,
+    now,
+    stylistId: Number(stylistId),
+    appointmentsFind: (cond) => apps.filter(a =>
+      Number(a.stylistId) === Number(cond.stylistId) &&
+      a.date === cond.date &&
+      a.time === cond.time
+    ),
+    blockedFind: (cond) => blocks.filter(b =>
+      Number(b.stylistId) === Number(cond.stylistId) &&
+      b.date === cond.date &&
+      b.time === cond.time
+    )
+  });
 }
 
 async function bookAppointment(payload) {
@@ -216,6 +291,17 @@ async function bookAppointment(payload) {
   if (!stylist) return { success: false, message: '发型师不存在' };
   if (stylist.workStatus === 'resting') return { success: false, message: '该发型师正在休息中，无法预约' };
 
+  const store = await getStoreForStylist(stylist);
+  const storeId = store.id || Number(stylist.storeId) || 1;
+  const blacklistHit = await findActiveBlacklist(phone, storeId);
+  if (blacklistHit) {
+    const reason = blacklistHit.reason;
+    return {
+      success: false,
+      message: reason ? `无法预约：${reason}` : '您的手机号已被限制预约，请联系门店'
+    };
+  }
+
   const today = getTodayDate();
   const targetDate = date || today;
   if (isYmdInVacation(stylist, targetDate)) {
@@ -223,7 +309,6 @@ async function bookAppointment(payload) {
   }
 
   const timeSlots = String(time).includes(',') ? String(time).split(',').map(t => t.trim()).filter(Boolean) : [String(time)];
-  const nowMinutes = currentTotalMinutes();
   const existingForDay = await getAll(COLLECTIONS.appointments, { phone, date: targetDate });
   const validExisting = existingForDay.filter(app => app.status !== 'cancelled' && app.status !== 'completed');
   if (validExisting.length > 0) {
@@ -241,23 +326,30 @@ async function bookAppointment(payload) {
     stylistId: Number(stylistId),
     date: targetDate
   });
+  const p = shanghaiParts();
+  const now = { getHours: () => p.hour, getMinutes: () => p.minute };
 
   for (const timeSlot of timeSlots) {
-    if (targetDate === today) {
-      const [startTime] = timeSlot.split('-');
-      const [startHour, startMin] = startTime.split(':').map(Number);
-      if (nowMinutes > startHour * 60 + startMin + 10) {
-        return { success: false, message: '该时间段已过期，无法预约' };
-      }
-    }
-
-    const isBooked = appsForStylist.some(app => app.time === timeSlot && app.status !== 'cancelled' && app.status !== 'completed');
-    const isBlocked = blocks.some(b => b.time === timeSlot);
-    const isDefaultMealTime = timeSlot === '12:00-12:30' || timeSlot === '18:00-18:30';
-    const isUnlocked = blocks.some(b => b.time === `${timeSlot}_UNLOCKED`);
-    const isDefaultBlocked = isDefaultMealTime && !isBooked && !isBlocked && !isUnlocked;
-    if (isBooked || isBlocked || isDefaultBlocked) {
-      return { success: false, message: `时间段 ${timeSlot} 已被预约或锁定` };
+    const check = validateSlotBookable({
+      timeSlot,
+      targetDate,
+      today,
+      now,
+      stylistId: Number(stylistId),
+      rules: storeRulesFromDoc(store),
+      appointmentsFind: (cond) => appsForStylist.filter(a =>
+        Number(a.stylistId) === Number(cond.stylistId) &&
+        a.date === cond.date &&
+        a.time === cond.time
+      ),
+      blockedFind: (cond) => blocks.filter(b =>
+        Number(b.stylistId) === Number(cond.stylistId) &&
+        b.date === cond.date &&
+        b.time === cond.time
+      )
+    });
+    if (!check.ok) {
+      return { success: false, message: check.message };
     }
   }
 
@@ -709,7 +801,64 @@ async function cancelAppointments(payload) {
   };
 }
 
+async function upsertCollectionDoc(collection, matchField, matchValue, data) {
+  const res = await db.collection(collection).where({ [matchField]: matchValue }).limit(1).get().catch(() => ({ data: [] }));
+  if (res.data && res.data[0]) {
+    await db.collection(collection).doc(res.data[0]._id).update({
+      data: { ...data, updatedAt: db.serverDate() }
+    });
+    return 'updated';
+  }
+  await db.collection(collection).add({
+    data: { ...data, createdAt: db.serverDate(), updatedAt: db.serverDate() }
+  });
+  return 'created';
+}
+
+async function syncStores(payload = {}) {
+  const secret = process.env.PLATFORM_SYNC_SECRET || '';
+  if (!secret || payload.secret !== secret) {
+    return { success: false, message: '同步密钥无效' };
+  }
+  const stores = Array.isArray(payload.stores) ? payload.stores : [];
+  const blacklist = Array.isArray(payload.blacklist) ? payload.blacklist : [];
+  let storeCount = 0;
+  let blacklistCount = 0;
+
+  for (const store of stores) {
+    const normalized = cloudStorePayload(store);
+    if (!normalized || !normalized.id) continue;
+    await upsertCollectionDoc(COLLECTIONS.stores, 'id', normalized.id, normalized);
+    storeCount += 1;
+  }
+
+  for (const row of blacklist) {
+    const phone = normalizePhoneDigits(row.phone);
+    if (!phone) continue;
+    const storeId = row.storeId == null || row.storeId === '' ? null : Number(row.storeId);
+    const key = storeId == null ? `global:${phone}` : `${storeId}:${phone}`;
+    await upsertCollectionDoc(COLLECTIONS.phoneBlacklist, 'syncKey', key, {
+      syncKey: key,
+      storeId,
+      phone,
+      reason: row.reason || '',
+      createdBy: row.createdBy || '',
+      expiresAt: row.expiresAt || null
+    });
+    blacklistCount += 1;
+  }
+
+  return {
+    success: true,
+    storeCount,
+    blacklistCount,
+    message: `已同步 ${storeCount} 家门店、${blacklistCount} 条黑名单`
+  };
+}
+
 const handlers = {
+  getStores,
+  syncStores,
   getAnnouncement,
   saveAnnouncement,
   getStylists,

@@ -65,29 +65,27 @@ WX_APPSECRET=你的小程序 AppSecret
 服务启动时会自动创建这些 MySQL 表，不需要手动建表：
 
 ```text
+stores
+stylists
 appointments
 blocked_slots
 sessions
 stylist_vacations
+phone_blacklist
+platform_audit_logs
 ```
 
-公告目前仍存放在 `data/announcement.json`，发型师账号仍优先读取 `stylists.json`。如需把公告和发型师账号也迁入 MySQL，可以继续扩展。
+公告按门店存放在 `stores.announcementText`。发型师账号在 `stylists` 表，通过平台 PC `/platform/` 维护。
 
-## 发型师账号
+## 发型师账号与管理入口
 
-云托管生产环境推荐用 `STYLISTS_JSON` 环境变量配置发型师账号。示例：
+1. 访问 `http://你的域名/platform/`，用 `ADMIN_USERNAME` / `ADMIN_PASSWORD` 登录。
+2. 在「发型师管理」为每位发型师填写**手机号**（须与微信授权手机号一致）。
+3. 发型师在小程序「我的」页授权同号登录后，点击「管理」进入 `admin-dashboard`。
 
-```json
-[{"id":1,"name":"店长","workStatus":"working","username":"tony","password":"你的密码"}]
-```
+已移除 `STYLISTS_JSON`、`stylists.json`、`ADMIN_PHONES` 等环境变量配置方式。空库首次启动会写入占位发型师，请尽快在平台修改密码并填写手机号。
 
-后端读取顺序：
-
-```text
-STYLISTS_JSON 环境变量 -> stylists.json 本地文件 -> 默认占位账号
-```
-
-正式环境请务必设置 `STYLISTS_JSON`，不要依赖默认占位账号。
+环境变量清单见 `.env.example`。
 
 ## 初始化公告
 
@@ -112,9 +110,8 @@ STYLISTS_JSON 环境变量 -> stylists.json 本地文件 -> 默认占位账号
 - 查询排队进度
 - 批量取消预约
 - 本地保存最近一次预约手机号
-- 左上角隐藏入口进入管理员登录
-- 管理员登录
-- 管理员预约列表
+- 「我的」页管理员手机号登录后显示「管理」入口
+- 发型师预约列表（`admin-dashboard`）
 - 管理员完成/取消预约
 - 管理员锁定/解锁时间段
 - 管理员休假设置

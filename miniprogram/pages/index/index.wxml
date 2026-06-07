@@ -2,10 +2,30 @@
   <image class="page-bg" src="{{pageBgUrl}}" mode="aspectFill" lazy-load="{{false}}"></image>
 
   <view class="page-foreground">
+  <view
+    wx:if="{{storePickerVisible}}"
+    class="store-capsule-wrap"
+    catchtap="toggleStoreMenu"
+  >
+    <view class="store-capsule">
+      <text class="store-capsule-name">{{selectedStoreName}}</text>
+      <text class="store-capsule-arrow">▾</text>
+    </view>
+    <view wx:if="{{storeMenuVisible}}" class="store-menu" catchtap="">
+      <view
+        wx:for="{{storeList}}"
+        wx:key="id"
+        class="store-menu-item {{selectedStoreId === item.id ? 'active' : ''}}"
+        data-id="{{item.id}}"
+        catchtap="onSelectStore"
+      >{{item.name}}</view>
+    </view>
+  </view>
+
   <view class="container">
     <view class="header">
       <view class="title">
-        <text class="title-text">欧诺造型</text>
+        <text class="title-text">{{selectedStoreName}}</text>
         <text class="title-dot">·</text>
         <text class="title-text">预约服务</text>
       </view>
@@ -57,6 +77,11 @@
   <view
     class="overlay booking-overlay {{!useWorkletDrawer && maskVisible ? 'show' : ''}}"
     bindtap="closeAll"
+  ></view>
+  <view
+    wx:if="{{storeMenuVisible}}"
+    class="store-menu-mask"
+    bindtap="closeStoreMenu"
   ></view>
 
   <view class="drawer booking-drawer {{drawerVisible ? 'active' : ''}} {{drawerVisible && !useWorkletDrawer ? 'show' : ''}}">

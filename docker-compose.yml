@@ -7,7 +7,6 @@ services:
       - "3000:3000"
     volumes:
       - ./.env:/app/.env:ro
-      - ./stylists.json:/app/stylists.json:ro
       - /volume1/docker/reservation-system/data:/app/data  # 映射到服务器指定目录，方便管理
     networks:
       - reservation-network

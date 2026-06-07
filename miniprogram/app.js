@@ -1,9 +1,16 @@
+const { parseLaunchStoreId } = require('./utils/store-context');
+
 App({
   globalData: {
-    tabBarHidden: false
+    tabBarHidden: false,
+    launchStoreId: null
   },
 
-  onLaunch() {
+  onLaunch(options) {
+    const storeId = parseLaunchStoreId(options || {});
+    if (storeId != null) {
+      this.globalData.launchStoreId = storeId;
+    }
     if (!wx.cloud) {
       wx.showModal({
         title: '初始化失败',
