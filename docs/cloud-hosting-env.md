@@ -44,7 +44,7 @@
 | `EMAY_SECRETKEY` | `***` | 亿美密钥 |
 | `EMAY_TEMPLATE_ID_BOOKING` | `178082243956900419` | 预约成功模板 ID（亿美控制台已审核） |
 | `EMAY_TEMPLATE_ID_CANCEL` | `178082243956901419` | 用户取消预约模板 ID |
-| `EMAY_TEMPLATE_ID_STYLIST_CANCEL` | `178082243956902419` | 门店取消预约模板 ID |
+| `EMAY_TEMPLATE_ID_STYLIST_CANCEL` | `178082243956902419` | 门店/发型师取消模板 ID（未配则回退 `EMAY_TEMPLATE_ID_CANCEL`） |
 | `EMAY_TEMPLATE_ID_REMINDER` | | 到店提醒模板 ID（未配则不发送提醒） |
 | `EMAY_AUTO_CREATE_TEMPLATES` | `false` | **建议 `false`**：模板已在亿美手动创建，勿自动创建 |
 | `EMAY_BASE_URL` | `http://www.btom.cn:8080` | 亿美接口地址，一般不用改 |

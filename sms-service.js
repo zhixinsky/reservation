@@ -57,7 +57,7 @@ const TEMPLATE_TYPES = {
     },
     stylistCancel: {
         envKey: 'EMAY_TEMPLATE_ID_STYLIST_CANCEL',
-        fallbackEnvKey: null,
+        fallbackEnvKey: 'EMAY_TEMPLATE_ID_CANCEL',
         label: '门店取消预约',
         getTemplateContent: () => getStylistCancelEmayTemplate(SHOP_INFO),
         buildVariables: buildStylistCancelSmsVariables
@@ -68,7 +68,10 @@ let activeTemplateIds = {
     booking: process.env.EMAY_TEMPLATE_ID_BOOKING || process.env.EMAY_TEMPLATE_ID || '',
     cancel: process.env.EMAY_TEMPLATE_ID_CANCEL || process.env.EMAY_TEMPLATE_ID || '',
     reminder: process.env.EMAY_TEMPLATE_ID_REMINDER || '',
-    stylistCancel: process.env.EMAY_TEMPLATE_ID_STYLIST_CANCEL || ''
+    stylistCancel: process.env.EMAY_TEMPLATE_ID_STYLIST_CANCEL
+        || process.env.EMAY_TEMPLATE_ID_CANCEL
+        || process.env.EMAY_TEMPLATE_ID
+        || ''
 };
 
 let templateReadyState = {
@@ -253,6 +256,12 @@ async function initSmsTemplates() {
 
     if (!AUTO_CREATE_TEMPLATES) {
         console.log('📱 [短信模板] 已关闭 API 自动创建（EMAY_AUTO_CREATE_TEMPLATES=false），请使用 .env 中的模板 ID');
+        for (const type of Object.keys(TEMPLATE_TYPES)) {
+            const envTemplateId = getEnvTemplateId(type);
+            if (envTemplateId) {
+                setActiveTemplate(type, envTemplateId, true);
+            }
+        }
         return {
             enabled: true,
             autoCreate: false,

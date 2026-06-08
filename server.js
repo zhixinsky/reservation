@@ -28,6 +28,7 @@ const {
     isDateWithinBookAhead
 } = require('./slot-config');
 const { createPlatformRouter } = require('./platform-routes');
+const { createCancelNotifiers } = require('./appointment-cancel-notify');
 const { ensureAvatarDir, ensureImgDir } = require('./image-upload');
 const app = express();
 app.use(bodyParser.json({ limit: '5mb' }));
@@ -340,6 +341,14 @@ function smsPayloadForStylist(stylist, payload) {
     };
 }
 
+let cancelNotify = createCancelNotifiers({
+    getStylists: () => stylists,
+    findAppointments: (cond) => dbAppointments.find(cond),
+    smsPayloadForStylist,
+    sendCancelBookingSMS,
+    sendStylistCancelBookingSMS
+});
+
 function getBlacklistNoticeForPhone(phone) {
     const digits = dbNormalizePhoneDigits(phone);
     if (!digits) return null;
@@ -396,7 +405,8 @@ app.use('/api/platform', createPlatformRouter({
     getWechatRequestConfig,
     useWechatCloudOpenApi,
     refreshSmsTemplateStatus,
-    SMS_ENABLED
+    SMS_ENABLED,
+    cancelNotify
 }));
 
 // 平台管理 PC 端（Apple 风格 SPA，云托管 80 端口静态资源）
@@ -959,21 +969,11 @@ app.post('/api/admin/cancel', requireAuth, (req, res) => {
         dbAppointments.updateStatus(app.id, 'cancelled');
     }
     console.log(`[短信提醒] 您的预约 ${app.appId} 已由发型师取消。`);
-    
-    // 发送取消预约短信（异步，不阻塞响应）
-    const cancelStylist = stylists.find(s => s.id == app.stylistId);
-    if (cancelStylist && app.phone) {
-        sendStylistCancelBookingSMS(smsPayloadForStylist(cancelStylist, {
-            phone: app.phone,
-            appId: app.appId,
-            stylistName: cancelStylist.name,
-            date: app.date,
-            time: displayTime
-        })).catch(err => {
-            console.error('短信发送异常（不影响取消）:', err.message);
-        });
+
+    if (cancelNotify) {
+        cancelNotify.notifyStylistCancel(app);
     }
-    
+
     res.json({ success: true });
 });
 
@@ -1600,40 +1600,12 @@ app.post('/api/cancel', (req, res) => {
             cancelledCount++;
         }
         
-        // 发送取消预约短信（每个日期只发送一次）
+        // 发送取消预约短信（每个日期+服务类型只发送一次）
         const dateKey = `${app.date}_${app.serviceType}`;
         if (!cancelledDates.has(dateKey)) {
             cancelledDates.add(dateKey);
-            const stylist = stylists.find(s => s.id == app.stylistId);
-            if (stylist && app.phone) {
-                // 对于染烫服务，合并时间段显示
-                let displayTime = app.time;
-                if (app.serviceType === 'dye') {
-                    const relatedApps = dbAppointments.find({
-                        appId: app.appId,
-                        phone: app.phone,
-                        date: app.date,
-                        serviceType: 'dye'
-                    });
-                    if (relatedApps.length > 1) {
-                        relatedApps.sort((a, b) => a.time.localeCompare(b.time));
-                        const firstTime = relatedApps[0].time;
-                        const lastTime = relatedApps[relatedApps.length - 1].time;
-                        const [firstStart] = firstTime.split('-');
-                        const [, lastEnd] = lastTime.split('-');
-                        displayTime = `${firstStart}-${lastEnd}`;
-                    }
-                }
-                
-                sendCancelBookingSMS(smsPayloadForStylist(stylist, {
-                    phone: app.phone,
-                    appId: app.appId,
-                    stylistName: stylist.name,
-                    date: app.date,
-                    time: displayTime
-                })).catch(err => {
-                    console.error('短信发送异常（不影响取消）:', err.message);
-                });
+            if (cancelNotify) {
+                cancelNotify.notifyUserCancel(app);
             }
         }
     });

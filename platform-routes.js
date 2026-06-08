@@ -67,7 +67,8 @@ function createPlatformRouter(deps) {
         getWechatRequestConfig,
         useWechatCloudOpenApi,
         refreshSmsTemplateStatus,
-        SMS_ENABLED
+        SMS_ENABLED,
+        cancelNotify
     } = deps;
 
     const wechatApi = {
@@ -644,7 +645,24 @@ function createPlatformRouter(deps) {
         if (!app) return res.json({ success: false, message: '预约不存在' });
         if (app.status === 'cancelled') return res.json({ success: false, message: '预约已取消' });
         if (app.status === 'completed') return res.json({ success: false, message: '预约已完成' });
-        dbAppointments.updateStatus(app.id, 'cancelled');
+
+        if (app.serviceType === 'dye') {
+            const related = dbAppointments.find({
+                appId: app.appId,
+                phone: app.phone,
+                date: app.date,
+                serviceType: 'dye'
+            }).filter(row => row.status !== 'cancelled' && row.status !== 'completed');
+            const targets = related.length ? related : [app];
+            targets.forEach(row => dbAppointments.updateStatus(row.id, 'cancelled'));
+        } else {
+            dbAppointments.updateStatus(app.id, 'cancelled');
+        }
+
+        if (cancelNotify) {
+            cancelNotify.notifyStylistCancel(app);
+        }
+
         writeAudit(req, 'appointment.cancel', {
             targetType: 'appointment',
             targetId: app.appId || app.id,
