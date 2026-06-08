@@ -17,12 +17,20 @@
 | `MYSQL_DATABASE` | `reservation_system` | 数据库名，不存在时首次启动会自动建库建表 |
 | `WX_APPSECRET` | `***` | 小程序 AppSecret，用于**手机号快速验证** |
 
-### 微信手机号二选一
+### 微信手机号（云托管必读）
 
-| 方式 | 配置 |
-|------|------|
-| **A（推荐）** HTTPS + AppSecret | 配置 `WX_APPSECRET`，不设 `WX_USE_OPENAPI`；服务端使用微信**稳定版** `stable_token`，多实例不易互相顶掉 token |
-| **B** 开放接口服务 | 云托管开启开放接口并授权 `/wxa/business/getuserphonenumber`，设 `WX_USE_OPENAPI=1`，可不配 `WX_APPSECRET` |
+官方说明：[错误排查 FAQ](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloudrun/src/guide/weixin/faq.html)
+
+**502 常见原因**：云托管开启了「开放接口服务」，但 `/wxa/business/getuserphonenumber` 未加入微信令牌白名单；或同时开启开放接口服务又用 `WX_APPSECRET` 换 token（`stable_token` 无 `access_token` 参数会走开放接口链路）。
+
+| 方式 | 配置 | 控制台操作 |
+|------|------|------------|
+| **A** 仅用 AppSecret | 配置 `WX_APPSECRET`，**不要**设 `WX_USE_OPENAPI=1` | **关闭**「开放接口服务」→ 重新发布 |
+| **B** 开放接口服务 | 可不配 `WX_APPSECRET`；或保留 AppSecret 由代码自动回退 | **开启**开放接口服务，白名单添加 `/wxa/business/getuserphonenumber` → 重新发布 |
+
+代码默认 `WX_PHONE_API_MODE=auto`：云托管会先尝试容器内 HTTP 开放接口，再尝试 `cloudbase_access_token`，最后回退 `WX_APPSECRET`。
+
+可选：`WX_PHONE_API_MODE=open|cloudbase|secret` 强制指定一种方式。
 
 ---
 

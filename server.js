@@ -36,6 +36,10 @@ app.use(bodyParser.json({ limit: '5mb' }));
 let wechatAccessTokenCache = { token: '', expiresAt: 0 };
 
 const WECHAT_CLOUD_CERT_PATH = process.env.NODE_EXTRA_CA_CERTS || '/app/cert/certificate.crt';
+const CLOUDBASE_TOKEN_PATH = process.env.WX_CLOUDBASE_TOKEN_PATH
+    || '/.tencentcloudbase/wx/cloudbase_access_token';
+const WECHAT_OPEN_API_BASE = 'http://api.weixin.qq.com';
+const WECHAT_HTTPS_API_BASE = 'https://api.weixin.qq.com';
 
 function hasWechatCloudCert() {
     try {
@@ -45,29 +49,87 @@ function hasWechatCloudCert() {
     }
 }
 
-/** 仅当显式开启时才走 HTTP 云调用；证书存在不代表开放接口服务已配置完成 */
+function readCloudbaseAccessToken() {
+    try {
+        if (!fs.existsSync(CLOUDBASE_TOKEN_PATH)) return '';
+        return String(fs.readFileSync(CLOUDBASE_TOKEN_PATH, 'utf8') || '').trim();
+    } catch (_) {
+        return '';
+    }
+}
+
+function hasWechatAppSecret() {
+    return Boolean(process.env.WX_APPSECRET || process.env.WECHAT_APPSECRET);
+}
+
+/** 云托管运行时：存在注入证书或 cloudbase token 文件 */
+function isCloudHostingRuntime() {
+    return hasWechatCloudCert() || !!readCloudbaseAccessToken() || !!process.env.TCB_ENV_ID;
+}
+
+/** 仅当显式开启时才强制走 HTTP 开放接口；云托管默认 auto 会在手机号接口自动尝试 */
 function useWechatCloudOpenApi() {
     return process.env.WX_USE_OPENAPI === '1';
 }
 
 function getWechatApiBaseUrl() {
-    return useWechatCloudOpenApi() ? 'http://api.weixin.qq.com' : 'https://api.weixin.qq.com';
+    return useWechatCloudOpenApi() ? WECHAT_OPEN_API_BASE : WECHAT_HTTPS_API_BASE;
 }
 
 function getWechatRequestConfig() {
-    // 依赖系统 CA + Dockerfile 中的 NODE_EXTRA_CA_CERTS，勿在此处单独指定 ca，
-    // 否则云托管注入证书会替换默认信任链，导致访问 api.weixin.qq.com 返回 502。
     return { timeout: 10000 };
 }
 
-function formatWechatApiError(e) {
+function getWechatPhoneApiMode() {
+    const mode = String(process.env.WX_PHONE_API_MODE || 'auto').trim().toLowerCase();
+    if (['secret', 'open', 'cloudbase'].includes(mode)) return mode;
+    return 'auto';
+}
+
+function isWechatGatewayHttpError(error) {
+    const status = error && error.response && error.response.status;
+    return status === 502 || status === 503 || status === 504;
+}
+
+function extractWechatApiMessage(payload) {
+    if (!payload) return '';
+    if (typeof payload === 'string') return payload;
+    return payload.errmsg || payload.message || '';
+}
+
+function isWechatApiFailure(payload) {
+    if (!payload || typeof payload !== 'object') return true;
+    if (payload.errcode == null || Number(payload.errcode) === 0) return false;
+    return true;
+}
+
+function buildPhoneApiFailureMessage(attemptErrors) {
+    const cloudHosting = isCloudHostingRuntime();
+    const lines = ['手机号获取失败，已尝试多种云托管调用方式仍不可用。'];
+    attemptErrors.forEach((item) => {
+        lines.push(`- ${item.mode}: ${item.message}`);
+    });
+    if (cloudHosting) {
+        lines.push('云托管请二选一：');
+        lines.push('1) 关闭「开放接口服务」后重新发布（适合仅用 WX_APPSECRET）；');
+        lines.push('2) 保持开启并在「云调用-微信令牌」白名单添加 /wxa/business/getuserphonenumber，然后重新发布。');
+    } else if (!hasWechatAppSecret()) {
+        lines.push('请配置 WX_APPSECRET 后重新发布。');
+    }
+    return lines.join('\n');
+}
+
+function formatWechatApiError(e, attemptErrors = []) {
     const status = e.response && e.response.status;
-    const wechatMsg = e.response && e.response.data && (e.response.data.errmsg || e.response.data.message);
+    const wechatMsg = extractWechatApiMessage(e.response && e.response.data);
+    if (attemptErrors.length) {
+        return buildPhoneApiFailureMessage(attemptErrors);
+    }
     if (status === 502) {
-        if (useWechatCloudOpenApi()) {
-            return '微信接口网关异常(502)。请确认已开启开放接口服务，且权限含 /wxa/business/getuserphonenumber，并重新发布版本';
+        if (isCloudHostingRuntime()) {
+            return '微信接口网关异常(502)。云托管若开启「开放接口服务」，请在微信令牌白名单添加 /wxa/business/getuserphonenumber；若使用 WX_APPSECRET 自行换 token，请关闭「开放接口服务」后重新发布。';
         }
-        return '微信接口网关异常(502)。请确认已配置 WX_APPSECRET 并重新发布；若环境变量含 WX_USE_OPENAPI=1 请删除后重试';
+        return '微信接口网关异常(502)。请确认 WX_APPSECRET 正确并已重新发布。';
     }
     if (wechatMsg) return wechatMsg;
     if (e.message && e.message.includes('未配置 WX_APPSECRET')) return e.message;
@@ -131,7 +193,7 @@ async function getWechatAccessToken(options) {
         return wechatAccessTokenCache.token;
     }
     const { data } = await axios.post(
-        `${getWechatApiBaseUrl()}/cgi-bin/stable_token`,
+        `${WECHAT_HTTPS_API_BASE}/cgi-bin/stable_token`,
         {
             grant_type: 'client_credential',
             appid,
@@ -141,13 +203,146 @@ async function getWechatAccessToken(options) {
         getWechatRequestConfig()
     );
     if (!data || !data.access_token) {
-        throw new Error((data && data.errmsg) || '获取微信稳定 access_token 失败');
+        const msg = extractWechatApiMessage(data) || '获取微信稳定 access_token 失败';
+        if (isCloudHostingRuntime() && /502|白名单|unauthorized|85107/i.test(msg)) {
+            throw new Error(`${msg}。云托管获取 token 时若开启「开放接口服务」易返回 502，请关闭该服务或把 /cgi-bin/stable_token 加入微信令牌白名单。`);
+        }
+        throw new Error(msg);
     }
     wechatAccessTokenCache = {
         token: data.access_token,
         expiresAt: Date.now() + Math.max(60, Number(data.expires_in || 7200) - 300) * 1000
     };
     return data.access_token;
+}
+
+function extractPhoneNumberFromWechatResponse(data) {
+    return data && data.phone_info && data.phone_info.phoneNumber;
+}
+
+async function fetchPhoneNumberBySecret(code, forceRefresh = false) {
+    const accessToken = await getWechatAccessToken(forceRefresh ? { forceRefresh: true } : {});
+    const { data } = await axios.post(
+        `${WECHAT_HTTPS_API_BASE}/wxa/business/getuserphonenumber?access_token=${encodeURIComponent(accessToken)}`,
+        { code },
+        getWechatRequestConfig()
+    );
+    if (isWechatAccessTokenError(data)) {
+        const err = new Error(extractWechatApiMessage(data) || 'access_token 无效');
+        err.wechatPayload = data;
+        throw err;
+    }
+    if (isWechatApiFailure(data)) {
+        throw new Error(extractWechatApiMessage(data) || '获取手机号失败');
+    }
+    const phoneNumber = extractPhoneNumberFromWechatResponse(data);
+    if (!phoneNumber) throw new Error(extractWechatApiMessage(data) || '获取手机号失败');
+    return phoneNumber;
+}
+
+async function fetchPhoneNumberByOpenHttp(code) {
+    const { data } = await axios.post(
+        `${WECHAT_OPEN_API_BASE}/wxa/business/getuserphonenumber`,
+        { code },
+        getWechatRequestConfig()
+    );
+    if (isWechatApiFailure(data)) {
+        throw new Error(extractWechatApiMessage(data) || '开放接口服务获取手机号失败');
+    }
+    const phoneNumber = extractPhoneNumberFromWechatResponse(data);
+    if (!phoneNumber) throw new Error(extractWechatApiMessage(data) || '开放接口服务获取手机号失败');
+    return phoneNumber;
+}
+
+async function fetchPhoneNumberByCloudbaseToken(code) {
+    const cloudToken = readCloudbaseAccessToken();
+    if (!cloudToken) throw new Error('未找到 cloudbase_access_token');
+    const { data } = await axios.post(
+        `${WECHAT_HTTPS_API_BASE}/wxa/business/getuserphonenumber?cloudbase_access_token=${encodeURIComponent(cloudToken)}`,
+        { code },
+        getWechatRequestConfig()
+    );
+    if (isWechatApiFailure(data)) {
+        throw new Error(extractWechatApiMessage(data) || 'cloudbase_access_token 获取手机号失败');
+    }
+    const phoneNumber = extractPhoneNumberFromWechatResponse(data);
+    if (!phoneNumber) throw new Error(extractWechatApiMessage(data) || 'cloudbase_access_token 获取手机号失败');
+    return phoneNumber;
+}
+
+function buildPhoneFetchAttempts() {
+    const mode = getWechatPhoneApiMode();
+    const attempts = [];
+    const push = (name, fn) => {
+        if (!attempts.some((item) => item.mode === name)) {
+            attempts.push({ mode: name, fn });
+        }
+    };
+
+    if (mode === 'open') {
+        push('open-http', fetchPhoneNumberByOpenHttp);
+        return attempts;
+    }
+    if (mode === 'cloudbase') {
+        push('cloudbase-token', fetchPhoneNumberByCloudbaseToken);
+        return attempts;
+    }
+    if (mode === 'secret') {
+        if (hasWechatAppSecret()) push('app-secret', (code) => fetchPhoneNumberBySecret(code, false));
+        return attempts;
+    }
+
+    // auto：云托管优先走官方推荐的容器内 HTTP 开放接口
+    if (isCloudHostingRuntime() || useWechatCloudOpenApi()) {
+        push('open-http', fetchPhoneNumberByOpenHttp);
+        push('cloudbase-token', fetchPhoneNumberByCloudbaseToken);
+    }
+    if (hasWechatAppSecret() && !useWechatCloudOpenApi()) {
+        push('app-secret', (code) => fetchPhoneNumberBySecret(code, false));
+    }
+    if (!attempts.length && hasWechatAppSecret()) {
+        push('app-secret', (code) => fetchPhoneNumberBySecret(code, false));
+    }
+    return attempts;
+}
+
+async function resolvePhoneNumberFromWechat(code) {
+    const attempts = buildPhoneFetchAttempts();
+    if (!attempts.length) {
+        throw new Error('未配置手机号获取方式，请设置 WX_APPSECRET 或启用云托管开放接口服务');
+    }
+
+    const attemptErrors = [];
+    for (const attempt of attempts) {
+        try {
+            if (attempt.mode === 'app-secret') {
+                try {
+                    return await attempt.fn(code);
+                } catch (error) {
+                    if (error.wechatPayload && isWechatAccessTokenError(error.wechatPayload)) {
+                        clearWechatAccessTokenCache();
+                        return await fetchPhoneNumberBySecret(code, true);
+                    }
+                    throw error;
+                }
+            }
+            return await attempt.fn(code);
+        } catch (error) {
+            const message = formatWechatApiError(error);
+            attemptErrors.push({ mode: attempt.mode, message });
+            const retryable = isWechatGatewayHttpError(error)
+                || /access_token|invalid credential|85107|白名单|502|not ready/i.test(message);
+            if (!retryable && attempt.mode === 'app-secret' && !isCloudHostingRuntime()) {
+                const err = new Error(message);
+                err.attemptErrors = attemptErrors;
+                throw err;
+            }
+        }
+    }
+
+    const err = new Error(buildPhoneApiFailureMessage(attemptErrors));
+    err.attemptErrors = attemptErrors;
+    throw err;
 }
 
 async function generateStoreWxacode(storeId) {
@@ -208,46 +403,31 @@ app.post('/api/wechat/phone-number', async (req, res) => {
         return res.json({ success: false, message: '缺少手机号授权 code' });
     }
     try {
-        let data = null;
-        for (let attempt = 0; attempt < 2; attempt++) {
-            let url = `${getWechatApiBaseUrl()}/wxa/business/getuserphonenumber`;
-            if (!useWechatCloudOpenApi()) {
-                const accessToken = await getWechatAccessToken(attempt > 0 ? { forceRefresh: true } : {});
-                url += `?access_token=${encodeURIComponent(accessToken)}`;
-            }
-            const response = await axios.post(
-                url,
-                { code },
-                getWechatRequestConfig()
-            );
-            data = response.data;
-            const phoneNumber = data && data.phone_info && data.phone_info.phoneNumber;
-            if (phoneNumber) {
-                const adminSession = createAdminSessionForPhone(phoneNumber);
-                return res.json({
-                    success: true,
-                    phone: phoneNumber,
-                    isAdmin: !!adminSession,
-                    adminSession
-                });
-            }
-            if (!useWechatCloudOpenApi() && isWechatAccessTokenError(data) && attempt === 0) {
-                clearWechatAccessTokenCache();
-                continue;
-            }
-            break;
-        }
-        return res.json({ success: false, message: (data && data.errmsg) || '获取手机号失败' });
+        const phoneNumber = await resolvePhoneNumberFromWechat(code);
+        const adminSession = createAdminSessionForPhone(phoneNumber);
+        res.json({
+            success: true,
+            phone: phoneNumber,
+            isAdmin: !!adminSession,
+            adminSession
+        });
     } catch (e) {
         console.error('获取微信手机号失败:', {
             message: e.message,
             code: e.code,
             status: e.response && e.response.status,
             response: e.response && e.response.data,
+            phoneApiMode: getWechatPhoneApiMode(),
             useOpenApi: useWechatCloudOpenApi(),
-            hasCloudCert: hasWechatCloudCert()
+            hasCloudCert: hasWechatCloudCert(),
+            hasCloudbaseToken: !!readCloudbaseAccessToken(),
+            hasAppSecret: hasWechatAppSecret(),
+            attempts: e.attemptErrors || []
         });
-        res.json({ success: false, message: formatWechatApiError(e) });
+        res.json({
+            success: false,
+            message: formatWechatApiError(e, e.attemptErrors || [])
+        });
     }
 });
 
@@ -1748,6 +1928,16 @@ dbReady.then(async () => {
     } catch (e) {
         console.warn('⚠️  发型师账号同步失败:', e.message);
     }
+
+    console.log('✓ 微信手机号接口配置:', {
+        phoneApiMode: getWechatPhoneApiMode(),
+        hasAppSecret: hasWechatAppSecret(),
+        useOpenApiEnv: useWechatCloudOpenApi(),
+        cloudHosting: isCloudHostingRuntime(),
+        hasCloudCert: hasWechatCloudCert(),
+        hasCloudbaseToken: !!readCloudbaseAccessToken(),
+        phoneAttempts: buildPhoneFetchAttempts().map((item) => item.mode)
+    });
 
     if (SMS_ENABLED) {
         try {
