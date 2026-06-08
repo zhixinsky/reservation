@@ -1,4 +1,47 @@
 <view class="my-page" style="padding-top: {{pagePaddingTop}}px;">
+  <template name="apptCard">
+    <view class="appt-card">
+      <image
+        class="appt-card-bg"
+        src="{{item.cardBgUrl}}"
+        mode="aspectFill"
+        lazy-load="{{false}}"
+      ></image>
+      <view class="appt-card-body">
+        <view class="appt-card-header">
+          <view class="appt-status {{item.statusClass}}">{{item.cardStatusText}}</view>
+          <view wx:if="{{item.storeName}}" class="appt-store-capsule">
+            <text class="appt-store-capsule-name">{{item.storeName}}</text>
+          </view>
+        </view>
+        <view class="appt-card-content">
+          <view class="appt-card-main">
+            <view class="appt-datetime">{{item.dateCardText}} {{item.weekdayText}} {{item.timeDisplay}}</view>
+            <view class="appt-meta">
+              <text class="appt-appid">预约号：{{item.appId}}</text>
+              <text class="appt-service">{{item.serviceDesc}}</text>
+            </view>
+            <view class="appt-stylist">
+              <view class="appt-avatar">
+                <image class="appt-avatar-img" src="{{item.stylistAvatar}}" mode="aspectFill"></image>
+              </view>
+              <view class="appt-stylist-info">
+                <view class="appt-stylist-name">{{item.stylistName}}</view>
+                <view wx:if="{{item.stylistRank}}" class="appt-stylist-rank">{{item.stylistRank}}</view>
+              </view>
+            </view>
+          </view>
+          <view
+            wx:if="{{showDetailBtn}}"
+            class="appt-detail-btn"
+            bindtap="viewAppointmentDetail"
+            data-id="{{item.id}}"
+          >查看详情 ›</view>
+        </view>
+      </view>
+    </view>
+  </template>
+
   <view class="profile-card">
     <image class="profile-bg" src="{{profileBgUrl}}" mode="aspectFill" lazy-load="{{false}}"></image>
     <view class="profile-top">
@@ -61,42 +104,24 @@
       show-scrollbar="{{false}}"
       style="{{bookingListMaxHeight ? 'max-height:' + bookingListMaxHeight + 'px' : ''}}"
     >
-      <view class="booking-list">
-      <view wx:for="{{displayList}}" wx:key="id" id="{{index === 0 ? 'bookingApptCard' : ''}}" class="appt-card">
-        <image class="appt-card-bg" src="{{item.cardBgUrl}}" mode="widthFix"></image>
-        <view class="appt-card-body">
-          <view class="appt-card-header">
-            <view class="appt-status {{item.statusClass}}">{{item.cardStatusText}}</view>
-            <view wx:if="{{item.storeName}}" class="appt-store-capsule">
-              <text class="appt-store-capsule-name">{{item.storeName}}</text>
-            </view>
-          </view>
-          <view class="appt-card-content">
-            <view class="appt-card-main">
-              <view class="appt-datetime">{{item.dateCardText}} {{item.weekdayText}} {{item.timeDisplay}}</view>
-              <view class="appt-meta">
-                <text class="appt-appid">预约号：{{item.appId}}</text>
-                <text class="appt-service">{{item.serviceDesc}}</text>
-              </view>
-              <view class="appt-stylist">
-                <view class="appt-avatar">
-                  <image class="appt-avatar-img" src="{{item.stylistAvatar}}" mode="aspectFill"></image>
-                </view>
-                <view class="appt-stylist-info">
-                  <view class="appt-stylist-name">{{item.stylistName}}</view>
-                  <view wx:if="{{item.stylistRank}}" class="appt-stylist-rank">{{item.stylistRank}}</view>
-                </view>
-              </view>
-            </view>
-            <view
-              wx:if="{{appointmentTab === 'pendingService'}}"
-              class="appt-detail-btn"
-              bindtap="viewAppointmentDetail"
-              data-id="{{item.id}}"
-            >查看详情 ›</view>
-          </view>
-        </view>
+      <view class="appt-bg-preload" aria-hidden="true">
+        <image src="{{haircutBgSrc}}" mode="aspectFill" lazy-load="{{false}}"></image>
+        <image src="{{permBgSrc}}" mode="aspectFill" lazy-load="{{false}}"></image>
       </view>
+      <view class="booking-list" hidden="{{appointmentTab !== 'pendingService'}}">
+        <block wx:for="{{pendingDisplayList}}" wx:key="id">
+          <template is="apptCard" data="{{item: item, showDetailBtn: true}}" />
+        </block>
+      </view>
+      <view class="booking-list" hidden="{{appointmentTab !== 'completed'}}">
+        <block wx:for="{{completedDisplayList}}" wx:key="id">
+          <template is="apptCard" data="{{item: item, showDetailBtn: false}}" />
+        </block>
+      </view>
+      <view class="booking-list" hidden="{{appointmentTab !== 'cancelled'}}">
+        <block wx:for="{{cancelledDisplayList}}" wx:key="id">
+          <template is="apptCard" data="{{item: item, showDetailBtn: false}}" />
+        </block>
       </view>
     </scroll-view>
 

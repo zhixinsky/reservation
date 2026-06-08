@@ -33,6 +33,7 @@ const TAB_LABELS = {
 };
 
 const BOOKING_LIST_MAX_VISIBLE = 3;
+const APPT_CARD_HEIGHT_RPX = 280;
 
 function formatDateText(ymd) {
   const parts = String(ymd || '').split('-');
@@ -107,6 +108,11 @@ Page({
     appointmentTab: 'pendingService',
     tabLabel: '待服务',
     displayList: [],
+    pendingDisplayList: [],
+    completedDisplayList: [],
+    cancelledDisplayList: [],
+    haircutBgSrc: HAIRCUT_BG,
+    permBgSrc: PERM_BG,
     bookingListScrollable: false,
     bookingListMaxHeight: 0,
     stats: {
@@ -128,12 +134,14 @@ Page({
   onLoad() {
     this.setData({ pagePaddingTop: getCustomNavPaddingTop(24) });
     this.syncStoreDisplay();
+    this.preloadApptCardBackgrounds();
     this.restorePhoneSession(false);
   },
 
   onShow() {
     this.syncStoreDisplay();
     this.refreshCachedStoreInfo();
+    this.preloadApptCardBackgrounds();
     wx.nextTick(() => {
       showTabBar(this, {
         selected: 1,
@@ -141,6 +149,35 @@ Page({
       });
     });
     this.restorePhoneSession(true);
+  },
+
+  preloadApptCardBackgrounds() {
+    if (this._apptBgPreloadStarted) return;
+    this._apptBgPreloadStarted = true;
+    Promise.all([
+      wx.getImageInfo({ src: HAIRCUT_BG }).catch(() => null),
+      wx.getImageInfo({ src: PERM_BG }).catch(() => null)
+    ]).then(([cut, perm]) => {
+      const patch = {};
+      if (cut && cut.path) patch.haircutBgSrc = cut.path;
+      if (perm && perm.path) patch.permBgSrc = perm.path;
+      if (!Object.keys(patch).length) return;
+      this.setData(patch, () => {
+        if (
+          this.data.pendingDisplayList.length
+          || this.data.completedDisplayList.length
+          || this.data.cancelledDisplayList.length
+        ) {
+          this.updateAllDisplayLists();
+        }
+      });
+    });
+  },
+
+  getActiveDisplayListKey(tab) {
+    if (tab === 'completed') return 'completedDisplayList';
+    if (tab === 'cancelled') return 'cancelledDisplayList';
+    return 'pendingDisplayList';
   },
 
   syncStoreDisplay() {
@@ -179,6 +216,9 @@ Page({
           stats: computeStats([], []),
           currentAppointments: [],
           historyAppointments: [],
+          pendingDisplayList: [],
+          completedDisplayList: [],
+          cancelledDisplayList: [],
           displayList: []
         });
       }
@@ -231,18 +271,38 @@ Page({
   switchAppointmentTab(e) {
     const tab = e.currentTarget.dataset.tab;
     if (!tab || tab === this.data.appointmentTab) return;
+    const listKey = this.getActiveDisplayListKey(tab);
     this.setData({
       appointmentTab: tab,
-      tabLabel: TAB_LABELS[tab] || '预约'
-    });
-    this.updateDisplayList();
+      tabLabel: TAB_LABELS[tab] || '预约',
+      displayList: this.data[listKey] || []
+    }, () => this.scheduleBookingListMeasure());
   },
 
-  updateDisplayList() {
-    const { appointmentTab, currentAppointments, historyAppointments, stylistMap, storeMap } = this.data;
-    const rawList = buildDisplayList(appointmentTab, currentAppointments, historyAppointments);
+  updateAllDisplayLists() {
+    const { currentAppointments, historyAppointments, stylistMap, storeMap, appointmentTab } = this.data;
+    const history = Array.isArray(historyAppointments) ? historyAppointments : [];
+    const pendingDisplayList = this.decorateList(currentAppointments, stylistMap, storeMap);
+    const completedDisplayList = this.decorateList(
+      history.filter(item => item.status === 'completed'),
+      stylistMap,
+      storeMap
+    );
+    const cancelledDisplayList = this.decorateList(
+      history.filter(item => item.status === 'cancelled'),
+      stylistMap,
+      storeMap
+    );
+    const listKey = this.getActiveDisplayListKey(appointmentTab);
     this.setData({
-      displayList: this.decorateList(rawList, stylistMap, storeMap)
+      pendingDisplayList,
+      completedDisplayList,
+      cancelledDisplayList,
+      displayList: listKey === 'pendingDisplayList'
+        ? pendingDisplayList
+        : listKey === 'completedDisplayList'
+          ? completedDisplayList
+          : cancelledDisplayList
     }, () => this.scheduleBookingListMeasure());
   },
 
@@ -255,34 +315,24 @@ Page({
       return;
     }
 
-    const measure = () => {
-      this.createSelectorQuery()
-        .select('#bookingApptCard')
-        .boundingClientRect()
-        .exec(res => {
-          const card = res && res[0];
-          if (!card || !card.height) return;
-          const gapPx = (wx.getSystemInfoSync().windowWidth / 750) * 20;
-          const maxHeight = Math.ceil(
-            card.height * BOOKING_LIST_MAX_VISIBLE + gapPx * (BOOKING_LIST_MAX_VISIBLE - 1)
-          );
-          this.setData({
-            bookingListScrollable: true,
-            bookingListMaxHeight: maxHeight
-          });
-        });
-    };
-
-    wx.nextTick(measure);
-    setTimeout(measure, 120);
-    setTimeout(measure, 400);
+    const sys = wx.getSystemInfoSync();
+    const toPx = (rpx) => (sys.windowWidth / 750) * rpx;
+    const cardPx = toPx(APPT_CARD_HEIGHT_RPX);
+    const gapPx = toPx(20);
+    const maxHeight = Math.ceil(
+      cardPx * BOOKING_LIST_MAX_VISIBLE + gapPx * (BOOKING_LIST_MAX_VISIBLE - 1)
+    );
+    this.setData({
+      bookingListScrollable: true,
+      bookingListMaxHeight: maxHeight
+    });
   },
 
   updateStats(currentList, historyList) {
     this.setData({
       stats: computeStats(currentList, historyList)
     });
-    this.updateDisplayList();
+    this.updateAllDisplayLists();
   },
 
   goToBooking() {
@@ -523,6 +573,12 @@ Page({
     }
   },
 
+  resolveCardBgUrl(serviceType) {
+    return serviceType === 'dye'
+      ? (this.data.permBgSrc || PERM_BG)
+      : (this.data.haircutBgSrc || HAIRCUT_BG);
+  },
+
   decorateList(list, stylistMap = {}, storeMap = {}) {
     return (Array.isArray(list) ? list : []).map(app => {
       const stylist = stylistMap[app.stylistId] || {};
@@ -538,7 +594,7 @@ Page({
         statusText: cardStatusText,
         cardStatusText,
         statusClass: statusClass(app.status),
-        cardBgUrl: app.serviceType === 'dye' ? PERM_BG : HAIRCUT_BG,
+        cardBgUrl: this.resolveCardBgUrl(app.serviceType),
         stylistName: stylist.name || '店长',
         stylistRank: stylist.rank || '',
         stylistAvatar: resolveStylistAvatar(stylist, app.serviceType),
