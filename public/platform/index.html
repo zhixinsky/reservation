@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>平台管理 · 预约系统</title>
   <link rel="stylesheet" href="/platform/vendor/cropperjs/cropper.min.css">
-  <link rel="stylesheet" href="/platform/app.css?v=11">
+  <link rel="stylesheet" href="/platform/app.css?v=31">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -35,51 +35,52 @@
 
     <!-- 主框架 -->
     <section id="view-main" class="view view-main">
-      <aside class="sidebar glass">
-        <div class="sidebar-brand">
-          <div class="brand-mark sm">R</div>
-          <div>
-            <strong>平台管理</strong>
-            <span>Reservation OS</span>
+      <div class="platform-shell">
+        <aside class="sidebar-card glass">
+          <div class="sidebar-brand">
+            <div class="brand-mark sm">R</div>
+            <div>
+              <strong>平台管理</strong>
+              <span>Reservation OS</span>
+            </div>
           </div>
-        </div>
-        <nav class="sidebar-nav">
-          <button type="button" class="nav-item active" data-route="dashboard">
-            <span class="nav-icon">◉</span>概览
-          </button>
-          <button type="button" class="nav-item" data-route="stores">
-            <span class="nav-icon">▣</span>门店
-          </button>
-          <button type="button" class="nav-item" data-route="stylists">
-            <span class="nav-icon">◎</span>发型师
-          </button>
-          <button type="button" class="nav-item" data-route="reports">
-            <span class="nav-icon">◫</span>报表
-          </button>
-          <button type="button" class="nav-item" data-route="appointments">
-            <span class="nav-icon">☰</span>预约
-          </button>
-          <button type="button" class="nav-item" data-route="blacklist">
-            <span class="nav-icon">⊘</span>黑名单
-          </button>
-          <button type="button" class="nav-item" data-route="audit">
-            <span class="nav-icon">◷</span>审计
-          </button>
-        </nav>
-        <div class="sidebar-foot">
-          <button type="button" class="btn btn-ghost btn-block" id="logoutBtn">退出登录</button>
-        </div>
-      </aside>
-
-      <main class="main">
-        <header class="topbar glass">
-          <h2 id="pageTitle">概览</h2>
-          <div class="topbar-actions">
-            <span class="pill" id="todayPill"></span>
+          <nav class="sidebar-nav">
+            <button type="button" class="nav-item active" data-route="dashboard">
+              <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="nav-label">概览</span>
+            </button>
+            <button type="button" class="nav-item" data-route="stores">
+              <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16"/><path d="M6 10V8l2-3h8l2 3v2"/><path d="M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"/><path d="M10 20v-5h4v5"/></svg></span><span class="nav-label">门店管理</span>
+            </button>
+            <button type="button" class="nav-item" data-route="stylists">
+              <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-.8a6 6 0 0 1 12 0V20"/></svg></span><span class="nav-label">发型师管理</span>
+            </button>
+            <button type="button" class="nav-item" data-route="reports">
+              <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V5"/><path d="M16 20v-7"/><path d="M22 20V8"/></svg></span><span class="nav-label">跨店报表</span>
+            </button>
+            <button type="button" class="nav-item" data-route="appointments">
+              <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4"/><path d="M16 3v4"/><path d="M3 11h18"/><path d="M8 15h3"/><path d="M13 15h3"/></svg></span><span class="nav-label">预约总览</span>
+            </button>
+            <button type="button" class="nav-item" data-route="blacklist">
+              <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M4 20v-.6a5 5 0 0 1 9.2-2.6"/><circle cx="17" cy="17" r="5"/><path d="M15 15l4 4"/></svg></span><span class="nav-label">用户黑名单</span>
+            </button>
+            <button type="button" class="nav-item" data-route="audit">
+              <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/><path d="M9 13h7"/><path d="M9 17h5"/></svg></span><span class="nav-label">操作审计</span>
+            </button>
+          </nav>
+          <div class="sidebar-foot">
+            <button type="button" class="btn btn-ghost btn-block" id="logoutBtn">退出登录</button>
           </div>
-        </header>
+        </aside>
 
-        <div class="main-scroll">
+        <div class="main-panel glass">
+          <header class="topbar">
+            <h2 id="pageTitle">概览</h2>
+            <div class="topbar-actions">
+              <span class="pill" id="todayPill"></span>
+            </div>
+          </header>
+
+          <div class="main-scroll">
           <!-- 概览 -->
           <div id="panel-dashboard" class="panel">
             <div class="stat-grid" id="statGrid"></div>
@@ -100,140 +101,39 @@
 
           <!-- 门店列表 -->
           <div id="panel-stores" class="panel" hidden>
-            <div class="toolbar">
-              <button type="button" class="btn btn-primary" id="btnNewStore">新建门店</button>
-              <button type="button" class="btn btn-ghost" id="btnSyncCloud">同步到云开发</button>
+            <div class="page-header">
+              <div class="page-header-text">
+                <h3>门店管理</h3>
+                <p>配置营业时间、预约规则与小程序展示</p>
+              </div>
+              <div class="page-header-actions">
+                <button type="button" class="btn btn-primary" id="btnNewStore">新建门店</button>
+              </div>
             </div>
-            <p class="field-hint store-sync-hint">可选：仅在使用<strong>云函数</strong>（非云托管）时需要，将门店与黑名单同步到云数据库。你当前使用云托管可忽略此按钮。</p>
-            <div id="storeList" class="card-list"></div>
-          </div>
-
-          <!-- 门店编辑 -->
-          <div id="panel-store-edit" class="panel" hidden>
-            <div class="toolbar">
-              <button type="button" class="btn btn-ghost" id="btnBackStores">← 返回门店列表</button>
-              <button type="button" class="btn btn-primary" id="btnSaveStore">保存</button>
-            </div>
-            <form id="storeForm" class="form-grid glass card">
-              <input type="hidden" id="storeId">
-              <fieldset class="form-section">
-                <legend>基本信息</legend>
-                <label class="field"><span>门店名称（最多6字）</span><input id="storeName" required maxlength="6"></label>
-                <label class="field"><span>门店编码</span><input id="storeCode"></label>
-                <label class="field"><span>状态</span>
-                  <select id="storeStatus">
-                    <option value="active">营业中</option>
-                    <option value="disabled">已停用</option>
-                  </select>
-                </label>
-                <label class="field"><span>电话</span><input id="storePhone"></label>
-                <label class="field"><span>纬度（导航必填）</span><input id="storeLatitude" type="number" step="any" placeholder="如 23.185396"></label>
-                <label class="field"><span>经度（导航必填）</span><input id="storeLongitude" type="number" step="any" placeholder="如 113.323372"></label>
-                <label class="field field-full"><span>地址（可选，仅展示）</span><input id="storeAddress" placeholder="可不填，导航使用经纬度"></label>
-              </fieldset>
-              <fieldset class="form-section">
-                <legend>预约规则</legend>
-                <label class="field"><span>营业开始</span><input id="storeWorkStart" type="time" step="60"></label>
-                <label class="field"><span>营业结束</span><input id="storeWorkEnd" type="time" step="60"></label>
-                <label class="field"><span>时段间隔（分钟）</span><input id="storeInterval" type="number" min="15" step="15"></label>
-                <label class="field"><span>可预约天数（1–3 天）</span><input id="storeBookDays" type="number" min="1" max="3" step="1"></label>
-                <label class="field"><span>烫染占格数</span><input id="storeDyeSlots" type="number" min="1" max="8"></label>
-                <label class="field field-full"><span>默认锁定时段（每行一个，如 12:00-12:30）</span>
-                  <textarea id="storeBlocked" rows="4"></textarea>
-                </label>
-              </fieldset>
-              <fieldset class="form-section">
-                <legend>展示与通知</legend>
-                <div class="field field-full store-bg-field">
-                  <span>预约页背景图</span>
-                  <div class="store-bg-row">
-                    <div class="store-bg-preview-wrap">
-                      <img id="storeBgPreview" class="store-bg-preview" alt="门店背景预览" hidden>
-                      <div id="storeBgPlaceholder" class="store-bg-placeholder">默认背景</div>
-                    </div>
-                    <div class="store-bg-actions">
-                      <button type="button" class="btn btn-secondary" id="btnPickStoreBg">上传背景图</button>
-                      <p class="field-hint">推荐尺寸 750 × 1624 px，裁剪比例 9:19.5。上传后自动压缩并转为 WebP。重要内容请放在画面中央。未上传时使用默认 img/background.webp。</p>
-                      <p id="storeBgHint" class="field-hint" hidden>请先保存门店，再上传背景图。</p>
-                    </div>
-                    <input type="file" id="storeBgInput" accept="image/jpeg,image/png,image/webp" hidden>
-                  </div>
-                </div>
-                <label class="field field-full"><span>首页公告</span><textarea id="storeAnnouncement" rows="3"></textarea></label>
-                <label class="field field-full"><span>小程序链接</span><input id="storeMiniUrl"></label>
-              </fieldset>
-              <fieldset class="form-section" id="storeQrcodeSection" hidden>
-                <legend>扫码入店</legend>
-                <p class="field-hint">每店独立小程序码，顾客扫码后直接进入该门店预约，无需手动选店；仍可通过左上角切换其他门店。</p>
-                <div class="qrcode-box">
-                  <img id="storeQrcodeImg" alt="门店小程序码" width="200" height="200">
-                  <div class="qrcode-actions">
-                    <a id="storeQrcodeDownload" class="btn btn-ghost btn-sm" download>下载二维码</a>
-                    <button type="button" class="btn btn-ghost btn-sm" id="btnRefreshQrcode">刷新</button>
-                  </div>
-                </div>
-              </fieldset>
-            </form>
+            <div id="storeList" class="store-grid"></div>
           </div>
 
           <!-- 发型师 -->
           <div id="panel-stylists" class="panel" hidden>
-            <div class="toolbar">
-              <select id="stylistFilterStore"><option value="">全部门店</option></select>
-              <button type="button" class="btn btn-primary" id="btnNewStylist">新建发型师</button>
-            </div>
-            <div id="stylistList" class="card-list"></div>
-          </div>
-
-          <div id="panel-stylist-edit" class="panel" hidden>
-            <div class="toolbar">
-              <button type="button" class="btn btn-ghost" id="btnBackStylists">← 返回列表</button>
-              <button type="button" class="btn btn-primary" id="btnSaveStylist">保存</button>
-            </div>
-            <form id="stylistForm" class="form-grid glass card">
-              <input type="hidden" id="stylistId">
-              <div class="field field-full stylist-avatar-field">
-                <span>头像</span>
-                <div class="stylist-avatar-row">
-                  <div class="stylist-avatar-preview-wrap">
-                    <img id="stylistAvatarPreview" class="stylist-avatar-preview" alt="发型师头像" hidden>
-                    <div id="stylistAvatarPlaceholder" class="stylist-avatar-placeholder">暂无头像</div>
-                  </div>
-                  <div class="stylist-avatar-actions">
-                    <button type="button" class="btn btn-secondary" id="btnPickStylistAvatar">上传头像</button>
-                    <p class="field-hint">支持 JPG/PNG，上传后可圆形裁剪。未上传时小程序显示默认头像。</p>
-                    <p id="stylistAvatarHint" class="field-hint" hidden>请先保存发型师，再上传头像。</p>
-                  </div>
-                  <input type="file" id="stylistAvatarInput" accept="image/jpeg,image/png,image/webp" hidden>
-                </div>
+            <div class="page-header">
+              <div class="page-header-text">
+                <h3>发型师管理</h3>
+                <p>管理各门店发型师账号与工作状态</p>
               </div>
-              <label class="field"><span>所属门店</span><select id="stylistStore" required></select></label>
-              <label class="field"><span>姓名</span><input id="stylistName" required></label>
-              <label class="field"><span>手机号</span><input id="stylistPhone" type="tel" maxlength="11" placeholder="用于小程序「管理」入口" required></label>
-              <label class="field"><span>登录名</span><input id="stylistUsername" required></label>
-              <label class="field"><span>密码</span><input id="stylistPassword" type="password" required></label>
-              <label class="field"><span>职级</span><input id="stylistRank" placeholder="如：总监"></label>
-              <label class="field"><span>状态</span>
-                <select id="stylistWorkStatus">
-                  <option value="working">工作中</option>
-                  <option value="resting">休息中</option>
-                </select>
-              </label>
-              <label class="field"><span>账号</span>
-                <select id="stylistEnabled">
-                  <option value="1">启用</option>
-                  <option value="0">停用</option>
-                </select>
-              </label>
-            </form>
+              <div class="page-header-actions filter-inline">
+                <select id="stylistFilterStore"><option value="">全部门店</option></select>
+                <button type="button" class="btn btn-primary" id="btnNewStylist">新建发型师</button>
+              </div>
+            </div>
+            <div id="stylistList" class="store-grid"></div>
           </div>
 
           <!-- 报表 -->
           <div id="panel-reports" class="panel" hidden>
             <div class="filter-bar glass">
               <select id="reportStore"><option value="">全部门店</option></select>
-              <input type="date" id="reportFrom" placeholder="开始日期">
-              <input type="date" id="reportTo" placeholder="结束日期">
+              <input type="date" id="reportFrom" data-placeholder="开始日期">
+              <input type="date" id="reportTo" data-placeholder="结束日期">
               <button type="button" class="btn btn-secondary" id="btnLoadReport">查询</button>
             </div>
             <div class="stat-grid" id="reportStatGrid"></div>
@@ -258,7 +158,7 @@
           <div id="panel-appointments" class="panel" hidden>
             <div class="filter-bar glass">
               <select id="filterStore"><option value="">全部门店</option></select>
-              <input type="date" id="filterDate">
+              <input type="date" id="filterDate" data-placeholder="预约日期">
               <input type="text" id="filterPhone" placeholder="手机号">
               <select id="filterStatus">
                 <option value="">全部状态</option>
@@ -298,13 +198,15 @@
           <div id="panel-blacklist" class="panel" hidden>
             <div class="card glass report-section">
               <div class="card-head split-head">
-                <h3>拉黑建议</h3>
+                <div class="card-head-text">
+                  <h3>拉黑建议</h3>
+                  <p class="card-desc">根据近 90 天多次取消或疑似爽约（过期仍未完成/取消的预约）自动推荐，需人工确认后拉黑。</p>
+                </div>
                 <div class="inline-form compact">
                   <select id="blSuggestStore"><option value="">全部门店</option></select>
                   <button type="button" class="btn btn-ghost btn-sm" id="btnRefreshBlSuggest">刷新</button>
                 </div>
               </div>
-              <p class="field-hint">根据近 90 天多次取消或疑似爽约（过期仍未完成/取消的预约）自动推荐，需人工确认后拉黑。</p>
               <div class="table-wrap">
                 <table class="data-table">
                   <thead>
@@ -336,7 +238,7 @@
 
           <!-- 审计日志 -->
           <div id="panel-audit" class="panel" hidden>
-            <div class="toolbar">
+            <div class="filter-bar glass">
               <select id="auditAction">
                 <option value="">全部操作</option>
                 <option value="store.create">新建门店</option>
@@ -353,8 +255,8 @@
                 <option value="cloud.sync_stores">同步云开发</option>
               </select>
               <select id="auditStore"><option value="">全部门店</option></select>
-              <input type="date" id="auditFrom">
-              <input type="date" id="auditTo">
+              <input type="date" id="auditFrom" data-placeholder="开始日期">
+              <input type="date" id="auditTo" data-placeholder="结束日期">
               <button type="button" class="btn btn-secondary" id="btnLoadAudit">查询</button>
             </div>
             <div class="table-wrap glass">
@@ -367,8 +269,149 @@
             </div>
           </div>
         </div>
-      </main>
+      </div>
+      </div>
     </section>
+  </div>
+
+  <div id="storeEditModal" class="edit-modal store-edit-modal" hidden>
+    <div class="edit-modal-backdrop" id="storeEditBackdrop"></div>
+    <div class="edit-modal-dialog store-edit-dialog glass" role="dialog" aria-modal="true" aria-labelledby="storeEditTitle">
+      <div class="edit-modal-head">
+        <div class="edit-modal-head-text">
+          <h3 id="storeEditTitle">编辑门店</h3>
+          <p id="storeEditSubtitle" class="edit-modal-subtitle" hidden></p>
+        </div>
+        <div class="edit-modal-head-actions">
+          <button type="button" class="btn btn-primary" id="btnSaveStore">保存</button>
+          <button type="button" class="btn btn-ghost" id="storeEditClose">取消</button>
+        </div>
+      </div>
+      <div class="edit-modal-body store-edit-body">
+        <form id="storeForm" class="form-grid store-form-grid">
+          <input type="hidden" id="storeId">
+          <fieldset class="form-section glass-section">
+            <div class="glass-section-title">基本信息</div>
+            <label class="field"><span>门店名称（最多6字）</span><input id="storeName" required maxlength="6"></label>
+            <label class="field"><span>门店编码</span><input id="storeCode"></label>
+            <label class="field"><span>状态</span>
+              <select id="storeStatus">
+                <option value="active">营业中</option>
+                <option value="disabled">已停用</option>
+              </select>
+            </label>
+            <label class="field"><span>电话</span><input id="storePhone"></label>
+            <label class="field"><span>纬度（导航必填）</span><input id="storeLatitude" type="number" step="any" placeholder="如 23.185396"></label>
+            <label class="field"><span>经度（导航必填）</span><input id="storeLongitude" type="number" step="any" placeholder="如 113.323372"></label>
+            <label class="field field-full"><span>地址（可选，仅展示）</span><input id="storeAddress" placeholder="可不填，导航使用经纬度"></label>
+          </fieldset>
+          <fieldset class="form-section glass-section">
+            <div class="glass-section-title">预约规则</div>
+            <label class="field"><span>营业开始</span><input id="storeWorkStart" type="time" step="60"></label>
+            <label class="field"><span>营业结束</span><input id="storeWorkEnd" type="time" step="60"></label>
+            <label class="field"><span>时段间隔（分钟）</span><input id="storeInterval" type="number" min="15" step="15"></label>
+            <label class="field"><span>可预约天数（1–3 天）</span><input id="storeBookDays" type="number" min="1" max="3" step="1"></label>
+            <label class="field"><span>烫染占格数</span><input id="storeDyeSlots" type="number" min="1" max="8"></label>
+            <label class="field field-full"><span>默认锁定时段（每行一个，如 12:00-12:30）</span>
+              <textarea id="storeBlocked" rows="4"></textarea>
+            </label>
+          </fieldset>
+          <fieldset class="form-section glass-section">
+            <div class="glass-section-title">展示与通知</div>
+            <div class="field field-full store-bg-field">
+              <span>预约页背景图</span>
+              <div class="store-bg-row">
+                <div class="store-bg-preview-wrap">
+                  <img id="storeBgPreview" class="store-bg-preview" alt="门店背景预览" hidden>
+                  <div id="storeBgPlaceholder" class="store-bg-placeholder">默认背景</div>
+                </div>
+                <div class="store-bg-actions">
+                  <button type="button" class="btn btn-secondary" id="btnPickStoreBg">上传背景图</button>
+                  <p class="field-hint">推荐尺寸 750 × 1624 px，裁剪比例 9:19.5。上传后自动压缩并转为 WebP。重要内容请放在画面中央。未上传时使用默认 img/background.webp。</p>
+                  <p id="storeBgHint" class="field-hint" hidden>请先保存门店，再上传背景图。</p>
+                </div>
+                <input type="file" id="storeBgInput" accept="image/jpeg,image/png,image/webp" hidden>
+              </div>
+            </div>
+            <label class="field field-full"><span>首页公告</span><textarea id="storeAnnouncement" rows="3"></textarea></label>
+            <label class="field field-full"><span>小程序链接</span><input id="storeMiniUrl"></label>
+          </fieldset>
+          <fieldset class="form-section glass-section" id="storeQrcodeSection" hidden>
+            <div class="glass-section-title">扫码入店</div>
+            <p class="field-hint">每店独立小程序码，顾客扫码后直接进入该门店预约，无需手动选店；仍可通过左上角切换其他门店。</p>
+            <div class="qrcode-box">
+              <img id="storeQrcodeImg" alt="门店小程序码" width="200" height="200">
+              <div class="qrcode-actions">
+                <a id="storeQrcodeDownload" class="btn btn-ghost btn-sm" download>下载二维码</a>
+                <button type="button" class="btn btn-ghost btn-sm" id="btnRefreshQrcode">刷新</button>
+              </div>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="stylistEditModal" class="edit-modal stylist-edit-modal" hidden>
+    <div class="edit-modal-backdrop" id="stylistEditBackdrop"></div>
+    <div class="edit-modal-dialog stylist-edit-dialog glass" role="dialog" aria-modal="true" aria-labelledby="stylistEditTitle">
+      <div class="edit-modal-head">
+        <div class="edit-modal-head-text">
+          <h3 id="stylistEditTitle">编辑发型师</h3>
+          <p id="stylistEditSubtitle" class="edit-modal-subtitle" hidden></p>
+        </div>
+        <div class="edit-modal-head-actions">
+          <button type="button" class="btn btn-primary" id="btnSaveStylist">保存</button>
+          <button type="button" class="btn btn-ghost" id="stylistEditClose">取消</button>
+        </div>
+      </div>
+      <div class="edit-modal-body stylist-edit-body">
+        <form id="stylistForm" class="stylist-form-grid">
+          <input type="hidden" id="stylistId">
+          <fieldset class="form-section glass-section stylist-section-full">
+            <div class="glass-section-title">头像</div>
+            <div class="field field-full stylist-avatar-field">
+              <div class="stylist-avatar-row">
+                <div class="stylist-avatar-preview-wrap">
+                  <img id="stylistAvatarPreview" class="stylist-avatar-preview" alt="发型师头像" hidden>
+                  <div id="stylistAvatarPlaceholder" class="stylist-avatar-placeholder">暂无头像</div>
+                </div>
+                <div class="stylist-avatar-actions">
+                  <button type="button" class="btn btn-secondary" id="btnPickStylistAvatar">上传头像</button>
+                  <p class="field-hint">支持 JPG/PNG/WebP，上传后可圆形裁剪。未上传时小程序显示默认头像。</p>
+                  <p id="stylistAvatarHint" class="field-hint" hidden>请先保存发型师，再上传头像。</p>
+                </div>
+                <input type="file" id="stylistAvatarInput" accept="image/jpeg,image/png,image/webp" hidden>
+              </div>
+            </div>
+          </fieldset>
+          <fieldset class="form-section glass-section">
+            <div class="glass-section-title">基本信息</div>
+            <label class="field"><span>所属门店</span><select id="stylistStore" required></select></label>
+            <label class="field"><span>姓名</span><input id="stylistName" required></label>
+            <label class="field"><span>手机号</span><input id="stylistPhone" type="tel" maxlength="11" placeholder="用于小程序「管理」入口" required></label>
+            <label class="field"><span>职级</span><input id="stylistRank" placeholder="如：总监"></label>
+          </fieldset>
+          <fieldset class="form-section glass-section">
+            <div class="glass-section-title">账号设置</div>
+            <label class="field"><span>登录名</span><input id="stylistUsername" required></label>
+            <label class="field"><span>密码</span><input id="stylistPassword" type="password" required></label>
+            <label class="field"><span>工作状态</span>
+              <select id="stylistWorkStatus">
+                <option value="working">工作中</option>
+                <option value="resting">休息中</option>
+              </select>
+            </label>
+            <label class="field"><span>账号状态</span>
+              <select id="stylistEnabled">
+                <option value="1">启用</option>
+                <option value="0">停用</option>
+              </select>
+            </label>
+          </fieldset>
+        </form>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast" hidden></div>
@@ -378,7 +421,7 @@
     <div class="image-crop-dialog glass">
       <div class="image-crop-head">
         <h3>裁剪背景图</h3>
-        <button type="button" class="image-crop-close" id="storeBgCropClose" aria-label="关闭">×</button>
+        <button type="button" class="btn btn-ghost" id="storeBgCropClose">取消</button>
       </div>
       <div class="store-bg-crop-stage">
         <div class="image-crop-image-box">
@@ -387,7 +430,6 @@
       </div>
       <p class="image-crop-tip">比例 9:19.5，推荐导出 750 × 1624 px。拖动图片、滚轮缩放，框内区域为预约页全屏背景。</p>
       <div class="image-crop-actions">
-        <button type="button" class="btn btn-ghost" id="storeBgCropCancel">取消</button>
         <button type="button" class="btn btn-primary" id="storeBgCropConfirm">确认上传</button>
       </div>
     </div>
@@ -398,7 +440,7 @@
     <div class="image-crop-dialog glass">
       <div class="image-crop-head">
         <h3>裁剪头像</h3>
-        <button type="button" class="image-crop-close" id="avatarCropClose" aria-label="关闭">×</button>
+        <button type="button" class="btn btn-ghost" id="avatarCropClose">取消</button>
       </div>
       <div class="avatar-crop-stage">
         <div class="image-crop-image-box">
@@ -408,13 +450,12 @@
       </div>
       <p class="image-crop-tip">拖动图片调整位置，滚轮缩放，圆形区域内为最终头像</p>
       <div class="image-crop-actions">
-        <button type="button" class="btn btn-ghost" id="avatarCropCancel">取消</button>
         <button type="button" class="btn btn-primary" id="avatarCropConfirm">确认上传</button>
       </div>
     </div>
   </div>
 
   <script src="/platform/vendor/cropperjs/cropper.min.js"></script>
-  <script src="/platform/app.js?v=15"></script>
+  <script src="/platform/app.js?v=22"></script>
 </body>
 </html>

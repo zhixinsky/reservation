@@ -749,20 +749,22 @@ function createPlatformRouter(deps) {
         res.json({ success: true, appointments: list.slice(0, max) });
     });
 
-    router.get('/stylists', requirePlatformAdmin, (req, res) => {
+    router.get('/stylists', requirePlatformAdmin, async (req, res) => {
         let list = dbStylistAccounts.getAll();
         if (req.query.storeId) {
             const sid = Number(req.query.storeId);
             list = list.filter(s => Number(s.storeId) === sid);
         }
         const stores = dbStores.getAll();
-        res.json({
-            success: true,
-            stylists: list.map(s => ({
+        const stylists = await Promise.all(list.map(async (s) => {
+            const photoPreviewUrl = await resolveImagePreviewUrl(s.photo, wechatApi);
+            return {
                 ...publicStylistRow(s),
-                storeName: (stores.find(st => st.id === s.storeId) || {}).name || '—'
-            }))
-        });
+                storeName: (stores.find(st => st.id === s.storeId) || {}).name || '—',
+                photoPreviewUrl: photoPreviewUrl || s.photo || ''
+            };
+        }));
+        res.json({ success: true, stylists });
     });
 
     router.get('/stylists/:id', requirePlatformAdmin, async (req, res) => {

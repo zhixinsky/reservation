@@ -15,6 +15,12 @@
   const STORE_BG_ASPECT_RATIO = 9 / 19.5;
   const STORE_BG_EXPORT_WIDTH = 750;
   const STORE_BG_EXPORT_HEIGHT = 1624;
+  const STYLIST_DEFAULT_AVATAR = '/platform/images/default-stylist.png';
+
+  const STORE_SELECT_IDS = [
+    'filterStore', 'blStore', 'stylistFilterStore', 'stylistStore',
+    'reportStore', 'auditStore', 'blSuggestStore'
+  ];
 
   const AUDIT_ACTION_LABELS = {
     'auth.login': '平台登录',
@@ -85,6 +91,219 @@
     if (main) main.classList.add('is-active');
   }
 
+  function syncModalBodyLock() {
+    const storeOpen = $('#storeEditModal') && !$('#storeEditModal').hidden;
+    const stylistOpen = $('#stylistEditModal') && !$('#stylistEditModal').hidden;
+    document.body.classList.toggle('modal-open', !!(storeOpen || stylistOpen));
+  }
+
+  function resetCustomSelectMenuStyle(menu) {
+    if (!menu) return;
+    menu.style.position = '';
+    menu.style.top = '';
+    menu.style.left = '';
+    menu.style.width = '';
+    menu.style.maxHeight = '';
+    menu.style.zIndex = '';
+  }
+
+  function closeCustomSelectMenu(wrap) {
+    if (!wrap) return;
+    const menu = wrap._customMenu;
+    wrap.classList.remove('is-open');
+    if (!menu) return;
+    menu.hidden = true;
+    menu.classList.remove('is-portaled');
+    resetCustomSelectMenuStyle(menu);
+    if (menu.parentNode === document.body && wrap._customMenuHost) {
+      wrap._customMenuHost.appendChild(menu);
+    }
+  }
+
+  function closeAllCustomSelects() {
+    $$('.custom-select.is-open').forEach((wrap) => closeCustomSelectMenu(wrap));
+  }
+
+  function positionCustomSelectMenu(trigger, menu) {
+    const rect = trigger.getBoundingClientRect();
+    const gap = 6;
+    const spaceBelow = window.innerHeight - rect.bottom - gap - 8;
+    const spaceAbove = rect.top - gap - 8;
+    const preferBelow = spaceBelow >= 100 || spaceBelow >= spaceAbove;
+    const maxHeight = Math.min(240, preferBelow ? spaceBelow : spaceAbove);
+    const height = Math.max(80, maxHeight);
+    const top = preferBelow
+      ? rect.bottom + gap
+      : Math.max(8, rect.top - gap - height);
+
+    menu.style.position = 'fixed';
+    menu.style.top = `${top}px`;
+    menu.style.left = `${rect.left}px`;
+    menu.style.width = `${Math.max(rect.width, 120)}px`;
+    menu.style.maxHeight = `${height}px`;
+    menu.style.zIndex = '4000';
+  }
+
+  function refreshCustomSelect(nativeSelect) {
+    if (!nativeSelect) return;
+    if (nativeSelect._rebuildCustomSelect) {
+      nativeSelect._rebuildCustomSelect();
+      return;
+    }
+    enhanceSelect(nativeSelect);
+  }
+
+  function enhanceSelect(nativeSelect) {
+    if (!nativeSelect || nativeSelect.tagName !== 'SELECT') return;
+    if (nativeSelect.closest('.custom-select')) {
+      refreshCustomSelect(nativeSelect);
+      return;
+    }
+
+    const wrap = document.createElement('div');
+    wrap.className = 'custom-select';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-select-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    const menu = document.createElement('div');
+    menu.className = 'custom-select-menu';
+    menu.hidden = true;
+    menu.setAttribute('role', 'listbox');
+
+    nativeSelect.classList.add('native-select-hidden');
+    const parent = nativeSelect.parentNode;
+    parent.insertBefore(wrap, nativeSelect);
+    wrap.appendChild(nativeSelect);
+    wrap.appendChild(trigger);
+    wrap.appendChild(menu);
+    wrap._customMenu = menu;
+    wrap._customMenuHost = wrap;
+
+    function syncDisabled() {
+      const disabled = nativeSelect.disabled;
+      wrap.classList.toggle('is-disabled', disabled);
+      trigger.disabled = disabled;
+    }
+
+    function syncUI() {
+      const selected = nativeSelect.selectedOptions[0];
+      trigger.textContent = selected ? selected.textContent : '请选择';
+      menu.querySelectorAll('.custom-select-option').forEach((el) => {
+        el.classList.toggle('is-selected', el.dataset.value === nativeSelect.value);
+      });
+      syncDisabled();
+    }
+
+    function closeMenu() {
+      closeCustomSelectMenu(wrap);
+    }
+
+    function openMenu() {
+      closeAllCustomSelects();
+      document.body.appendChild(menu);
+      menu.classList.add('is-portaled');
+      wrap.classList.add('is-open');
+      menu.hidden = false;
+      requestAnimationFrame(() => positionCustomSelectMenu(trigger, menu));
+    }
+
+    function rebuildOptions() {
+      menu.innerHTML = '';
+      Array.from(nativeSelect.options).forEach((opt) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'custom-select-option';
+        item.dataset.value = opt.value;
+        item.textContent = opt.textContent;
+        item.setAttribute('role', 'option');
+        if (opt.value === nativeSelect.value) item.classList.add('is-selected');
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          nativeSelect.value = opt.value;
+          nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+          syncUI();
+          closeMenu();
+        });
+        menu.appendChild(item);
+      });
+      syncUI();
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (nativeSelect.disabled) return;
+      if (wrap.classList.contains('is-open')) closeMenu();
+      else openMenu();
+    });
+
+    menu.addEventListener('mousedown', (e) => e.stopPropagation());
+
+    nativeSelect.addEventListener('change', syncUI);
+    nativeSelect._rebuildCustomSelect = rebuildOptions;
+    nativeSelect._syncCustomSelect = syncUI;
+    rebuildOptions();
+  }
+
+  function initCustomSelects(root = document) {
+    Array.from(root.querySelectorAll('select')).forEach((el) => enhanceSelect(el));
+  }
+
+  function enhanceDateInput(input) {
+    if (!input || input.type !== 'date' || input.dataset.customized) return;
+    if (input.closest('.custom-date')) return;
+
+    input.dataset.customized = '1';
+    const placeholder = input.getAttribute('data-placeholder') || '选择日期';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'custom-date';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-date-trigger';
+
+    input.classList.add('native-date-hidden');
+    const parent = input.parentNode;
+    parent.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    wrap.appendChild(trigger);
+
+    function sync() {
+      const hasValue = !!input.value;
+      trigger.textContent = hasValue ? input.value : placeholder;
+      trigger.classList.toggle('is-placeholder', !hasValue);
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof input.showPicker === 'function') {
+        try {
+          input.showPicker();
+          return;
+        } catch (_) { /* fallback below */ }
+      }
+      input.click();
+    });
+
+    input.addEventListener('change', sync);
+    input._syncCustomDate = sync;
+    sync();
+  }
+
+  function refreshCustomDate(input) {
+    if (!input) return;
+    if (input._syncCustomDate) input._syncCustomDate();
+    else enhanceDateInput(input);
+  }
+
+  function initCustomDateInputs(root = document) {
+    Array.from(root.querySelectorAll('input[type="date"]')).forEach((el) => enhanceDateInput(el));
+  }
+
+  function refreshStoreSelects() {
+    STORE_SELECT_IDS.forEach((id) => refreshCustomSelect($('#' + id)));
+  }
+
   function setRoute(route) {
     $$('.nav-item').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.route === route);
@@ -92,9 +311,7 @@
     const titles = {
       dashboard: '概览',
       stores: '门店管理',
-      'store-edit': '编辑门店',
       stylists: '发型师管理',
-      'stylist-edit': '编辑发型师',
       reports: '跨店报表',
       appointments: '预约总览',
       blacklist: '用户黑名单',
@@ -104,9 +321,7 @@
 
     $('#panel-dashboard').hidden = route !== 'dashboard';
     $('#panel-stores').hidden = route !== 'stores';
-    $('#panel-store-edit').hidden = route !== 'store-edit';
     $('#panel-stylists').hidden = route !== 'stylists';
-    $('#panel-stylist-edit').hidden = route !== 'stylist-edit';
     $('#panel-reports').hidden = route !== 'reports';
     $('#panel-appointments').hidden = route !== 'appointments';
     $('#panel-blacklist').hidden = route !== 'blacklist';
@@ -174,14 +389,52 @@
     $('#storeTodayList').innerHTML = list;
   }
 
-  async function syncStoresToCloud() {
-    if (!confirm('将当前全部门店与黑名单同步到云开发数据库？')) return;
-    const data = await api('/cloud/sync-stores', { method: 'POST' });
-    if (data.success) {
-      toast(data.message || '同步成功');
-    } else {
-      toast(data.message || '同步失败');
+  function openStoreModal(title, subtitle) {
+    const modal = $('#storeEditModal');
+    if (!modal) return;
+    $('#storeEditTitle').textContent = title || '编辑门店';
+    const subEl = $('#storeEditSubtitle');
+    if (subEl) {
+      if (subtitle) {
+        subEl.textContent = subtitle;
+        subEl.hidden = false;
+      } else {
+        subEl.textContent = '';
+        subEl.hidden = true;
+      }
     }
+    modal.hidden = false;
+    syncModalBodyLock();
+  }
+
+  function closeStoreModal() {
+    const modal = $('#storeEditModal');
+    if (modal) modal.hidden = true;
+    syncModalBodyLock();
+  }
+
+  function openStylistModal(title, subtitle) {
+    const modal = $('#stylistEditModal');
+    if (!modal) return;
+    $('#stylistEditTitle').textContent = title || '编辑发型师';
+    const subEl = $('#stylistEditSubtitle');
+    if (subEl) {
+      if (subtitle) {
+        subEl.textContent = subtitle;
+        subEl.hidden = false;
+      } else {
+        subEl.textContent = '';
+        subEl.hidden = true;
+      }
+    }
+    modal.hidden = false;
+    syncModalBodyLock();
+  }
+
+  function closeStylistModal() {
+    const modal = $('#stylistEditModal');
+    if (modal) modal.hidden = true;
+    syncModalBodyLock();
   }
 
   async function loadStores() {
@@ -191,13 +444,18 @@
     fillStoreSelects(storesCache);
     $('#storeList').innerHTML = storesCache.map((s) => `
       <div class="store-card glass" data-id="${s.id}">
-        <div>
-          <h4>${escapeHtml(s.name)}</h4>
-          <p>${s.latitude != null && s.longitude != null ? `${s.latitude}, ${s.longitude}` : '未配置坐标'} · ${s.workStart}–${s.workEnd}</p>
+        <div class="store-card-main">
+          <div class="store-card-info">
+            <h4>${escapeHtml(s.name)}</h4>
+            <div class="store-card-meta">
+              <span>${escapeHtml(s.workStart || '—')}–${escapeHtml(s.workEnd || '—')}</span>
+              <span>${s.latitude != null && s.longitude != null ? '已配置坐标' : '未配置坐标'}</span>
+            </div>
+          </div>
         </div>
         <div class="store-card-actions">
-          <button type="button" class="btn btn-ghost btn-sm" data-dup-store="${s.id}">复制</button>
           <span class="badge ${s.status === 'active' ? 'badge-active' : 'badge-disabled'}">${s.status === 'active' ? '营业中' : '已停用'}</span>
+          <button type="button" class="btn btn-ghost btn-sm" data-dup-store="${s.id}">复制</button>
         </div>
       </div>
     `).join('') || '<div class="empty-hint glass card">暂无门店，点击「新建门店」</div>';
@@ -219,6 +477,7 @@
     $('#reportStore').innerHTML = `<option value="">全部门店</option>${opts}`;
     $('#auditStore').innerHTML = `<option value="">全部门店</option>${opts}`;
     $('#blSuggestStore').innerHTML = `<option value="">全部门店</option>${opts}`;
+    refreshStoreSelects();
   }
 
   function formatAuditDetail(detail) {
@@ -241,6 +500,8 @@
         fillStoreSelects(storesCache);
       }
     }
+    refreshCustomSelect($('#auditAction'));
+    refreshCustomSelect($('#auditStore'));
     const fromEl = $('#auditFrom');
     const toEl = $('#auditTo');
     if (fromEl && !fromEl.value) {
@@ -250,6 +511,8 @@
       fromEl.value = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
     }
     if (toEl && !toEl.value) toEl.value = todayStr();
+    refreshCustomDate(fromEl);
+    refreshCustomDate(toEl);
     await fetchAuditLogs();
   }
 
@@ -387,20 +650,51 @@
   }
 
   async function loadStylists() {
+    if (!storesCache.length) {
+      const storeData = await api('/stores');
+      if (storeData.success) {
+        storesCache = storeData.stores || [];
+        fillStoreSelects(storesCache);
+      }
+    }
     const params = new URLSearchParams();
     if ($('#stylistFilterStore').value) params.set('storeId', $('#stylistFilterStore').value);
     const data = await api(`/stylists?${params}`);
     if (!data.success) return;
     const rows = data.stylists || [];
-    $('#stylistList').innerHTML = rows.length ? rows.map((s) => `
-      <div class="store-card glass" data-stylist-id="${s.id}">
-        <div>
-          <h4>${escapeHtml(s.name)} <span class="badge ${s.enabled ? 'badge-active' : 'badge-disabled'}">${s.enabled ? '启用' : '停用'}</span></h4>
-          <p>${escapeHtml(s.storeName)} · ${escapeHtml(s.phone || '未填手机号')} · 登录名 ${escapeHtml(s.username)}</p>
+    $('#stylistList').innerHTML = rows.length ? rows.map((s) => {
+      const avatarSrc = resolveStylistListAvatar(s);
+      return `
+      <div class="store-card glass stylist-list-card" data-stylist-id="${s.id}">
+        <div class="store-card-main">
+          <img
+            class="stylist-card-avatar"
+            src="${escapeHtml(avatarSrc)}"
+            alt="${escapeHtml(s.name || '发型师')}"
+            loading="lazy"
+            data-fallback="${STYLIST_DEFAULT_AVATAR}"
+          >
+          <div class="store-card-info">
+            <h4>${escapeHtml(s.name)}</h4>
+            <div class="store-card-meta">
+              <span>${escapeHtml(s.storeName || '—')}</span>
+              <span>${escapeHtml(s.phone || '未填手机号')}</span>
+            </div>
+          </div>
         </div>
-        <span class="badge badge-active">${s.workStatus === 'resting' ? '休息' : '工作'}</span>
-      </div>
-    `).join('') : '<div class="empty-hint glass card">暂无发型师，点击「新建发型师」</div>';
+        <div class="store-card-actions">
+          <span class="badge ${s.enabled ? 'badge-active' : 'badge-disabled'}">${s.enabled ? '启用' : '停用'}</span>
+          <span class="badge ${s.workStatus === 'resting' ? 'badge-disabled' : 'badge-active'}">${s.workStatus === 'resting' ? '休息' : '工作'}</span>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty-hint glass card">暂无发型师，点击「新建发型师」</div>';
+
+    $$('.stylist-card-avatar').forEach((img) => {
+      img.addEventListener('error', () => {
+        const fallback = img.dataset.fallback || STYLIST_DEFAULT_AVATAR;
+        if (!img.src.includes(fallback)) img.src = fallback;
+      });
+    });
 
     $$('[data-stylist-id]').forEach((card) => {
       card.addEventListener('click', () => openStylistEdit(card.dataset.stylistId));
@@ -415,6 +709,12 @@
       preview.hidden = true;
     }
     if (placeholder) placeholder.hidden = false;
+  }
+
+  function resolveStylistListAvatar(stylist) {
+    const raw = stylist.photoPreviewUrl || stylist.photo || '';
+    if (isBrowserDisplayablePhoto(raw)) return appendCacheBust(raw);
+    return STYLIST_DEFAULT_AVATAR;
   }
 
   function isBrowserDisplayablePhoto(url) {
@@ -726,12 +1026,20 @@
     $('#stylistPassword').required = false;
     setStylistAvatarPreview(s.photoPreviewUrl || s.photo || '');
     updateStylistAvatarControls();
-    setRoute('stylist-edit');
-    $('#panel-stylist-edit').hidden = false;
-    $('#pageTitle').textContent = `编辑 · ${s.name}`;
+    refreshCustomSelect($('#stylistStore'));
+    refreshCustomSelect($('#stylistWorkStatus'));
+    refreshCustomSelect($('#stylistEnabled'));
+    openStylistModal(`编辑 · ${s.name}`, '基本信息、账号与工作状态');
   }
 
-  function newStylist() {
+  async function newStylist() {
+    if (!storesCache.length) {
+      const data = await api('/stores');
+      if (data.success) {
+        storesCache = data.stores || [];
+        fillStoreSelects(storesCache);
+      }
+    }
     $('#stylistId').value = '';
     $('#stylistForm').reset();
     $('#stylistWorkStatus').value = 'working';
@@ -740,9 +1048,10 @@
     if (storesCache[0]) $('#stylistStore').value = storesCache[0].id;
     resetStylistAvatarPreview();
     updateStylistAvatarControls();
-    setRoute('stylist-edit');
-    $('#panel-stylist-edit').hidden = false;
-    $('#pageTitle').textContent = '新建发型师';
+    refreshCustomSelect($('#stylistStore'));
+    refreshCustomSelect($('#stylistWorkStatus'));
+    refreshCustomSelect($('#stylistEnabled'));
+    openStylistModal('新建发型师', '保存后可上传头像');
   }
 
   async function saveStylist() {
@@ -769,7 +1078,8 @@
       : await api('/stylists', { method: 'POST', json: payload });
     if (data.success) {
       toast('已保存');
-      setRoute('stylists');
+      closeStylistModal();
+      if ($('#panel-stylists').hidden === false) loadStylists();
     } else {
       toast(data.message || '保存失败');
     }
@@ -874,9 +1184,8 @@
       resetStoreBgPreview();
     }
     updateStoreBgControls();
-    setRoute('store-edit');
-    $('#panel-store-edit').hidden = false;
-    $('#pageTitle').textContent = `编辑 · ${s.name}`;
+    refreshCustomSelect($('#storeStatus'));
+    openStoreModal(`编辑 · ${s.name}`, '基本信息、预约规则与展示设置');
     refreshStoreQrcode(s.id);
   }
 
@@ -894,9 +1203,8 @@
     $('#storeBlocked').value = '12:00-12:30\n18:00-18:30';
     $('#storeLatitude').value = '23.185396';
     $('#storeLongitude').value = '113.323372';
-    setRoute('store-edit');
-    $('#panel-store-edit').hidden = false;
-    $('#pageTitle').textContent = '新建门店';
+    refreshCustomSelect($('#storeStatus'));
+    openStoreModal('新建门店', '保存后可上传背景图与生成小程序码');
   }
 
   async function saveStore() {
@@ -928,7 +1236,8 @@
       : await api('/stores', { method: 'POST', json: payload });
     if (data.success) {
       toast('已保存');
-      setRoute('stores');
+      closeStoreModal();
+      if ($('#panel-stores').hidden === false) loadStores();
     } else {
       toast(data.message || '保存失败');
     }
@@ -1080,12 +1389,30 @@
 
     const btnNewStore = $('#btnNewStore');
     if (btnNewStore) btnNewStore.addEventListener('click', newStore);
-    const btnSyncCloud = $('#btnSyncCloud');
-    if (btnSyncCloud) btnSyncCloud.addEventListener('click', syncStoresToCloud);
-    const btnBackStores = $('#btnBackStores');
-    if (btnBackStores) btnBackStores.addEventListener('click', () => setRoute('stores'));
     const btnSaveStore = $('#btnSaveStore');
     if (btnSaveStore) btnSaveStore.addEventListener('click', saveStore);
+    const storeEditClose = $('#storeEditClose');
+    if (storeEditClose) storeEditClose.addEventListener('click', closeStoreModal);
+    const storeEditBackdrop = $('#storeEditBackdrop');
+    if (storeEditBackdrop) storeEditBackdrop.addEventListener('click', closeStoreModal);
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if ($('#storeEditModal') && !$('#storeEditModal').hidden) closeStoreModal();
+      else if ($('#stylistEditModal') && !$('#stylistEditModal').hidden) closeStylistModal();
+    });
+    document.addEventListener('click', (e) => {
+      if (e.target.closest && e.target.closest('.custom-select')) return;
+      closeAllCustomSelects();
+    });
+    window.addEventListener('resize', closeAllCustomSelects);
+    window.addEventListener('scroll', (e) => {
+      if (e.target && e.target.closest && e.target.closest('.custom-select-menu')) return;
+      $$('.custom-select.is-open').forEach((wrap) => {
+        const trigger = wrap.querySelector('.custom-select-trigger');
+        const menu = wrap._customMenu;
+        if (trigger && menu && !menu.hidden) positionCustomSelectMenu(trigger, menu);
+      });
+    }, true);
     const btnRefreshQrcode = $('#btnRefreshQrcode');
     if (btnRefreshQrcode) {
       btnRefreshQrcode.addEventListener('click', () => {
@@ -1116,10 +1443,12 @@
     if (stylistFilterStore) stylistFilterStore.addEventListener('change', loadStylists);
     const btnNewStylist = $('#btnNewStylist');
     if (btnNewStylist) btnNewStylist.addEventListener('click', newStylist);
-    const btnBackStylists = $('#btnBackStylists');
-    if (btnBackStylists) btnBackStylists.addEventListener('click', () => setRoute('stylists'));
     const btnSaveStylist = $('#btnSaveStylist');
     if (btnSaveStylist) btnSaveStylist.addEventListener('click', saveStylist);
+    const stylistEditClose = $('#stylistEditClose');
+    if (stylistEditClose) stylistEditClose.addEventListener('click', closeStylistModal);
+    const stylistEditBackdrop = $('#stylistEditBackdrop');
+    if (stylistEditBackdrop) stylistEditBackdrop.addEventListener('click', closeStylistModal);
 
     const btnPickStylistAvatar = $('#btnPickStylistAvatar');
     const stylistAvatarInput = $('#stylistAvatarInput');
@@ -1140,10 +1469,9 @@
       });
     }
     const avatarCropClose = $('#avatarCropClose');
-    const avatarCropCancel = $('#avatarCropCancel');
     const avatarCropBackdrop = $('#avatarCropBackdrop');
     const avatarCropConfirm = $('#avatarCropConfirm');
-    [avatarCropClose, avatarCropCancel, avatarCropBackdrop].forEach((el) => {
+    [avatarCropClose, avatarCropBackdrop].forEach((el) => {
       if (el) el.addEventListener('click', closeAvatarCropModal);
     });
     if (avatarCropConfirm) {
@@ -1165,6 +1493,7 @@
           setStylistAvatarPreview(imageBase64);
           toast('头像已上传');
           refreshStylistAvatarPreview(stylistId, imageBase64);
+          if ($('#panel-stylists').hidden === false) loadStylists();
         } catch (_) {
           toast('上传失败');
         } finally {
@@ -1193,10 +1522,9 @@
       });
     }
     const storeBgCropClose = $('#storeBgCropClose');
-    const storeBgCropCancel = $('#storeBgCropCancel');
     const storeBgCropBackdrop = $('#storeBgCropBackdrop');
     const storeBgCropConfirm = $('#storeBgCropConfirm');
-    [storeBgCropClose, storeBgCropCancel, storeBgCropBackdrop].forEach((el) => {
+    [storeBgCropClose, storeBgCropBackdrop].forEach((el) => {
       if (el) el.addEventListener('click', closeStoreBgCropModal);
     });
     if (storeBgCropConfirm) {
@@ -1281,6 +1609,8 @@
 
   try {
     bindEvents();
+    initCustomSelects();
+    initCustomDateInputs();
     boot();
   } catch (ex) {
     console.error('[platform] init failed', ex);
