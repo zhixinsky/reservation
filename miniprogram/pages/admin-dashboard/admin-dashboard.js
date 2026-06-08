@@ -10,6 +10,28 @@ function ymd(offset = 0) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
+/** 统一预约日期为 YYYY-MM-DD（兼容导入数据 2026/6/7 格式） */
+function normalizeYmd(value) {
+  const raw = String(value || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const slash = raw.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (slash) {
+    return `${slash[1]}-${pad2(Number(slash[2]))}-${pad2(Number(slash[3]))}`;
+  }
+  return raw;
+}
+
+function buildTodayStats(appointments) {
+  const list = Array.isArray(appointments) ? appointments : [];
+  const todayStr = ymd(0);
+  const onToday = list.filter(a => a.date === todayStr);
+  return {
+    pending: onToday.filter(a => a.status !== 'cancelled' && a.status !== 'completed').length,
+    completed: onToday.filter(a => a.status === 'completed').length,
+    all: onToday.filter(a => a.status !== 'cancelled').length
+  };
+}
+
 /** 截止日当天仍有效，次日 0 点起视为过期不再展示 */
 function filterActiveVacationRanges(ranges) {
   const today = ymd(0);
@@ -240,9 +262,11 @@ Page({
       const rows = await this.callApi('getAdminAppointments');
       const appointments = (Array.isArray(rows) ? rows : []).map(app => {
         const timeParts = parseTimeParts(app.time);
+        const date = normalizeYmd(app.date);
         return {
           ...app,
-          dateText: dateText(app.date),
+          date,
+          dateText: dateText(date),
           timeDisplay: timeParts.timeDisplay,
           timeHour: timeParts.timeHour,
           timeMinute: timeParts.timeMinute,
@@ -257,11 +281,7 @@ Page({
       this.setData({
         appointments,
         filters: this.buildFilterCounts(appointments),
-        stats: {
-          pending: appointments.filter(a => a.status !== 'cancelled' && a.status !== 'completed').length,
-          completed: appointments.filter(a => a.status === 'completed').length,
-          all: appointments.filter(a => a.status !== 'cancelled').length
-        }
+        stats: buildTodayStats(appointments)
       });
       this.applyFilter();
       if (refreshSlots) {

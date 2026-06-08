@@ -57,6 +57,34 @@ function toMysqlDateTime(value) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+function getTodayYmdLocal() {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+function autoCompleteStaleAppointments() {
+    const today = getTodayYmdLocal();
+    let count = 0;
+    memoryAppointments.forEach((app) => {
+        const isPastBooked = (app.status === 'booked' || app.status === 'pending')
+            && app.date
+            && app.date < today;
+        const isLegacyUnhandled = app.status === 'unhandled';
+        if (!isPastBooked && !isLegacyUnhandled) return;
+        app.status = 'completed';
+        count += 1;
+        asyncWrite('appointments.autoComplete', () => pool.query(
+            'UPDATE appointments SET status = ? WHERE id = ?',
+            ['completed', app.id]
+        ));
+    });
+    if (count > 0) {
+        console.log(`✓ 已将 ${count} 条过期未完结预约自动标记为已完成`);
+    }
+    return count;
+}
+
 function normalizeAppointment(row) {
     return {
         ...row,
@@ -251,6 +279,7 @@ async function ensureDatabase() {
 
     await seedDefaultStoreIfEmpty();
     await reloadCache();
+    autoCompleteStaleAppointments();
     console.log('✓ MySQL 数据缓存加载完成');
 }
 
@@ -450,7 +479,10 @@ function matchConditions(row, conditions) {
 }
 
 const appointments = {
+    autoCompleteStaleAppointments,
+
     getAll() {
+        autoCompleteStaleAppointments();
         return [...memoryAppointments].sort((a, b) => {
             if (a.date !== b.date) return a.date.localeCompare(b.date);
             return a.time.localeCompare(b.time);
@@ -458,6 +490,7 @@ const appointments = {
     },
 
     find(conditions) {
+        autoCompleteStaleAppointments();
         return memoryAppointments
             .filter(app => matchConditions(app, conditions))
             .sort((a, b) => {
