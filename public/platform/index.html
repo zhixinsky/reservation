@@ -392,7 +392,8 @@
             <div class="glass-section-title">基本信息</div>
             <label class="field"><span>所属门店</span><select id="stylistStore" required></select></label>
             <label class="field"><span>姓名</span><input id="stylistName" required></label>
-            <label class="field"><span>手机号</span><input id="stylistPhone" type="tel" maxlength="11" placeholder="用于小程序「管理」入口" required></label>
+            <label class="field field-wide"><span>管理手机号</span><input id="stylistPhone" type="text" placeholder="可填多个，用逗号分隔，如 13800138000,13900139000" required></label>
+            <p class="field-hint">多个手机号登录小程序后，均可进入「管理」入口。</p>
             <label class="field"><span>职级</span><input id="stylistRank" placeholder="如：总监"></label>
           </fieldset>
           <fieldset class="form-section glass-section">
@@ -459,6 +460,6 @@
   </div>
 
   <script src="/platform/vendor/cropperjs/cropper.min.js"></script>
-  <script src="/platform/app.js?v=24"></script>
+  <script src="/platform/app.js?v=25"></script>
 </body>
 </html>

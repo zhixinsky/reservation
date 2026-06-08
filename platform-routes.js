@@ -29,15 +29,24 @@ function normalizeStylistPhone(phone) {
     return String(phone || '').replace(/\D/g, '');
 }
 
+function parseStylistPhoneInput(phone) {
+    const raw = String(phone || '').trim();
+    if (!raw) return [];
+    const matches = raw.match(/1[3-9]\d{9}/g) || [];
+    return [...new Set(matches)];
+}
+
 function validateStylistPhoneField(phone, dbStylistAccounts, excludeId) {
-    const digits = normalizeStylistPhone(phone);
-    if (!digits) return { ok: true, phone: '' };
-    if (!isValidStylistPhone(digits)) {
-        return { ok: false, message: '手机号格式不正确' };
+    const list = parseStylistPhoneInput(phone);
+    if (!list.length) return { ok: true, phone: '' };
+    for (const digits of list) {
+        if (!isValidStylistPhone(digits)) {
+            return { ok: false, message: `手机号 ${digits} 格式不正确` };
+        }
+        const dup = dbStylistAccounts.getByPhone(digits, excludeId);
+        if (dup) return { ok: false, message: `手机号 ${digits} 已被其他发型师使用` };
     }
-    const dup = dbStylistAccounts.getByPhone(digits, excludeId);
-    if (dup) return { ok: false, message: '该手机号已被其他发型师使用' };
-    return { ok: true, phone: digits };
+    return { ok: true, phone: list.join(',') };
 }
 
 function duplicateStoreName(sourceName) {

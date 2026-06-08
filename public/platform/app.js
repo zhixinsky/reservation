@@ -678,7 +678,7 @@
             <h4>${escapeHtml(s.name)}</h4>
             <div class="store-card-meta">
               <span>${escapeHtml(s.storeName || '—')}</span>
-              <span>${escapeHtml(s.phone || '未填手机号')}</span>
+              <span>${escapeHtml(formatStylistPhonesDisplay(s.phone) || '未填手机号')}</span>
             </div>
           </div>
         </div>
@@ -1017,6 +1017,26 @@
     return api(`/stylists/${stylistId}/avatar`, { method: 'POST', json: { imageBase64 } });
   }
 
+  function parseStylistPhonesInput(raw) {
+    const matches = String(raw || '').match(/1[3-9]\d{9}/g) || [];
+    return [...new Set(matches)];
+  }
+
+  function formatStylistPhonesDisplay(phone) {
+    return parseStylistPhonesInput(phone).join(', ');
+  }
+
+  function validateStylistPhonesInput(raw) {
+    const list = parseStylistPhonesInput(raw);
+    if (!list.length) return { ok: false, message: '请填写至少一个管理手机号' };
+    for (const digits of list) {
+      if (!/^1[3-9]\d{9}$/.test(digits)) {
+        return { ok: false, message: `手机号 ${digits} 格式不正确` };
+      }
+    }
+    return { ok: true, phone: list.join(',') };
+  }
+
   async function openStylistEdit(id) {
     const data = await api(`/stylists/${id}`);
     if (!data.success) return toast(data.message || '加载失败');
@@ -1024,7 +1044,7 @@
     $('#stylistId').value = s.id;
     $('#stylistStore').value = s.storeId;
     $('#stylistName').value = s.name || '';
-    $('#stylistPhone').value = s.phone || '';
+    $('#stylistPhone').value = formatStylistPhonesDisplay(s.phone);
     $('#stylistUsername').value = s.username || '';
     $('#stylistPassword').value = s.password || '';
     $('#stylistRank').value = s.rank || '';
@@ -1074,10 +1094,9 @@
       enabled: $('#stylistEnabled').value === '1'
     };
     if (!payload.name || !payload.username) return toast('请填写姓名和登录名');
-    if (!/^1[3-9]\d{9}$/.test(payload.phone.replace(/\D/g, ''))) {
-      return toast('请填写正确的11位手机号');
-    }
-    payload.phone = payload.phone.replace(/\D/g, '');
+    const phoneCheck = validateStylistPhonesInput(payload.phone);
+    if (!phoneCheck.ok) return toast(phoneCheck.message);
+    payload.phone = phoneCheck.phone;
     if (!id && !payload.password) return toast('请填写密码');
     if (id && !payload.password) delete payload.password;
     const data = id

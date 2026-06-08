@@ -18,7 +18,8 @@ const {
     auditLogs,
     stylistAccounts: dbStylistAccounts,
     publicStylistRow: dbPublicStylistRow,
-    normalizePhoneDigits: dbNormalizePhoneDigits
+    normalizePhoneDigits: dbNormalizePhoneDigits,
+    stylistHasAdminPhone: dbStylistHasAdminPhone
 } = require('./database');
 const {
     buildSlotsForDate,
@@ -143,7 +144,7 @@ function findStylistByAdminPhone(phone) {
     if (!digits) return null;
     const matches = stylists.filter((s) => (
         s.enabled !== false
-        && normalizePhone(s.phone) === digits
+        && dbStylistHasAdminPhone(s, digits)
     ));
     return matches.length === 1 ? matches[0] : null;
 }

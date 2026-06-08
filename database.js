@@ -251,7 +251,7 @@ async function ensureDatabase() {
             storeId INT NOT NULL DEFAULT 1,
             name VARCHAR(128) NOT NULL,
             username VARCHAR(64) NOT NULL,
-            phone VARCHAR(32) NOT NULL DEFAULT '',
+            phone VARCHAR(256) NOT NULL DEFAULT '',
             password VARCHAR(255) NOT NULL,
             workStatus VARCHAR(16) NOT NULL DEFAULT 'working',
             rankLabel VARCHAR(64) DEFAULT '',
@@ -268,8 +268,13 @@ async function ensureDatabase() {
 
     const [phoneCol] = await pool.query(`SHOW COLUMNS FROM stylists LIKE 'phone'`);
     if (!phoneCol.length) {
-        await pool.query(`ALTER TABLE stylists ADD COLUMN phone VARCHAR(32) NOT NULL DEFAULT '' AFTER username`);
+        await pool.query(`ALTER TABLE stylists ADD COLUMN phone VARCHAR(256) NOT NULL DEFAULT '' AFTER username`);
         await pool.query(`CREATE INDEX idx_stylists_phone ON stylists (phone)`);
+    } else {
+        const phoneType = String(phoneCol[0].Type || '');
+        if (!phoneType.includes('256')) {
+            await pool.query(`ALTER TABLE stylists MODIFY COLUMN phone VARCHAR(256) NOT NULL DEFAULT ''`);
+        }
     }
 
     const [bgCol] = await pool.query(`SHOW COLUMNS FROM stores LIKE 'backgroundImage'`);
@@ -385,7 +390,7 @@ function normalizeStylistRow(row) {
         storeId: Number(row.storeId) || 1,
         name: row.name || '',
         username: row.username || '',
-        phone: normalizePhoneDigits(row.phone),
+        phone: joinStylistPhones(row.phone),
         password: row.password || '',
         workStatus: row.workStatus || 'working',
         rank: row.rank || row.rankLabel || '',
@@ -841,7 +846,7 @@ const stylistAccounts = {
         if (!digits) return null;
         return this.getAll().find((s) => {
             if (excludeId != null && Number(s.id) === Number(excludeId)) return false;
-            return normalizePhoneDigits(s.phone) === digits;
+            return stylistHasAdminPhone(s, digits);
         }) || null;
     },
 
@@ -926,6 +931,27 @@ const stylistAccounts = {
 
 function normalizePhoneDigits(phone) {
     return String(phone || '').replace(/\D/g, '');
+}
+
+function parseStylistPhones(phone) {
+    const raw = String(phone || '');
+    if (!raw) return [];
+    const matches = raw.match(/1[3-9]\d{9}/g) || [];
+    return [...new Set(matches)];
+}
+
+function joinStylistPhones(phones) {
+    const list = Array.isArray(phones) ? phones : parseStylistPhones(phones);
+    return [...new Set(list.map(normalizePhoneDigits).filter(Boolean))].join(',');
+}
+
+function stylistHasAdminPhone(stylistOrPhone, targetDigits) {
+    const digits = normalizePhoneDigits(targetDigits);
+    if (!digits) return false;
+    const phones = typeof stylistOrPhone === 'object'
+        ? parseStylistPhones(stylistOrPhone && stylistOrPhone.phone)
+        : parseStylistPhones(stylistOrPhone);
+    return phones.includes(digits);
 }
 
 function normalizeAuditRow(row) {
@@ -1084,6 +1110,9 @@ module.exports = {
     stylistAccounts,
     publicStylistRow,
     normalizePhoneDigits,
+    parseStylistPhones,
+    joinStylistPhones,
+    stylistHasAdminPhone,
     initDatabase: ensureDatabase,
     reloadCache,
     useDatabase: () => useDatabase
