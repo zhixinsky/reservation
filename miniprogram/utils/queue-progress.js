@@ -107,7 +107,7 @@ async function buildProgressRow(app, callApiFn, formatters = {}) {
     const wait = formatWaitRange(delayMinutes);
 
     if (aheadCount === 0) {
-      base.delayLine1 = '您是当前队列第一位';
+      base.delayLine1 = '您是当前队列第1位';
       base.delayLine2 = wait.line2;
       base.numberPart = wait.numberPart;
       base.statusLevel = wait.statusLevel;
