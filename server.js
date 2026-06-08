@@ -5,7 +5,6 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
-const https = require('https');
 const axios = require('axios');
 const { sendBookingSuccessSMS, sendCancelBookingSMS, sendStylistCancelBookingSMS, initSmsTemplates, refreshSmsTemplateStatus, SMS_ENABLED } = require('./sms-service');
 const {
@@ -56,20 +55,19 @@ function getWechatApiBaseUrl() {
 }
 
 function getWechatRequestConfig() {
-    const config = { timeout: 10000 };
-    if (!useWechatCloudOpenApi() && hasWechatCloudCert()) {
-        config.httpsAgent = new https.Agent({
-            ca: fs.readFileSync(WECHAT_CLOUD_CERT_PATH)
-        });
-    }
-    return config;
+    // 依赖系统 CA + Dockerfile 中的 NODE_EXTRA_CA_CERTS，勿在此处单独指定 ca，
+    // 否则云托管注入证书会替换默认信任链，导致访问 api.weixin.qq.com 返回 502。
+    return { timeout: 10000 };
 }
 
 function formatWechatApiError(e) {
     const status = e.response && e.response.status;
     const wechatMsg = e.response && e.response.data && (e.response.data.errmsg || e.response.data.message);
     if (status === 502) {
-        return '微信接口网关异常(502)。若已开启开放接口服务，请确认权限含 /wxa/business/getuserphonenumber 并重新发布版本；否则请配置 WX_APPSECRET 后重试';
+        if (useWechatCloudOpenApi()) {
+            return '微信接口网关异常(502)。请确认已开启开放接口服务，且权限含 /wxa/business/getuserphonenumber，并重新发布版本';
+        }
+        return '微信接口网关异常(502)。请确认已配置 WX_APPSECRET 并重新发布；若环境变量含 WX_USE_OPENAPI=1 请删除后重试';
     }
     if (wechatMsg) return wechatMsg;
     if (e.message && e.message.includes('未配置 WX_APPSECRET')) return e.message;
