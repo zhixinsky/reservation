@@ -104,17 +104,14 @@ function isWechatApiFailure(payload) {
 }
 
 function buildPhoneApiFailureMessage(attemptErrors) {
-    const cloudHosting = isCloudHostingRuntime();
-    const lines = ['手机号获取失败，已尝试多种云托管调用方式仍不可用。'];
+    const lines = ['手机号获取失败。'];
     attemptErrors.forEach((item) => {
         lines.push(`- ${item.mode}: ${item.message}`);
     });
-    if (cloudHosting) {
-        lines.push('云托管请二选一：');
-        lines.push('1) 关闭「开放接口服务」后重新发布（适合仅用 WX_APPSECRET）；');
-        lines.push('2) 保持开启并在「云调用-微信令牌」白名单添加 /wxa/business/getuserphonenumber，然后重新发布。');
+    if (useWechatCloudOpenApi() || isCloudHostingRuntime()) {
+        lines.push('方案 B：请确认已开启「开放接口服务」，微信令牌白名单含 /wxa/business/getuserphonenumber，环境变量 WX_USE_OPENAPI=1，并重新发布服务。');
     } else if (!hasWechatAppSecret()) {
-        lines.push('请配置 WX_APPSECRET 后重新发布。');
+        lines.push('请配置 WX_APPSECRET，或改用方案 B（WX_USE_OPENAPI=1 + 开放接口服务）。');
     }
     return lines.join('\n');
 }
@@ -279,6 +276,13 @@ function buildPhoneFetchAttempts() {
         }
     };
 
+    // 方案 B：仅走容器内 HTTP 开放接口（及 cloudbase 兜底）
+    if (useWechatCloudOpenApi()) {
+        push('open-http', fetchPhoneNumberByOpenHttp);
+        push('cloudbase-token', fetchPhoneNumberByCloudbaseToken);
+        return attempts;
+    }
+
     if (mode === 'open') {
         push('open-http', fetchPhoneNumberByOpenHttp);
         return attempts;
@@ -345,13 +349,24 @@ async function resolvePhoneNumberFromWechat(code) {
     throw err;
 }
 
+async function buildWechatApiUrl(apiPath, query = {}) {
+    const params = new URLSearchParams(query);
+    let url = `${getWechatApiBaseUrl()}${apiPath}`;
+    if (!useWechatCloudOpenApi()) {
+        const accessToken = await getWechatAccessToken();
+        params.set('access_token', accessToken);
+    }
+    const qs = params.toString();
+    if (qs) url += `${apiPath.includes('?') ? '&' : '?'}${qs}`;
+    return url;
+}
+
 async function generateStoreWxacode(storeId) {
-    const accessToken = await getWechatAccessToken();
     const scene = `s=${Number(storeId)}`;
     const envVersion = process.env.WX_QRCODE_ENV_VERSION || 'release';
     const checkPath = process.env.WX_QRCODE_CHECK_PATH === '1';
     const { data } = await axios.post(
-        `${getWechatApiBaseUrl()}/wxa/getwxacodeunlimit?access_token=${encodeURIComponent(accessToken)}`,
+        await buildWechatApiUrl('/wxa/getwxacodeunlimit'),
         {
             scene,
             page: 'pages/index/index',
@@ -374,12 +389,11 @@ async function generateStoreWxacode(storeId) {
 }
 
 async function invokeCloudFunction(name, event) {
-    const accessToken = await getWechatAccessToken();
     const env = process.env.TCB_ENV_ID
         || process.env.WX_CLOUD_ENV
         || 'reservation-d2gf73dgv8fd17503';
     const { data } = await axios.post(
-        `${getWechatApiBaseUrl()}/tcb/invokecloudfunction?access_token=${encodeURIComponent(accessToken)}`,
+        await buildWechatApiUrl('/tcb/invokecloudfunction'),
         {
             env,
             name: name || process.env.CLOUD_FUNCTION_NAME || 'api',

@@ -15,22 +15,33 @@
 | `MYSQL_USERNAME` | `root` | MySQL 用户名（别名：`MYSQL_USER`） |
 | `MYSQL_PASSWORD` | `***` | MySQL 密码 |
 | `MYSQL_DATABASE` | `reservation_system` | 数据库名，不存在时首次启动会自动建库建表 |
-| `WX_APPSECRET` | `***` | 小程序 AppSecret，用于**手机号快速验证** |
+| `WX_USE_OPENAPI` | `1` | **方案 B（推荐）**：走云托管 HTTP 开放接口换手机号，见下文 |
+| `WX_APPSECRET` | `***` | **方案 A** 必填；方案 B 下用于门店小程序码等（可选） |
 
-### 微信手机号（云托管必读）
+### 微信手机号 — 方案 B（推荐，云托管）
 
-官方说明：[错误排查 FAQ](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloudrun/src/guide/weixin/faq.html)
+官方说明：[开放接口服务](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloudrun/src/guide/weixin/open.html) · [错误排查 FAQ](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloudrun/src/guide/weixin/faq.html)
 
-**502 常见原因**：云托管开启了「开放接口服务」，但 `/wxa/business/getuserphonenumber` 未加入微信令牌白名单；或同时开启开放接口服务又用 `WX_APPSECRET` 换 token（`stable_token` 无 `access_token` 参数会走开放接口链路）。
+**控制台（按顺序）：**
 
-| 方式 | 配置 | 控制台操作 |
-|------|------|------------|
-| **A** 仅用 AppSecret | 配置 `WX_APPSECRET`，**不要**设 `WX_USE_OPENAPI=1` | **关闭**「开放接口服务」→ 重新发布 |
-| **B** 开放接口服务 | 可不配 `WX_APPSECRET`；或保留 AppSecret 由代码自动回退 | **开启**开放接口服务，白名单添加 `/wxa/business/getuserphonenumber` → 重新发布 |
+1. 云托管 → **云调用** → **开启「开放接口服务」**
+2. **微信令牌**白名单添加：`/wxa/business/getuserphonenumber`
+3. 若使用 PC 上传发型师头像，另加：`/tcb/uploadfile`、`/tcb/batchdownloadfile`
+4. 若生成门店小程序码，另加：`/wxa/getwxacodeunlimit`
+5. **重新发布**服务版本（改配置后必须发布）
 
-代码默认 `WX_PHONE_API_MODE=auto`：云托管会先尝试容器内 HTTP 开放接口，再尝试 `cloudbase_access_token`，最后回退 `WX_APPSECRET`。
+**环境变量：**
 
-可选：`WX_PHONE_API_MODE=open|cloudbase|secret` 强制指定一种方式。
+```env
+WX_USE_OPENAPI=1
+```
+
+方案 B **不要求** `WX_APPSECRET` 也能完成手机号登录；保留 `WX_APPSECRET` 不影响手机号（代码不会再用 Secret 换手机号 token）。
+
+| 方式 | 环境变量 | 控制台 |
+|------|----------|--------|
+| **B（推荐）** | `WX_USE_OPENAPI=1` | **开启**开放接口服务 + 白名单 → 重新发布 |
+| **A** | `WX_APPSECRET`，不设 `WX_USE_OPENAPI` | **关闭**开放接口服务 → 重新发布 |
 
 ---
 
@@ -150,6 +161,7 @@ MYSQL_ADDRESS=你的MySQL地址:3306
 MYSQL_USERNAME=你的数据库用户
 MYSQL_PASSWORD=你的数据库密码
 MYSQL_DATABASE=reservation_system
+WX_USE_OPENAPI=1
 WX_APPSECRET=你的小程序AppSecret
 
 # --- 建议 ---

@@ -46,19 +46,20 @@ WX_APPSECRET=你的小程序 AppSecret
 
 云托管调用微信接口有两种方式，二选一即可：
 
-**方式 A（推荐，默认）：HTTPS + WX_APPSECRET**
+**方式 B（推荐）：HTTP 开放接口服务**
 
-1. 在云托管环境变量配置 `WX_APPSECRET`（小程序 AppSecret）。
-2. 重新发布服务版本。`Dockerfile` 已配置 `NODE_EXTRA_CA_CERTS`，`server.js` 会自动信任云托管注入证书，解决 `self-signed certificate`。
-
-**方式 B：HTTP 开放接口服务（免 AppSecret）**
-
-1. 在云托管控制台打开 **云调用 → 开放接口服务** 开关。
-2. 在权限配置中加入接口：`/wxa/business/getuserphonenumber`。
+1. 云托管控制台 → **云调用** → **开启「开放接口服务」**。
+2. **微信令牌**白名单加入：`/wxa/business/getuserphonenumber`（头像上传另加 `/tcb/uploadfile`、`/tcb/batchdownloadfile`）。
 3. 环境变量设置 `WX_USE_OPENAPI=1`。
-4. **重新发布服务版本**（仅改变量不够，必须重新构建版本）。
+4. **重新发布服务版本**（仅改变量不够，必须重新发布）。
 
-若出现 `502`，通常是走了方式 B 但开放接口服务未正确生效；去掉 `WX_USE_OPENAPI` 并配置 `WX_APPSECRET` 即可回到方式 A。
+**方式 A：HTTPS + WX_APPSECRET**
+
+1. **关闭**「开放接口服务」。
+2. 配置 `WX_APPSECRET`，**不要**设 `WX_USE_OPENAPI=1`。
+3. 重新发布服务版本。
+
+若出现 `502`，方案 B 请检查白名单是否含对应接口并已重新发布；方案 A 请确认已关闭开放接口服务。
 
 本地开发不走云调用，仍需配置 `WX_APPSECRET`。
 
