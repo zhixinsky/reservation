@@ -921,6 +921,18 @@ input.native-date-hidden {
   flex: 1;
 }
 
+.stylist-avatar-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.stylist-avatar-btn-row .btn {
+  width: auto;
+  flex: 0 0 auto;
+}
+
 /* Table */
 .filter-bar {
   display: flex; flex-wrap: wrap; gap: 10px; padding: 14px; border-radius: var(--radius);
@@ -1037,10 +1049,11 @@ input.native-date-hidden {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: 220px;
+  min-width: 0;
 }
 
 #btnPickStylistAvatar:disabled,
+#btnResetStylistAvatar:disabled,
 #btnPickStoreBg:disabled {
   opacity: 0.45;
   cursor: not-allowed;

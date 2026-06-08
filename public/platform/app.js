@@ -702,13 +702,7 @@
   }
 
   function resetStylistAvatarPreview() {
-    const preview = $('#stylistAvatarPreview');
-    const placeholder = $('#stylistAvatarPlaceholder');
-    if (preview) {
-      preview.removeAttribute('src');
-      preview.hidden = true;
-    }
-    if (placeholder) placeholder.hidden = false;
+    setStylistAvatarPreview('');
   }
 
   function resolveStylistListAvatar(stylist) {
@@ -740,14 +734,11 @@
     const preview = $('#stylistAvatarPreview');
     const placeholder = $('#stylistAvatarPlaceholder');
     const value = String(url || '').trim();
-    if (!preview || !placeholder) return;
-    if (!isBrowserDisplayablePhoto(value)) {
-      if (!value) resetStylistAvatarPreview();
-      return;
-    }
+    if (!preview) return;
+    const src = isBrowserDisplayablePhoto(value) ? value : STYLIST_DEFAULT_AVATAR;
     preview.hidden = false;
-    placeholder.hidden = true;
-    preview.src = appendCacheBust(value);
+    if (placeholder) placeholder.hidden = true;
+    preview.src = src === STYLIST_DEFAULT_AVATAR ? src : appendCacheBust(src);
   }
 
   function resetStoreBgPreview() {
@@ -896,18 +887,34 @@
         setStylistAvatarPreview(remote);
         return;
       }
+      setStylistAvatarPreview('');
     } catch (_) { /* ignore */ }
     if (isBrowserDisplayablePhoto(fallbackUrl)) {
       setStylistAvatarPreview(fallbackUrl);
+    } else {
+      setStylistAvatarPreview('');
     }
+  }
+
+  async function restoreStylistAvatarDefault() {
+    const stylistId = $('#stylistId').value;
+    if (!stylistId) return toast('请先保存发型师后再操作');
+    if (!confirm('确定恢复为默认头像？')) return;
+    const data = await api(`/stylists/${stylistId}`, { method: 'PUT', json: { photo: '' } });
+    if (!data.success) return toast(data.message || '恢复失败');
+    setStylistAvatarPreview('');
+    toast('已恢复默认头像');
+    if ($('#panel-stylists').hidden === false) loadStylists();
   }
 
   function updateStylistAvatarControls() {
     const id = $('#stylistId').value;
     const hasId = !!id;
     const pickBtn = $('#btnPickStylistAvatar');
+    const resetBtn = $('#btnResetStylistAvatar');
     const hint = $('#stylistAvatarHint');
     if (pickBtn) pickBtn.disabled = !hasId;
+    if (resetBtn) resetBtn.disabled = !hasId;
     if (hint) hint.hidden = hasId;
   }
 
@@ -1451,6 +1458,7 @@
     if (stylistEditBackdrop) stylistEditBackdrop.addEventListener('click', closeStylistModal);
 
     const btnPickStylistAvatar = $('#btnPickStylistAvatar');
+    const btnResetStylistAvatar = $('#btnResetStylistAvatar');
     const stylistAvatarInput = $('#stylistAvatarInput');
     if (btnPickStylistAvatar && stylistAvatarInput) {
       btnPickStylistAvatar.addEventListener('click', () => {
@@ -1467,6 +1475,9 @@
         if (file.size > 5 * 1024 * 1024) return toast('图片不能超过 5MB');
         openAvatarCropModal(file);
       });
+    }
+    if (btnResetStylistAvatar) {
+      btnResetStylistAvatar.addEventListener('click', restoreStylistAvatarDefault);
     }
     const avatarCropClose = $('#avatarCropClose');
     const avatarCropBackdrop = $('#avatarCropBackdrop');

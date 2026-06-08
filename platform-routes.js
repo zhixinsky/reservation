@@ -63,6 +63,8 @@ function createPlatformRouter(deps) {
         generateStoreWxacode,
         invokeCloudFunction,
         getWechatAccessToken,
+        clearWechatAccessTokenCache,
+        isWechatAccessTokenError,
         getWechatApiBaseUrl,
         getWechatRequestConfig,
         useWechatCloudOpenApi,
@@ -73,6 +75,8 @@ function createPlatformRouter(deps) {
 
     const wechatApi = {
         getWechatAccessToken,
+        clearWechatAccessTokenCache,
+        isWechatAccessTokenError,
         getWechatApiBaseUrl,
         getWechatRequestConfig,
         useWechatCloudOpenApi

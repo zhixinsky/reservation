@@ -21,7 +21,7 @@
 
 | 方式 | 配置 |
 |------|------|
-| **A（推荐）** HTTPS + AppSecret | 配置 `WX_APPSECRET`，不设 `WX_USE_OPENAPI` |
+| **A（推荐）** HTTPS + AppSecret | 配置 `WX_APPSECRET`，不设 `WX_USE_OPENAPI`；服务端使用微信**稳定版** `stable_token`，多实例不易互相顶掉 token |
 | **B** 开放接口服务 | 云托管开启开放接口并授权 `/wxa/business/getuserphonenumber`，设 `WX_USE_OPENAPI=1`，可不配 `WX_APPSECRET` |
 
 ---

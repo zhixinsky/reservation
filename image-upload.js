@@ -80,21 +80,36 @@ function buildCosMultipart({ key, signature, token, cosFileId, fileBuffer, filen
 async function requestWechatApi(wechatApi, apiPath, payload) {
     const {
         getWechatAccessToken,
+        clearWechatAccessTokenCache,
+        isWechatAccessTokenError,
         getWechatApiBaseUrl,
         getWechatRequestConfig,
         useWechatCloudOpenApi
     } = wechatApi;
-    let url = `${getWechatApiBaseUrl()}${apiPath}`;
-    if (!useWechatCloudOpenApi()) {
-        const accessToken = await getWechatAccessToken();
-        if (!accessToken) throw new Error('无法获取 access_token，请配置 WX_APPSECRET');
-        url += `${apiPath.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(accessToken)}`;
+    let lastError = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        let url = `${getWechatApiBaseUrl()}${apiPath}`;
+        if (!useWechatCloudOpenApi()) {
+            const accessToken = await getWechatAccessToken(attempt > 0 ? { forceRefresh: true } : {});
+            if (!accessToken) throw new Error('无法获取 access_token，请配置 WX_APPSECRET');
+            url += `${apiPath.includes('?') ? '&' : '?'}access_token=${encodeURIComponent(accessToken)}`;
+        }
+        const { data } = await axios.post(url, payload, getWechatRequestConfig());
+        if (!data || !data.errcode) {
+            return data;
+        }
+        lastError = new Error((data && data.errmsg) || '微信接口调用失败');
+        if (!useWechatCloudOpenApi()
+            && isWechatAccessTokenError
+            && clearWechatAccessTokenCache
+            && isWechatAccessTokenError(data)
+            && attempt === 0) {
+            clearWechatAccessTokenCache();
+            continue;
+        }
+        throw lastError;
     }
-    const { data } = await axios.post(url, payload, getWechatRequestConfig());
-    if (!data || data.errcode) {
-        throw new Error((data && data.errmsg) || '微信接口调用失败');
-    }
-    return data;
+    throw lastError || new Error('微信接口调用失败');
 }
 
 async function uploadToCloudHosting(cloudPath, buffer, wechatApi, contentType) {
